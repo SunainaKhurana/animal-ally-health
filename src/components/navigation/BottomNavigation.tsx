@@ -35,21 +35,22 @@ const BottomNavigation = () => {
         <nav className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || 
+              (item.path === "/health" && location.pathname.startsWith("/health"));
             
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center py-2 px-3 rounded-lg transition-colors",
+                  "flex flex-col items-center py-2 px-3 rounded-lg transition-colors min-w-0 flex-1",
                   isActive 
                     ? "text-orange-600 bg-orange-50" 
                     : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 <Icon className={cn("h-5 w-5 mb-1", isActive && "text-orange-600")} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium truncate">{item.label}</span>
               </Link>
             );
           })}

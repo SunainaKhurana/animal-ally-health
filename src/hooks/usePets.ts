@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -90,7 +89,7 @@ export const usePets = () => {
         description: "Please log in to add a pet",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     try {
@@ -160,6 +159,8 @@ export const usePets = () => {
         title: "Success",
         description: `${petData.name} has been added!`,
       });
+
+      return newPet;
     } catch (error) {
       console.error('Error adding pet:', error);
       toast({
@@ -167,6 +168,7 @@ export const usePets = () => {
         description: `Failed to add pet: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
+      return null;
     }
   };
 

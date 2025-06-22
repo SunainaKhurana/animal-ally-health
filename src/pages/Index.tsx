@@ -1,12 +1,12 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, Heart, TrendingUp, Calendar } from "lucide-react";
-import PetCard from "@/components/pets/PetCard";
+import { LogOut } from "lucide-react";
+import PetSwitcher from "@/components/pets/PetSwitcher";
+import PetInfoSection from "@/components/pets/PetInfoSection";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
-import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
+import FloatingActionButton from "@/components/ui/FloatingActionButton";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { usePets } from "@/hooks/usePets";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,10 +27,17 @@ interface Pet {
 
 const Index = () => {
   const { pets, loading, user, addPet, updatePet, deletePet } = usePets();
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [isAddPetOpen, setIsAddPetOpen] = useState(false);
   const [isEditPetOpen, setIsEditPetOpen] = useState(false);
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const { toast } = useToast();
+
+  // Auto-select first pet when pets load
+  useEffect(() => {
+    if (pets.length > 0 && !selectedPet) {
+      setSelectedPet(pets[0]);
+    }
+  }, [pets, selectedPet]);
 
   const handleSignOut = async () => {
     try {
@@ -55,23 +62,21 @@ const Index = () => {
   }
 
   const handleAddPet = async (newPet: any) => {
-    await addPet(newPet);
+    const addedPet = await addPet(newPet);
+    if (addedPet) {
+      setSelectedPet(addedPet);
+    }
     setIsAddPetOpen(false);
   };
 
-  const handleEditPet = (pet: Pet) => {
-    setSelectedPet(pet);
+  const handleEditPet = () => {
     setIsEditPetOpen(true);
   };
 
   const handleUpdatePet = async (updatedPet: Pet) => {
     await updatePet(updatedPet);
-    setSelectedPet(null);
+    setSelectedPet(updatedPet);
     setIsEditPetOpen(false);
-  };
-
-  const handleDeletePet = async (petId: string) => {
-    await deletePet(petId);
   };
 
   if (loading) {
@@ -92,7 +97,7 @@ const Index = () => {
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">PetHealth</h1>
-            <p className="text-sm text-gray-600">Track your pet's wellness</p>
+            <p className="text-sm text-gray-600">Your pet's wellness companion</p>
           </div>
           <Button variant="outline" size="sm" className="rounded-full" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
@@ -100,99 +105,65 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
-        {/* Welcome Section */}
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-400 text-white border-0">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-semibold mb-2">Welcome back! 👋</h2>
-            <p className="text-orange-100">Keep your furry friends healthy and happy</p>
-          </CardContent>
-        </Card>
-
-        {/* Quick Stats */}
-        {pets.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">{pets.length}</div>
-                <div className="text-sm text-gray-600">Pets</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Heart className="h-6 w-6 text-red-500 mx-auto mb-1" />
-                <div className="text-sm text-gray-600">Health</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Calendar className="h-6 w-6 text-blue-500 mx-auto mb-1" />
-                <div className="text-sm text-gray-600">Schedule</div>
-              </CardContent>
-            </Card>
+      <div className="max-w-md mx-auto">
+        {pets.length === 0 ? (
+          /* Empty State */
+          <div className="p-4 pt-8">
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🐕 🐱</div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome to PetHealth!</h2>
+              <p className="text-gray-600 mb-6">Add your first pet to get started tracking their health and wellness.</p>
+              <Button 
+                onClick={() => setIsAddPetOpen(true)}
+                className="bg-orange-500 hover:bg-orange-600"
+              >
+                Add Your First Pet
+              </Button>
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Pet Switcher */}
+            <div className="bg-white border-b border-gray-100">
+              <PetSwitcher
+                pets={pets}
+                selectedPet={selectedPet}
+                onSelectPet={setSelectedPet}
+                onAddPet={() => setIsAddPetOpen(true)}
+              />
+            </div>
 
-        {/* My Pets Section */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">My Pets</h3>
-            <Button 
-              onClick={() => setIsAddPetOpen(true)}
-              size="sm" 
-              className="bg-orange-500 hover:bg-orange-600 rounded-full"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Pet
-            </Button>
-          </div>
+            {/* Selected Pet Info */}
+            {selectedPet && (
+              <div className="p-4 pb-24">
+                <div className="mb-6 text-center">
+                  <div className="w-24 h-24 mx-auto mb-3 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center">
+                    {selectedPet.photo ? (
+                      <img 
+                        src={selectedPet.photo} 
+                        alt={selectedPet.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl text-white">
+                        {selectedPet.type === 'dog' ? '🐕' : '🐱'}
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedPet.name}</h2>
+                  <p className="text-gray-600">{selectedPet.breed} • {selectedPet.type}</p>
+                </div>
 
-          <div className="space-y-3">
-            {pets.length === 0 ? (
-              <Card className="border-dashed border-2 border-gray-200">
-                <CardContent className="p-8 text-center">
-                  <div className="text-gray-400 mb-4">🐕 🐱</div>
-                  <h4 className="font-medium text-gray-900 mb-2">No pets yet</h4>
-                  <p className="text-sm text-gray-600 mb-4">Add your first pet to get started</p>
-                  <Button onClick={() => setIsAddPetOpen(true)} className="bg-orange-500 hover:bg-orange-600">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Pet
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              pets.map((pet) => (
-                <PetCard 
-                  key={pet.id} 
-                  pet={pet} 
-                  onClick={() => handleEditPet(pet)}
-                  onDelete={() => handleDeletePet(pet.id)}
+                <PetInfoSection
+                  pet={selectedPet}
+                  onEdit={handleEditPet}
                 />
-              ))
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Quick Actions - Simplified */}
-        {pets.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-              <CardDescription>Additional pet care features</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start h-12">
-                📅 View Upcoming Appointments
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-12">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Health Summary
-              </Button>
-              <Button variant="outline" className="w-full justify-start h-12">
-                🔔 Set Reminders
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Floating Action Button */}
+            <FloatingActionButton onClick={() => setIsAddPetOpen(true)} />
+          </>
         )}
       </div>
 
@@ -209,9 +180,6 @@ const Index = () => {
         pet={selectedPet}
         onUpdatePet={handleUpdatePet}
       />
-
-      {/* Hidden file input for vaccination upload */}
-      <VaccinationUpload selectedPet={selectedPet} />
     </div>
   );
 };
