@@ -1,16 +1,18 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, TrendingUp, Sparkles, Upload } from "lucide-react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
 import { useHealthReports } from "@/hooks/useHealthReports";
 import { supabase } from "@/integrations/supabase/client";
-import EnhancedHealthRecordUpload from "@/components/health/EnhancedHealthRecordUpload";
-import HealthReportCard from "@/components/health/HealthReportCard";
-import PetSelector from "@/components/pets/PetSelector";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import EnhancedHealthRecordUpload from "@/components/health/EnhancedHealthRecordUpload";
+import PetSelector from "@/components/pets/PetSelector";
+import HealthRecordsHeader from "@/components/health/HealthRecordsHeader";
+import PetInfoCard from "@/components/health/PetInfoCard";
+import ProcessingReportsSection from "@/components/health/ProcessingReportsSection";
+import CompletedReportsSection from "@/components/health/CompletedReportsSection";
 
 const HealthRecords = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -57,7 +59,6 @@ const HealthRecords = () => {
           console.log('Real-time update:', payload);
           
           if (payload.eventType === 'UPDATE' && payload.new.status === 'completed') {
-            // Set this as recently uploaded for auto-expand
             setRecentlyUploadedId(payload.new.id);
             
             toast({
@@ -67,7 +68,6 @@ const HealthRecords = () => {
             });
           }
           
-          // Refresh the reports list
           refetch();
         }
       )
@@ -88,10 +88,18 @@ const HealthRecords = () => {
     if (reportIds.length > 0) {
       setRecentlyUploadedId(reportIds[0]);
     }
-    // Scroll to top to show the new report
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleToggleUpload = () => {
+    setShowUpload(!showUpload);
+  };
+
+  const handleShowUpload = () => {
+    setShowUpload(true);
+  };
+
+  // Error states
   if (!pet && pets.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
@@ -131,25 +139,7 @@ const HealthRecords = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-orange-100">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-center">
-            <h1 className="text-lg font-bold text-gray-900">Health Records</h1>
-            <p className="text-sm text-gray-600">{pet.name}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowUpload(!showUpload)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <HealthRecordsHeader pet={pet} onToggleUpload={handleToggleUpload} />
 
       <div className="max-w-md mx-auto p-4 space-y-6">
         {/* Pet Selector - Show if multiple pets */}
@@ -164,26 +154,7 @@ const HealthRecords = () => {
           </div>
         )}
 
-        {/* Pet Info Card */}
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-400 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              {pet.photo && (
-                <img 
-                  src={pet.photo} 
-                  alt={pet.name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
-                />
-              )}
-              <div>
-                <h2 className="text-xl font-semibold">{pet.name}</h2>
-                <p className="text-orange-100">
-                  {pet.breed} • {pet.type} • {pet.gender}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <PetInfoCard pet={pet} />
 
         {/* Upload Section */}
         {showUpload && (
@@ -198,76 +169,18 @@ const HealthRecords = () => {
           />
         )}
 
-        {/* Processing Reports */}
-        {processingReports.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-orange-500" />
-              Processing Reports
-            </h3>
-            <div className="space-y-4">
-              {processingReports.map((report) => (
-                <HealthReportCard
-                  key={report.id}
-                  report={report}
-                  onDelete={deleteReport}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        <ProcessingReportsSection 
+          reports={processingReports}
+          onDelete={deleteReport}
+        />
 
-        {/* Completed Reports */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              {completedReports.length > 0 && <Sparkles className="h-5 w-5 text-green-500" />}
-              {completedReports.length > 0 ? 'Analyzed Reports' : 'Reports'}
-            </h3>
-            {completedReports.length > 1 && (
-              <Button variant="outline" size="sm">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                View Trends
-              </Button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {loading ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-gray-600">Loading reports...</p>
-                </CardContent>
-              </Card>
-            ) : completedReports.length === 0 ? (
-              <Card className="border-dashed border-2 border-gray-200">
-                <CardContent className="p-8 text-center">
-                  <div className="text-gray-400 mb-4">📋</div>
-                  <h4 className="font-medium text-gray-900 mb-2">No health records yet</h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Upload your first diagnostic report to get AI-powered insights in plain language
-                  </p>
-                  <Button 
-                    onClick={() => setShowUpload(true)}
-                    className="bg-orange-500 hover:bg-orange-600"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload Report
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              completedReports.map((report) => (
-                <HealthReportCard
-                  key={report.id}
-                  report={report}
-                  onDelete={deleteReport}
-                  autoExpand={report.id === recentlyUploadedId}
-                />
-              ))
-            )}
-          </div>
-        </div>
+        <CompletedReportsSection 
+          reports={completedReports}
+          loading={loading}
+          onDelete={deleteReport}
+          onShowUpload={handleShowUpload}
+          recentlyUploadedId={recentlyUploadedId}
+        />
       </div>
     </div>
   );
