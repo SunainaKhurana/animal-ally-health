@@ -1,9 +1,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Edit, Trash2, FileText } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Heart, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Pet {
   id: string;
@@ -15,83 +20,109 @@ interface Pet {
   weightUnit?: string;
   gender: 'male' | 'female';
   photo?: string;
-  nextVaccination?: string;
 }
 
 interface PetCardProps {
   pet: Pet;
-  onClick: () => void;
-  onDelete: () => void;
+  onClick?: () => void;
+  onDelete?: () => void;
 }
 
 const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
   const navigate = useNavigate();
-  
-  const calculateAge = (dateOfBirth: Date) => {
+
+  const calculateAge = (birthDate: Date) => {
     const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    const ageInMonths = (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
     
-    if (ageInMonths < 12) {
-      return `${ageInMonths} month${ageInMonths !== 1 ? 's' : ''} old`;
-    } else {
-      const years = Math.floor(ageInMonths / 12);
-      const months = ageInMonths % 12;
-      return months > 0 ? `${years}y ${months}m old` : `${years} year${years !== 1 ? 's' : ''} old`;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
     }
+    
+    return age;
   };
 
+  const handleCardClick = () => {
+    navigate(`/pet/${pet.id}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete?.();
+  };
+
+  const age = calculateAge(pet.dateOfBirth);
+
   return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow">
+    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleCardClick}>
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3" onClick={onClick}>
-            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-              {pet.photo ? (
-                <img 
-                  src={pet.photo} 
-                  alt={pet.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-lg">{pet.type === 'dog' ? '🐕' : '🐱'}</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{pet.name}</h3>
-              <p className="text-sm text-gray-600">
-                {pet.breed} • {calculateAge(pet.dateOfBirth)}
-              </p>
-              <p className="text-xs text-gray-500">
-                {pet.weight} {pet.weightUnit || 'lbs'} • {pet.gender}
-              </p>
+        <div className="flex items-center space-x-4">
+          {/* Pet Photo */}
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center overflow-hidden">
+            {pet.photo ? (
+              <img 
+                src={pet.photo} 
+                alt={pet.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-2xl text-white">
+                {pet.type === 'dog' ? '🐕' : '🐱'}
+              </span>
+            )}
+          </div>
+
+          {/* Pet Info */}
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 text-lg">{pet.name}</h3>
+            <p className="text-gray-600 text-sm">{pet.breed} • {age} years old</p>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                {pet.weight} {pet.weightUnit || 'lbs'}
+              </span>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                {pet.gender}
+              </span>
             </div>
           </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onClick}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/health/${pet.id}`)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Health Records
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={onDelete}
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Pet
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+          {/* Quick Actions */}
+          <div className="flex flex-col gap-2">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-8 w-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/health/${pet.id}`);
+              }}
+            >
+              <Heart className="h-4 w-4 text-red-500" />
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEditClick}>
+                  Edit Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600">
+                  Delete Pet
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -1,12 +1,12 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, User, LogOut } from "lucide-react";
+import { Plus, LogOut, Heart, TrendingUp, Calendar } from "lucide-react";
 import PetCard from "@/components/pets/PetCard";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
-import MedicalRecordsCard from "@/components/health/MedicalRecordsCard";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { usePets } from "@/hooks/usePets";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,9 +109,28 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Medical Records Section - Show prominently when pets exist */}
+        {/* Quick Stats */}
         {pets.length > 0 && (
-          <MedicalRecordsCard pets={pets} />
+          <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">{pets.length}</div>
+                <div className="text-sm text-gray-600">Pets</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <Heart className="h-6 w-6 text-red-500 mx-auto mb-1" />
+                <div className="text-sm text-gray-600">Health</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <Calendar className="h-6 w-6 text-blue-500 mx-auto mb-1" />
+                <div className="text-sm text-gray-600">Schedule</div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* My Pets Section */}
@@ -166,7 +185,8 @@ const Index = () => {
                 📅 View Upcoming Appointments
               </Button>
               <Button variant="outline" className="w-full justify-start h-12">
-                📊 Health Summary
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Health Summary
               </Button>
               <Button variant="outline" className="w-full justify-start h-12">
                 🔔 Set Reminders
