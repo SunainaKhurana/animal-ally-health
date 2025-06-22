@@ -94,21 +94,12 @@ export const useHealthReports = (petId?: string) => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Health report uploaded successfully",
-      });
-
+      // Don't show the upload success toast here - it will be shown when analysis completes
       fetchReports();
       return data.id;
     } catch (error) {
       console.error('Error uploading health report:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload health report",
-        variant: "destructive",
-      });
-      throw error;
+      throw new Error(`Failed to upload health report: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -131,11 +122,7 @@ export const useHealthReports = (petId?: string) => {
 
       if (updateError) throw updateError;
 
-      toast({
-        title: "Analysis Complete",
-        description: "AI analysis has been generated for your health report",
-      });
-
+      // Don't show analysis complete toast here - it will be shown via real-time updates
       fetchReports();
       return data;
     } catch (error) {
@@ -149,9 +136,11 @@ export const useHealthReports = (petId?: string) => {
 
       toast({
         title: "Analysis Failed",
-        description: "Failed to analyze health report. Please try again.",
+        description: "Failed to analyze health report. The report was saved but analysis couldn't be completed. Please try uploading again.",
         variant: "destructive",
       });
+      
+      fetchReports();
       throw error;
     }
   };

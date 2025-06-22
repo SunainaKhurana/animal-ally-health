@@ -2,22 +2,26 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, TrendingUp, User } from "lucide-react";
+import { ArrowLeft, Plus, TrendingUp, Sparkles } from "lucide-react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
 import { useHealthReports } from "@/hooks/useHealthReports";
+import { supabase } from "@/integrations/supabase/client";
 import HealthRecordUpload from "@/components/health/HealthRecordUpload";
 import HealthReportCard from "@/components/health/HealthReportCard";
 import PetSelector from "@/components/pets/PetSelector";
+import { useToast } from "@/hooks/use-toast";
 
 const HealthRecords = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { pets } = usePets();
-  const { reports, loading, deleteReport } = useHealthReports(petId);
+  const { reports, loading, deleteReport, refetch } = useHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState(petId);
+  const [recentlyUploadedId, setRecentlyUploadedId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const pet = pets.find(p => p.id === selectedPetId);
 
@@ -35,9 +39,55 @@ const HealthRecords = () => {
     }
   }, [petId, selectedPetId]);
 
+  // Set up real-time updates for health reports
+  useEffect(() => {
+    if (!petId) return;
+
+    const channel = supabase
+      .channel('health-reports-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'health_reports',
+          filter: `pet_id=eq.${petId}`
+        },
+        (payload) => {
+          console.log('Real-time update:', payload);
+          
+          if (payload.eventType === 'UPDATE' && payload.new.status === 'completed') {
+            // Set this as recently uploaded for auto-expand
+            setRecentlyUploadedId(payload.new.id);
+            
+            toast({
+              title: "Analysis Complete! 🎉",
+              description: "Your health report has been analyzed. Check out the AI insights below.",
+              duration: 5000,
+            });
+          }
+          
+          // Refresh the reports list
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [petId, refetch, toast]);
+
   const handlePetChange = (newPet: any) => {
     setSelectedPetId(newPet.id);
     navigate(`/health/${newPet.id}`, { replace: true });
+  };
+
+  const handleUploadComplete = (reportId: string) => {
+    setShowUpload(false);
+    setRecentlyUploadedId(reportId);
+    // Scroll to top to show the new report
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (!pet && pets.length === 0) {
@@ -73,6 +123,9 @@ const HealthRecords = () => {
       </div>
     );
   }
+
+  const completedReports = reports.filter(r => r.status === 'completed');
+  const processingReports = reports.filter(r => r.status === 'processing');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
@@ -139,15 +192,37 @@ const HealthRecords = () => {
               type: pet.type,
               breed: pet.breed
             }}
-            onUploadComplete={() => setShowUpload(false)}
+            onUploadComplete={handleUploadComplete}
           />
         )}
 
-        {/* Reports List */}
+        {/* Processing Reports */}
+        {processingReports.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              Processing Reports
+            </h3>
+            <div className="space-y-4">
+              {processingReports.map((report) => (
+                <HealthReportCard
+                  key={report.id}
+                  report={report}
+                  onDelete={deleteReport}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Completed Reports */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Reports</h3>
-            {reports.length > 1 && (
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              {completedReports.length > 0 && <Sparkles className="h-5 w-5 text-green-500" />}
+              {completedReports.length > 0 ? 'Analyzed Reports' : 'Reports'}
+            </h3>
+            {completedReports.length > 1 && (
               <Button variant="outline" size="sm">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 View Trends
@@ -162,13 +237,13 @@ const HealthRecords = () => {
                   <p className="text-gray-600">Loading reports...</p>
                 </CardContent>
               </Card>
-            ) : reports.length === 0 ? (
+            ) : completedReports.length === 0 ? (
               <Card className="border-dashed border-2 border-gray-200">
                 <CardContent className="p-8 text-center">
                   <div className="text-gray-400 mb-4">📋</div>
                   <h4 className="font-medium text-gray-900 mb-2">No health records yet</h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Upload your first diagnostic report to get started
+                    Upload your first diagnostic report to get AI-powered insights in plain language
                   </p>
                   <Button 
                     onClick={() => setShowUpload(true)}
@@ -180,11 +255,12 @@ const HealthRecords = () => {
                 </CardContent>
               </Card>
             ) : (
-              reports.map((report) => (
+              completedReports.map((report) => (
                 <HealthReportCard
                   key={report.id}
                   report={report}
                   onDelete={deleteReport}
+                  autoExpand={report.id === recentlyUploadedId}
                 />
               ))
             )}
