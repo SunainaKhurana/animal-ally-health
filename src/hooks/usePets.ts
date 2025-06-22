@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -170,30 +171,60 @@ export const usePets = () => {
   };
 
   const updatePet = async (updatedPet: Pet) => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, cannot update pet');
+      return;
+    }
 
     try {
-      const ageInYears = new Date().getFullYear() - updatedPet.dateOfBirth.getFullYear();
-      const ageInMonths = new Date().getMonth() - updatedPet.dateOfBirth.getMonth();
+      console.log('Updating pet with data:', updatedPet);
+      
+      // Calculate age from date of birth
+      const now = new Date();
+      const birthDate = new Date(updatedPet.dateOfBirth);
+      const ageInYears = now.getFullYear() - birthDate.getFullYear();
+      let ageInMonths = now.getMonth() - birthDate.getMonth();
+      
+      // Adjust for negative months
+      if (ageInMonths < 0) {
+        ageInMonths += 12;
+      }
 
-      const { error } = await supabase
+      // Convert weight to kg if needed
+      const weightInKg = updatedPet.weightUnit === 'kg' ? updatedPet.weight : updatedPet.weight * 0.453592;
+
+      const updateData = {
+        name: updatedPet.name,
+        type: updatedPet.type,
+        breed: updatedPet.breed || '',
+        species: updatedPet.type, // Map type to species
+        age: ageInYears,
+        age_years: ageInYears,
+        age_months: ageInMonths,
+        weight: updatedPet.weight,
+        weight_kg: weightInKg,
+        gender: updatedPet.gender,
+        photo_url: updatedPet.photo || null,
+      };
+
+      console.log('Update data being sent to Supabase:', updateData);
+
+      const { data, error } = await supabase
         .from('pets')
-        .update({
-          name: updatedPet.name,
-          type: updatedPet.type,
-          breed: updatedPet.breed || '',
-          age: ageInYears,
-          age_years: ageInYears,
-          age_months: ageInMonths >= 0 ? ageInMonths : 12 + ageInMonths,
-          weight: updatedPet.weight,
-          weight_kg: updatedPet.weightUnit === 'kg' ? updatedPet.weight : updatedPet.weight * 0.453592,
-          gender: updatedPet.gender,
-          photo_url: updatedPet.photo,
-        })
-        .eq('id', updatedPet.id);
+        .update(updateData)
+        .eq('id', updatedPet.id)
+        .eq('user_id', user.id) // Ensure user can only update their own pets
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
+      console.log('Pet updated successfully in database:', data);
+
+      // Update local state
       setPets(prev => prev.map(pet => pet.id === updatedPet.id ? updatedPet : pet));
 
       toast({
@@ -204,7 +235,7 @@ export const usePets = () => {
       console.error('Error updating pet:', error);
       toast({
         title: "Error",
-        description: "Failed to update pet",
+        description: `Failed to update pet: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }

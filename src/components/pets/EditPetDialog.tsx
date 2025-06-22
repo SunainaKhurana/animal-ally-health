@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -47,6 +46,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
 
   useEffect(() => {
     if (pet) {
+      console.log('Setting form data for pet:', pet);
       setFormData({
         name: pet.name,
         type: pet.type,
@@ -64,6 +64,14 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pet || !formData.name || !formData.type || !formData.dateOfBirth || !formData.weight || !formData.gender) {
+      console.log('Form validation failed:', {
+        pet: !!pet,
+        name: formData.name,
+        type: formData.type,
+        dateOfBirth: formData.dateOfBirth,
+        weight: formData.weight,
+        gender: formData.gender
+      });
       return;
     }
 
@@ -80,6 +88,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
       nextVaccination: formData.nextVaccination
     };
 
+    console.log('Submitting updated pet data:', updatedPet);
     onUpdatePet(updatedPet);
     onOpenChange(false);
   };
@@ -113,7 +122,10 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
           <form id="edit-pet-form" onSubmit={handleSubmit} className="space-y-4">
             <PhotoUpload 
               photo={formData.photo}
-              onPhotoChange={(photo) => setFormData({ ...formData, photo })}
+              onPhotoChange={(photo) => {
+                console.log('Photo changed in EditPetDialog:', photo.substring(0, 50) + '...');
+                setFormData({ ...formData, photo });
+              }}
             />
 
             <div>
