@@ -83,9 +83,11 @@ const HealthRecords = () => {
     navigate(`/health/${newPet.id}`, { replace: true });
   };
 
-  const handleUploadComplete = (reportId: string) => {
+  const handleUploadComplete = (reportIds: string[]) => {
     setShowUpload(false);
-    setRecentlyUploadedId(reportId);
+    if (reportIds.length > 0) {
+      setRecentlyUploadedId(reportIds[0]);
+    }
     // Scroll to top to show the new report
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -185,7 +187,7 @@ const HealthRecords = () => {
 
         {/* Upload Section */}
         {showUpload && (
-          <HealthRecordUpload
+          <EnhancedHealthRecordUpload
             petId={pet.id}
             petInfo={{
               name: pet.name,
