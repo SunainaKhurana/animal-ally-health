@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Camera, CalendarIcon } from "lucide-react";
+import { Camera, CalendarIcon, X, Check } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { dogBreeds, catBreeds } from "@/lib/petData";
@@ -95,11 +95,29 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md mx-auto">
-        <DialogHeader>
-          <DialogTitle>Edit {pet.name}'s Profile</DialogTitle>
+        <DialogHeader className="relative">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => onOpenChange(false)}
+            className="absolute -left-2 -top-1 h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <DialogTitle className="text-center">Edit {pet.name}'s Profile</DialogTitle>
+          <Button
+            type="submit"
+            form="edit-pet-form"
+            variant="ghost"
+            size="icon"
+            className="absolute -right-2 -top-1 h-8 w-8 text-orange-500"
+          >
+            <Check className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="edit-pet-form" onSubmit={handleSubmit} className="space-y-4">
           {/* Photo Upload */}
           <div className="flex flex-col items-center space-y-2">
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
@@ -206,7 +224,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
                   onSelect={(date) => setFormData({ ...formData, dateOfBirth: date })}
                   disabled={(date) => date > new Date() || date < new Date("1990-01-01")}
                   initialFocus
-                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -244,7 +261,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
           </div>
 
           {/* Next Vaccination */}
-          <div>
+          <div className="pb-4">
             <Label htmlFor="nextVaccination">Next Vaccination</Label>
             <Input
               id="nextVaccination"
@@ -253,16 +270,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
               placeholder="e.g., 2024-12-15"
               className="mt-1"
             />
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex space-x-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1 bg-orange-500 hover:bg-orange-600">
-              Update Pet
-            </Button>
           </div>
         </form>
       </DialogContent>
