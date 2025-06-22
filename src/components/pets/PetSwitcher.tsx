@@ -8,7 +8,12 @@ interface Pet {
   name: string;
   type: 'dog' | 'cat';
   breed?: string;
+  dateOfBirth: Date;
+  weight: number;
+  weightUnit?: string;
+  gender: 'male' | 'female';
   photo?: string;
+  nextVaccination?: string;
 }
 
 interface PetSwitcherProps {
