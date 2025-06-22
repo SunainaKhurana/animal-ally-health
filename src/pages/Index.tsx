@@ -5,17 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Plus, User } from "lucide-react";
 import PetCard from "@/components/pets/PetCard";
 import AddPetDialog from "@/components/pets/AddPetDialog";
+import EditPetDialog from "@/components/pets/EditPetDialog";
 import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
 import { mockPets } from "@/lib/mockData";
 
+interface Pet {
+  id: string;
+  name: string;
+  type: 'dog' | 'cat';
+  breed?: string;
+  dateOfBirth: Date;
+  weight: number;
+  weightUnit?: string;
+  gender: 'male' | 'female';
+  photo?: string;
+  nextVaccination?: string;
+}
+
 const Index = () => {
-  const [pets, setPets] = useState(mockPets);
+  const [pets, setPets] = useState<Pet[]>(mockPets);
   const [isAddPetOpen, setIsAddPetOpen] = useState(false);
-  const [selectedPet, setSelectedPet] = useState(null);
+  const [isEditPetOpen, setIsEditPetOpen] = useState(false);
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
   const handleAddPet = (newPet: any) => {
     setPets([...pets, { ...newPet, id: Date.now().toString() }]);
     setIsAddPetOpen(false);
+  };
+
+  const handleEditPet = (pet: Pet) => {
+    setSelectedPet(pet);
+    setIsEditPetOpen(true);
+  };
+
+  const handleUpdatePet = (updatedPet: Pet) => {
+    setPets(pets.map(pet => pet.id === updatedPet.id ? updatedPet : pet));
+    setSelectedPet(null);
+    setIsEditPetOpen(false);
   };
 
   const handleDeletePet = (petId: string) => {
@@ -78,7 +104,7 @@ const Index = () => {
                 <PetCard 
                   key={pet.id} 
                   pet={pet} 
-                  onClick={() => setSelectedPet(pet)}
+                  onClick={() => handleEditPet(pet)}
                   onDelete={() => handleDeletePet(pet.id)}
                 />
               ))
@@ -117,6 +143,13 @@ const Index = () => {
         open={isAddPetOpen} 
         onOpenChange={setIsAddPetOpen}
         onAddPet={handleAddPet}
+      />
+
+      <EditPetDialog
+        open={isEditPetOpen}
+        onOpenChange={setIsEditPetOpen}
+        pet={selectedPet}
+        onUpdatePet={handleUpdatePet}
       />
 
       {/* Hidden file input for vaccination upload */}
