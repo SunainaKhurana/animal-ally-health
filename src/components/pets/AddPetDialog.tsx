@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Camera, CalendarIcon, X } from "lucide-react";
+import { Camera, CalendarIcon, X, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { dogBreeds, catBreeds } from "@/lib/petData";
@@ -31,6 +31,43 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
     gender: "",
     photo: ""
   });
+
+  const handlePhotoCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setFormData({ ...formData, photo: result });
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const handlePhotoGallery = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setFormData({ ...formData, photo: result });
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +131,16 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
                   <Camera className="h-8 w-8 text-gray-400" />
                 )}
               </div>
-              <Button type="button" variant="outline" size="sm">
-                Add Photo
-              </Button>
+              <div className="flex space-x-2">
+                <Button type="button" variant="outline" size="sm" onClick={handlePhotoCapture}>
+                  <Camera className="h-4 w-4 mr-1" />
+                  Camera
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={handlePhotoGallery}>
+                  <ImageIcon className="h-4 w-4 mr-1" />
+                  Gallery
+                </Button>
+              </div>
             </div>
 
             {/* Pet Name */}
