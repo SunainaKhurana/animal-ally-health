@@ -1,5 +1,5 @@
 
-import { ArrowLeft, LogOut, Bell, Shield, HelpCircle } from "lucide-react";
+import { ArrowLeft, LogOut, Bell, Shield, HelpCircle, Users, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +29,18 @@ const Settings = () => {
   };
 
   const settingsItems = [
+    {
+      icon: User,
+      title: "Profile",
+      description: "Manage your profile information",
+      action: () => navigate('/profile')
+    },
+    {
+      icon: Users,
+      title: "Pet Parents",
+      description: "Manage multiple pet parents and shared access",
+      action: () => toast({ title: "Coming Soon", description: "Multi-parent management will be available soon." })
+    },
     {
       icon: Bell,
       title: "Notifications",

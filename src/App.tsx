@@ -13,6 +13,7 @@ import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 import WeightTracking from "./pages/WeightTracking";
 import WalksTracker from "./pages/WalksTracker";
+import ActivityTracker from "./pages/ActivityTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/weight/:petId" element={<WeightTracking />} />
+            <Route path="/activity" element={<ActivityTracker />} />
             <Route path="/walks/:petId" element={<WalksTracker />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,5 +1,5 @@
 
-import { Home, FileText, User, Settings } from "lucide-react";
+import { Home, FileText, Activity, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +14,13 @@ const BottomNavigation = () => {
     },
     {
       icon: FileText,
-      label: "Records",
+      label: "Health",
       path: "/health",
     },
     {
-      icon: User,
-      label: "Profile",
-      path: "/profile",
+      icon: Activity,
+      label: "Activity",
+      path: "/activity",
     },
     {
       icon: Settings,
@@ -36,7 +36,8 @@ const BottomNavigation = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || 
-              (item.path === "/health" && location.pathname.startsWith("/health"));
+              (item.path === "/health" && location.pathname.startsWith("/health")) ||
+              (item.path === "/activity" && location.pathname.startsWith("/activity"));
             
             return (
               <Link

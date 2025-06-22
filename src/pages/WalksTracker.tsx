@@ -1,11 +1,21 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, Square, MapPin, Clock, Route } from "lucide-react";
+import { ArrowLeft, Play, Square, MapPin, Clock, Route, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePets } from "@/hooks/usePets";
 import { useToast } from "@/hooks/use-toast";
+
+interface WalkRecord {
+  id: string;
+  date: string;
+  duration: number; // in seconds
+  distance: number; // in km
+  startTime: string;
+  endTime: string;
+  calories?: number;
+}
 
 const WalksTracker = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -17,6 +27,25 @@ const WalksTracker = () => {
   const [isWalking, setIsWalking] = useState(false);
   const [walkStartTime, setWalkStartTime] = useState<Date | null>(null);
   const [walkDuration, setWalkDuration] = useState(0);
+  const [walkHistory, setWalkHistory] = useState<WalkRecord[]>([]);
+
+  // Load walk history from localStorage
+  useEffect(() => {
+    if (petId) {
+      const savedWalks = localStorage.getItem(`walks_${petId}`);
+      if (savedWalks) {
+        setWalkHistory(JSON.parse(savedWalks));
+      }
+    }
+  }, [petId]);
+
+  // Save walk history to localStorage
+  const saveWalkHistory = (walks: WalkRecord[]) => {
+    if (petId) {
+      localStorage.setItem(`walks_${petId}`, JSON.stringify(walks));
+      setWalkHistory(walks);
+    }
+  };
 
   // Redirect if pet is not a dog
   useEffect(() => {
@@ -26,7 +55,7 @@ const WalksTracker = () => {
         description: "Walk tracking is only available for dogs.",
         variant: "destructive",
       });
-      navigate('/');
+      navigate('/activity');
     }
   }, [pet, navigate, toast]);
 
@@ -42,8 +71,9 @@ const WalksTracker = () => {
   }, [isWalking, walkStartTime]);
 
   const startWalk = () => {
+    const now = new Date();
     setIsWalking(true);
-    setWalkStartTime(new Date());
+    setWalkStartTime(now);
     setWalkDuration(0);
     toast({
       title: "Walk Started! 🚶‍♂️",
@@ -52,22 +82,37 @@ const WalksTracker = () => {
   };
 
   const stopWalk = () => {
+    if (!walkStartTime) return;
+
+    const endTime = new Date();
+    const distance = Math.random() * 2 + 0.5; // Mock distance for now
+    const calories = Math.floor(walkDuration * 0.1);
+    
+    const newWalk: WalkRecord = {
+      id: Date.now().toString(),
+      date: endTime.toISOString().split('T')[0],
+      duration: walkDuration,
+      distance: parseFloat(distance.toFixed(1)),
+      startTime: walkStartTime.toISOString(),
+      endTime: endTime.toISOString(),
+      calories
+    };
+
+    const updatedWalks = [newWalk, ...walkHistory];
+    saveWalkHistory(updatedWalks);
+
     setIsWalking(false);
     setWalkStartTime(null);
     
-    // Mock walk data
-    const mockDistance = (Math.random() * 2 + 0.5).toFixed(1);
-    const mockCalories = Math.floor(walkDuration * 0.1);
-    
     toast({
       title: "Walk Completed! 🎉",
-      description: `Duration: ${Math.floor(walkDuration / 60)}m ${walkDuration % 60}s, Distance: ${mockDistance}km`,
+      description: `Duration: ${Math.floor(walkDuration / 60)}m ${walkDuration % 60}s, Distance: ${distance.toFixed(1)}km`,
       duration: 5000,
     });
     
-    // Show walk analysis based on breed
+    // Analyze walk based on breed
     setTimeout(() => {
-      analyzeWalk(walkDuration, parseFloat(mockDistance));
+      analyzeWalk(walkDuration, distance);
     }, 1000);
   };
 
@@ -75,20 +120,38 @@ const WalksTracker = () => {
     const durationInMinutes = Math.floor(duration / 60);
     let analysis = "";
     
-    // Basic analysis based on duration and distance
+    // Basic analysis based on duration, distance, and breed
+    const breedSpecificAdvice = pet?.breed ? getBreedSpecificExerciseAdvice(pet.breed) : "";
+    
     if (durationInMinutes >= 30 && distance >= 1.5) {
-      analysis = "Excellent walk! This is perfect exercise for your dog's health and wellbeing.";
+      analysis = `Excellent walk! This is perfect exercise for ${pet?.name}. ${breedSpecificAdvice}`;
     } else if (durationInMinutes >= 20 && distance >= 1.0) {
-      analysis = "Good walk! Your dog got good exercise today.";
+      analysis = `Good walk! ${pet?.name} got good exercise today. ${breedSpecificAdvice}`;
     } else {
-      analysis = "Short walk completed. Consider longer walks for optimal health benefits.";
+      analysis = `Short walk completed. Consider longer walks for optimal health benefits. ${breedSpecificAdvice}`;
     }
 
     toast({
       title: "Walk Analysis 📊",
       description: analysis,
-      duration: 5000,
+      duration: 7000,
     });
+  };
+
+  const getBreedSpecificExerciseAdvice = (breed: string): string => {
+    const breedLower = breed.toLowerCase();
+    
+    if (breedLower.includes('retriever') || breedLower.includes('lab')) {
+      return "High-energy breeds like Labs need 60-90 minutes of exercise daily.";
+    } else if (breedLower.includes('bulldog') || breedLower.includes('pug')) {
+      return "Brachycephalic breeds need shorter, more frequent walks to avoid overheating.";
+    } else if (breedLower.includes('husky') || breedLower.includes('malamute')) {
+      return "Working breeds need intensive exercise and mental stimulation.";
+    } else if (breedLower.includes('chihuahua') || breedLower.includes('yorkshire')) {
+      return "Small breeds need moderate exercise but can get tired quickly.";
+    }
+    
+    return "Keep up the regular exercise routine!";
   };
 
   const formatTime = (seconds: number) => {
@@ -97,30 +160,34 @@ const WalksTracker = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    return `${mins}m ${seconds % 60}s`;
+  };
+
   if (!pet) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Pet not found</p>
-          <Button onClick={() => navigate('/')} className="mt-4">Go Home</Button>
+          <Button onClick={() => navigate('/activity')} className="mt-4">Go Back</Button>
         </div>
       </div>
     );
   }
 
-  // Mock recent walks data
-  const recentWalks = [
-    { date: '2024-06-21', duration: '25 min', distance: '1.2 km', calories: 150 },
-    { date: '2024-06-20', duration: '30 min', distance: '1.8 km', calories: 180 },
-    { date: '2024-06-19', duration: '20 min', distance: '1.0 km', calories: 120 },
-  ];
+  // Calculate today's stats
+  const today = new Date().toISOString().split('T')[0];
+  const todayWalks = walkHistory.filter(walk => walk.date === today);
+  const todayDuration = todayWalks.reduce((sum, walk) => sum + walk.duration, 0);
+  const todayDistance = todayWalks.reduce((sum, walk) => sum + walk.distance, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-orange-100">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/activity')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-bold text-gray-900">{pet.name}'s Walks</h1>
@@ -172,21 +239,21 @@ const WalksTracker = () => {
           <Card>
             <CardContent className="p-3 text-center">
               <Clock className="h-5 w-5 mx-auto mb-1 text-blue-500" />
-              <div className="text-lg font-bold">45m</div>
+              <div className="text-lg font-bold">{Math.floor(todayDuration / 60)}m</div>
               <div className="text-xs text-gray-600">Today</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <MapPin className="h-5 w-5 mx-auto mb-1 text-green-500" />
-              <div className="text-lg font-bold">2.4km</div>
+              <div className="text-lg font-bold">{todayDistance.toFixed(1)}km</div>
               <div className="text-xs text-gray-600">Distance</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <Route className="h-5 w-5 mx-auto mb-1 text-orange-500" />
-              <div className="text-lg font-bold">2</div>
+              <div className="text-lg font-bold">{todayWalks.length}</div>
               <div className="text-xs text-gray-600">Walks</div>
             </CardContent>
           </Card>
@@ -199,36 +266,28 @@ const WalksTracker = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentWalks.map((walk, index) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                  <div>
-                    <p className="font-medium">{walk.date}</p>
-                    <p className="text-sm text-gray-600">{walk.duration} • {walk.distance}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-green-600">{walk.calories} cal</p>
-                  </div>
+              {walkHistory.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">No walks recorded yet</p>
+                  <p className="text-sm text-gray-400">Start your first walk above!</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Weekly Goal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Weekly Goal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>5.2km / 10km</span>
-                <span>52%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '52%' }}></div>
-              </div>
-              <p className="text-xs text-gray-600">Keep it up! You're on track to meet your weekly walking goal.</p>
+              ) : (
+                walkHistory.slice(0, 10).map((walk, index) => (
+                  <div key={walk.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div>
+                      <p className="font-medium">{walk.date}</p>
+                      <p className="text-sm text-gray-600">
+                        {formatDuration(walk.duration)} • {walk.distance}km
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-green-600">
+                        {walk.calories || Math.floor(walk.duration * 0.1)} cal
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

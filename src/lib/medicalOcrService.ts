@@ -32,11 +32,11 @@ export const extractMedicalReportData = async (file: File): Promise<MedicalRepor
       rawText: text
     };
 
-    // Extract report date with multiple patterns
+    // Extract report date with multiple patterns - prioritize actual report date over collection date
     const datePatterns = [
+      /(?:report\s+date|test\s+date|exam\s+date|date\s+of\s+exam)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
       /(?:date|dated?)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
-      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/,
-      /(?:report date|test date)[:\s]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i
+      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/
     ];
 
     for (const pattern of datePatterns) {
@@ -90,12 +90,15 @@ export const extractMedicalReportData = async (file: File): Promise<MedicalRepor
       }
     }
 
-    // Extract numerical readings (lab values)
+    // Enhanced numerical readings extraction (lab values)
     const readings: Record<string, string> = {};
     const readingPatterns = [
-      /([a-z\s]+)[\s:]*(\d+\.?\d*)\s*([a-z\/]+)?/gi,
-      /(WBC|RBC|HGB|HCT|PLT|GLU|BUN|CREA|ALT|AST)[\s:]*(\d+\.?\d*)/gi,
-      /(white blood cells?|red blood cells?|hemoglobin|hematocrit|platelets?)[\s:]*(\d+\.?\d*)/gi
+      // Enhanced patterns for medical values
+      /((?:white blood cell|WBC|red blood cell|RBC|hemoglobin|HGB|hematocrit|HCT|platelet|PLT|glucose|GLU|BUN|creatinine|CREA|ALT|AST|sodium|potassium|chloride|CO2|calcium|phosphorus|protein|albumin|globulin|cholesterol|triglycerides|alkaline phosphatase|ALP|bilirubin|BIL)s?)\s*[:\-]?\s*(\d+\.?\d*)\s*([a-zA-Z\/\%]*)/gi,
+      // General pattern for parameter: value unit
+      /([A-Za-z][A-Za-z\s]{2,20})\s*[:\-]\s*(\d+\.?\d*)\s*([a-zA-Z\/\%]*)/g,
+      // Pattern for electrolytes and common blood chemistry
+      /(sodium|potassium|chloride|glucose|BUN|creatinine|protein|albumin)\s*[:\-]?\s*(\d+\.?\d*)/gi
     ];
 
     for (const pattern of readingPatterns) {
@@ -147,7 +150,14 @@ export const medicalReferenceDatabase = {
     BUN: { normal: [7, 27], unit: 'mg/dL', description: 'Blood Urea Nitrogen' },
     CREA: { normal: [0.5, 1.8], unit: 'mg/dL', description: 'Creatinine' },
     ALT: { normal: [10, 100], unit: 'U/L', description: 'Alanine Aminotransferase' },
-    AST: { normal: [0, 50], unit: 'U/L', description: 'Aspartate Aminotransferase' }
+    AST: { normal: [0, 50], unit: 'U/L', description: 'Aspartate Aminotransferase' },
+    // Electrolytes - critical for Addison's disease detection
+    SODIUM: { normal: [140, 155], unit: 'mEq/L', description: 'Sodium' },
+    POTASSIUM: { normal: [3.5, 5.8], unit: 'mEq/L', description: 'Potassium' },
+    CHLORIDE: { normal: [105, 115], unit: 'mEq/L', description: 'Chloride' },
+    // Additional markers
+    PROTEIN: { normal: [5.2, 8.2], unit: 'g/dL', description: 'Total Protein' },
+    ALBUMIN: { normal: [2.3, 4.0], unit: 'g/dL', description: 'Albumin' }
   },
   vitalSigns: {
     temperature: { normal: [101, 102.5], unit: '°F' },
@@ -163,6 +173,7 @@ export const analyzeMedicalReadings = (readings: Record<string, string>) => {
     status: 'normal' | 'high' | 'low' | 'unknown';
     reference: string;
     description: string;
+    significance?: string;
   }> = [];
 
   Object.entries(readings).forEach(([test, valueStr]) => {
@@ -174,11 +185,18 @@ export const analyzeMedicalReadings = (readings: Record<string, string>) => {
     const reference = medicalReferenceDatabase.bloodWork[normalizedTest];
     if (reference) {
       let status: 'normal' | 'high' | 'low' = 'normal';
+      let significance = '';
       
       if (numericValue < reference.normal[0]) {
         status = 'low';
+        if (normalizedTest === 'SODIUM' && numericValue < 140) {
+          significance = 'Low sodium may indicate Addison\'s disease, especially if combined with high potassium.';
+        }
       } else if (numericValue > reference.normal[1]) {
         status = 'high';
+        if (normalizedTest === 'POTASSIUM' && numericValue > 5.8) {
+          significance = 'High potassium may indicate Addison\'s disease, especially if combined with low sodium.';
+        }
       }
 
       analysis.push({
@@ -186,7 +204,8 @@ export const analyzeMedicalReadings = (readings: Record<string, string>) => {
         value: valueStr,
         status,
         reference: `${reference.normal[0]}-${reference.normal[1]} ${reference.unit}`,
-        description: reference.description
+        description: reference.description,
+        significance
       });
     }
   });

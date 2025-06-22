@@ -19,13 +19,15 @@ const HealthRecords = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { pets } = usePets();
-  const { reports, loading, deleteReport, refetch } = useHealthReports(petId);
+  
+  // Use first pet if no petId in URL, or find pet by ID
+  const selectedPet = petId ? pets.find(p => p.id === petId) : pets[0];
+  const currentPetId = selectedPet?.id;
+  
+  const { reports, loading, deleteReport, refetch } = useHealthReports(currentPetId);
   const [showUpload, setShowUpload] = useState(false);
-  const [selectedPetId, setSelectedPetId] = useState(petId);
   const [recentlyUploadedId, setRecentlyUploadedId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const pet = pets.find(p => p.id === selectedPetId);
 
   // Auto-open upload if URL parameter is set
   useEffect(() => {
@@ -34,16 +36,9 @@ const HealthRecords = () => {
     }
   }, [searchParams]);
 
-  // Update selected pet if URL changes
-  useEffect(() => {
-    if (petId && petId !== selectedPetId) {
-      setSelectedPetId(petId);
-    }
-  }, [petId, selectedPetId]);
-
   // Set up real-time updates for health reports
   useEffect(() => {
-    if (!petId) return;
+    if (!currentPetId) return;
 
     const channel = supabase
       .channel('health-reports-changes')
@@ -53,7 +48,7 @@ const HealthRecords = () => {
           event: '*',
           schema: 'public',
           table: 'health_reports',
-          filter: `pet_id=eq.${petId}`
+          filter: `pet_id=eq.${currentPetId}`
         },
         (payload) => {
           console.log('Real-time update:', payload);
@@ -76,10 +71,9 @@ const HealthRecords = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [petId, refetch, toast]);
+  }, [currentPetId, refetch, toast]);
 
   const handlePetChange = (newPet: any) => {
-    setSelectedPetId(newPet.id);
     navigate(`/health/${newPet.id}`, { replace: true });
   };
 
@@ -100,13 +94,13 @@ const HealthRecords = () => {
   };
 
   // Error states
-  if (!pet && pets.length === 0) {
+  if (pets.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
         <div className="max-w-md mx-auto">
           <Card>
             <CardContent className="p-8 text-center">
-              <p>No pets found</p>
+              <p>No pets found. Add a pet first to view health records.</p>
               <Button onClick={() => navigate('/')} className="mt-4">
                 Go Home
               </Button>
@@ -117,15 +111,15 @@ const HealthRecords = () => {
     );
   }
 
-  if (!pet) {
+  if (!selectedPet) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
         <div className="max-w-md mx-auto">
           <Card>
             <CardContent className="p-8 text-center">
               <p>Pet not found</p>
-              <Button onClick={() => navigate('/')} className="mt-4">
-                Go Home
+              <Button onClick={() => navigate('/health')} className="mt-4">
+                Back to Health Records
               </Button>
             </CardContent>
           </Card>
@@ -139,7 +133,7 @@ const HealthRecords = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
-      <HealthRecordsHeader pet={pet} onToggleUpload={handleToggleUpload} />
+      <HealthRecordsHeader pet={selectedPet} onToggleUpload={handleToggleUpload} />
 
       <div className="max-w-md mx-auto p-4 space-y-6">
         {/* Pet Selector - Show if multiple pets */}
@@ -148,22 +142,22 @@ const HealthRecords = () => {
             <p className="text-sm font-medium text-gray-700 mb-2">Switch Pet:</p>
             <PetSelector
               pets={pets}
-              selectedPet={pet}
+              selectedPet={selectedPet}
               onSelectPet={handlePetChange}
             />
           </div>
         )}
 
-        <PetInfoCard pet={pet} />
+        <PetInfoCard pet={selectedPet} />
 
         {/* Upload Section */}
         {showUpload && (
           <EnhancedHealthRecordUpload
-            petId={pet.id}
+            petId={selectedPet.id}
             petInfo={{
-              name: pet.name,
-              type: pet.type,
-              breed: pet.breed
+              name: selectedPet.name,
+              type: selectedPet.type,
+              breed: selectedPet.breed
             }}
             onUploadComplete={handleUploadComplete}
           />
