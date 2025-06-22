@@ -12,6 +12,10 @@ const ActivityTracker = () => {
   const { pets } = usePets();
   const [selectedPet, setSelectedPet] = useState(pets[0]);
 
+  const handlePetSelection = (pet: any) => {
+    setSelectedPet(pet);
+  };
+
   if (pets.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
@@ -50,7 +54,7 @@ const ActivityTracker = () => {
             <PetSelector
               pets={pets}
               selectedPet={selectedPet}
-              onSelectPet={setSelectedPet}
+              onSelectPet={handlePetSelection}
             />
           </div>
         )}
