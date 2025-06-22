@@ -2,12 +2,15 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, User } from "lucide-react";
+import { Plus, User, LogOut } from "lucide-react";
 import PetCard from "@/components/pets/PetCard";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
-import { mockPets } from "@/lib/mockData";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { usePets } from "@/hooks/usePets";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Pet {
   id: string;
@@ -23,13 +26,36 @@ interface Pet {
 }
 
 const Index = () => {
-  const [pets, setPets] = useState<Pet[]>(mockPets);
+  const { pets, loading, user, addPet, updatePet, deletePet } = usePets();
   const [isAddPetOpen, setIsAddPetOpen] = useState(false);
   const [isEditPetOpen, setIsEditPetOpen] = useState(false);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+  const { toast } = useToast();
 
-  const handleAddPet = (newPet: any) => {
-    setPets([...pets, { ...newPet, id: Date.now().toString() }]);
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Show auth form if user is not logged in
+  if (!user) {
+    return <AuthForm />;
+  }
+
+  const handleAddPet = async (newPet: any) => {
+    await addPet(newPet);
     setIsAddPetOpen(false);
   };
 
@@ -38,15 +64,26 @@ const Index = () => {
     setIsEditPetOpen(true);
   };
 
-  const handleUpdatePet = (updatedPet: Pet) => {
-    setPets(pets.map(pet => pet.id === updatedPet.id ? updatedPet : pet));
+  const handleUpdatePet = async (updatedPet: Pet) => {
+    await updatePet(updatedPet);
     setSelectedPet(null);
     setIsEditPetOpen(false);
   };
 
-  const handleDeletePet = (petId: string) => {
-    setPets(pets.filter(pet => pet.id !== petId));
+  const handleDeletePet = async (petId: string) => {
+    await deletePet(petId);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl mb-2">🐕 🐱</div>
+          <p className="text-gray-600">Loading your pets...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
@@ -57,8 +94,8 @@ const Index = () => {
             <h1 className="text-2xl font-bold text-gray-900">PetHealth</h1>
             <p className="text-sm text-gray-600">Track your pet's wellness</p>
           </div>
-          <Button variant="outline" size="sm" className="rounded-full">
-            <User className="h-4 w-4" />
+          <Button variant="outline" size="sm" className="rounded-full" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </div>
