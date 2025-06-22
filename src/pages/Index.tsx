@@ -1,12 +1,121 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, User } from "lucide-react";
+import PetCard from "@/components/pets/PetCard";
+import AddPetDialog from "@/components/pets/AddPetDialog";
+import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
+import { mockPets } from "@/lib/mockData";
 
 const Index = () => {
+  const [pets, setPets] = useState(mockPets);
+  const [isAddPetOpen, setIsAddPetOpen] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
+
+  const handleAddPet = (newPet: any) => {
+    setPets([...pets, { ...newPet, id: Date.now().toString() }]);
+    setIsAddPetOpen(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-orange-100">
+        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">PetHealth</h1>
+            <p className="text-sm text-gray-600">Track your pet's wellness</p>
+          </div>
+          <Button variant="outline" size="sm" className="rounded-full">
+            <User className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      <div className="max-w-md mx-auto p-4 space-y-6">
+        {/* Welcome Section */}
+        <Card className="bg-gradient-to-r from-orange-500 to-orange-400 text-white border-0">
+          <CardContent className="p-6">
+            <h2 className="text-xl font-semibold mb-2">Welcome back! 👋</h2>
+            <p className="text-orange-100">Keep your furry friends healthy and happy</p>
+          </CardContent>
+        </Card>
+
+        {/* My Pets Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">My Pets</h3>
+            <Button 
+              onClick={() => setIsAddPetOpen(true)}
+              size="sm" 
+              className="bg-orange-500 hover:bg-orange-600 rounded-full"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Pet
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {pets.length === 0 ? (
+              <Card className="border-dashed border-2 border-gray-200">
+                <CardContent className="p-8 text-center">
+                  <div className="text-gray-400 mb-4">🐕 🐱</div>
+                  <h4 className="font-medium text-gray-900 mb-2">No pets yet</h4>
+                  <p className="text-sm text-gray-600 mb-4">Add your first pet to get started</p>
+                  <Button onClick={() => setIsAddPetOpen(true)} className="bg-orange-500 hover:bg-orange-600">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Pet
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              pets.map((pet) => (
+                <PetCard 
+                  key={pet.id} 
+                  pet={pet} 
+                  onClick={() => setSelectedPet(pet)} 
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        {pets.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardDescription>Manage your pet's health records</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start h-12"
+                onClick={() => document.getElementById('vaccination-upload')?.click()}
+              >
+                📋 Upload Vaccination Record
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-12">
+                📅 View Upcoming Appointments
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-12">
+                📊 Health Summary
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Dialogs */}
+      <AddPetDialog 
+        open={isAddPetOpen} 
+        onOpenChange={setIsAddPetOpen}
+        onAddPet={handleAddPet}
+      />
+
+      {/* Hidden file input for vaccination upload */}
+      <VaccinationUpload selectedPet={selectedPet} />
     </div>
   );
 };

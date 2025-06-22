@@ -1,73 +1,164 @@
-# Welcome to your Lovable project
 
-## Project info
+# PetHealth - Mobile-First Pet Health Tracker
 
-**URL**: https://lovable.dev/projects/764a25a0-d902-4701-b529-43550cad5f2b
+A comprehensive mobile-first application for dog and cat parents to track their pets' health records, vaccinations, and wellness data.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+### MVP Features ✅
+- **Multi-Pet Management**: Add and manage multiple pets (dogs and cats)
+- **Pet Profiles**: Store pet type, breed, gender, age, weight, and photos
+- **Vaccination Tracking**: Upload vaccination records with OCR extraction
+- **Automatic Due Dates**: Calculate next vaccination dates based on standard schedules
+- **Secure Authentication**: Supabase Auth integration (email, phone, Google, Apple)
+- **Private Data**: Each user can only access their own pet data
 
-**Use Lovable**
+### Planned Features 🚧
+- Diagnostic test uploads and tracking
+- Medication reminders and schedules
+- Vet appointment management
+- Health analytics and trends
+- Multi-user family access
+- Veterinarian portal integration
+- Push notifications for reminders
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/764a25a0-d902-4701-b529-43550cad5f2b) and start prompting.
+## Technical Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React + TypeScript + Vite
+- **UI Components**: shadcn/ui + Tailwind CSS
+- **Backend**: Supabase (Database + Authentication + Storage)
+- **OCR**: Tesseract.js (client-side text extraction)
+- **Mobile**: Responsive design with PWA capabilities
 
-**Use your preferred IDE**
+## Project Structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/
+│   ├── pets/
+│   │   ├── PetCard.tsx              # Pet display card
+│   │   ├── AddPetDialog.tsx         # Add new pet form
+│   │   └── PetProfile.tsx           # Detailed pet view
+│   ├── vaccinations/
+│   │   ├── VaccinationUpload.tsx    # OCR upload component
+│   │   ├── VaccinationList.tsx      # Vaccination history
+│   │   └── VaccinationCard.tsx      # Individual vaccination record
+│   ├── auth/
+│   │   ├── AuthProvider.tsx         # Authentication context
+│   │   ├── LoginForm.tsx            # Login/signup forms
+│   │   └── ProtectedRoute.tsx       # Route protection
+│   └── ui/                          # shadcn/ui components
+├── lib/
+│   ├── supabase.ts                  # Supabase client setup
+│   ├── supabaseTypes.ts             # Database type definitions
+│   ├── ocrService.ts                # OCR processing logic
+│   ├── petData.ts                   # Pet breed data and schedules
+│   └── utils.ts                     # Utility functions
+├── hooks/
+│   ├── usePets.ts                   # Pet management hooks
+│   ├── useVaccinations.ts           # Vaccination hooks
+│   └── useAuth.ts                   # Authentication hooks
+└── pages/
+    ├── Index.tsx                    # Main dashboard
+    ├── PetDetail.tsx                # Individual pet page
+    └── Profile.tsx                  # User profile settings
 ```
 
-**Edit a file directly in GitHub**
+## Database Schema
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Core Tables
+- **pets**: Pet information and ownership
+- **vaccination_records**: Vaccination history with OCR data
+- **health_records**: General health records (future expansion)
 
-**Use GitHub Codespaces**
+### Security
+- Row Level Security (RLS) ensures data privacy
+- Users can only access their own pets and records
+- All tables reference authenticated user IDs
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## User Flows
 
-## What technologies are used for this project?
+### 1. Onboarding Flow
+1. User signs up/logs in via Supabase Auth
+2. Welcome screen with app introduction
+3. Add first pet with guided form
+4. Upload first vaccination record
+5. Dashboard with quick actions
 
-This project is built with:
+### 2. Pet Management Flow
+1. View all pets on dashboard
+2. Click pet card to view detailed profile
+3. Edit pet information or add new records
+4. Upload photos and documents
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 3. Vaccination Tracking Flow
+1. Take photo or upload vaccination document
+2. OCR extracts vaccine type and date
+3. System calculates next due date
+4. Record saved to pet's health history
+5. Dashboard shows upcoming vaccinations
 
-## How can I deploy this project?
+## Getting Started
 
-Simply open [Lovable](https://lovable.dev/projects/764a25a0-d902-4701-b529-43550cad5f2b) and click on Share -> Publish.
+### Prerequisites
+- Node.js 18+ and npm
+- Supabase account and project
 
-## Can I connect a custom domain to my Lovable project?
+### Setup Instructions
 
-Yes, you can!
+1. **Clone and Install**
+   ```bash
+   git clone <repository-url>
+   cd pet-health-tracker
+   npm install
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Supabase Setup**
+   - Create new Supabase project
+   - Copy environment variables
+   - Run database migrations (see supabaseTypes.ts)
+   - Enable authentication providers
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+3. **Environment Variables**
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Development**
+   ```bash
+   npm run dev
+   ```
+
+## Extending the App
+
+The app is designed for easy feature expansion:
+
+### Adding New Health Record Types
+1. Update `HealthRecord` interface in `supabaseTypes.ts`
+2. Create new component in `components/health/`
+3. Add processing logic in `lib/`
+4. Update navigation and routing
+
+### Integrating New OCR Services
+1. Implement new service in `lib/ocrService.ts`
+2. Add API configuration
+3. Update extraction logic for specific document types
+
+### Adding Reminders/Notifications
+1. Create notification service
+2. Add reminder preferences to user profile
+3. Implement background job scheduling
+4. Add push notification support
+
+## Contributing
+
+1. Follow the existing component structure
+2. Use TypeScript for all new code
+3. Maintain mobile-first responsive design
+4. Add proper error handling and loading states
+5. Update this README with new features
+
+## License
+
+MIT License - see LICENSE file for details
