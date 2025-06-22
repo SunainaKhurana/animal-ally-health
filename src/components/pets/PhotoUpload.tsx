@@ -1,6 +1,8 @@
 
-import { Camera, ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Camera } from "lucide-react";
+import PhotoUploadButton from "./PhotoUploadButton";
+import ImageCropModal from "./ImageCropModal";
 
 interface PhotoUploadProps {
   photo: string;
@@ -8,62 +10,51 @@ interface PhotoUploadProps {
 }
 
 const PhotoUpload = ({ photo, onPhotoChange }: PhotoUploadProps) => {
-  const handlePhotoCapture = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          onPhotoChange(result);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
+  const [selectedImage, setSelectedImage] = useState<string>("");
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+
+  const handlePhotoSelect = (photoDataUrl: string) => {
+    setSelectedImage(photoDataUrl);
+    setIsCropModalOpen(true);
   };
 
-  const handlePhotoGallery = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          onPhotoChange(result);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
+  const handleCropComplete = (croppedImageUrl: string) => {
+    onPhotoChange(croppedImageUrl);
+    setSelectedImage("");
+  };
+
+  const handlePhotoClick = () => {
+    if (photo) {
+      // If there's an existing photo, allow editing it
+      setSelectedImage(photo);
+      setIsCropModalOpen(true);
+    }
   };
 
   return (
     <div className="flex flex-col items-center space-y-2">
-      <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
+      <div 
+        className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+        onClick={handlePhotoClick}
+      >
         {photo ? (
           <img src={photo} alt="Pet" className="w-full h-full rounded-full object-cover" />
         ) : (
           <Camera className="h-8 w-8 text-gray-400" />
         )}
       </div>
-      <div className="flex space-x-2">
-        <Button type="button" variant="outline" size="sm" onClick={handlePhotoCapture}>
-          <Camera className="h-4 w-4 mr-1" />
-          Camera
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={handlePhotoGallery}>
-          <ImageIcon className="h-4 w-4 mr-1" />
-          Gallery
-        </Button>
-      </div>
+      
+      <PhotoUploadButton 
+        onPhotoSelect={handlePhotoSelect}
+        hasExistingPhoto={!!photo}
+      />
+
+      <ImageCropModal
+        open={isCropModalOpen}
+        onOpenChange={setIsCropModalOpen}
+        imageSrc={selectedImage}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };
