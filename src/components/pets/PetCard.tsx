@@ -43,7 +43,8 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent onClick when clicking delete button or its dialog
     if ((e.target as HTMLElement).closest('[data-delete-button]') || 
-        (e.target as HTMLElement).closest('[role="dialog"]')) {
+        (e.target as HTMLElement).closest('[role="dialog"]') ||
+        (e.target as HTMLElement).closest('[data-radix-popper-content-wrapper]')) {
       return;
     }
     onClick();
@@ -51,7 +52,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsDeleteDialogOpen(true);
+    e.preventDefault();
   };
 
   const handleDelete = () => {
@@ -99,7 +100,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
           </div>
 
           {/* Delete Button */}
-          <div data-delete-button>
+          <div data-delete-button onClick={(e) => e.stopPropagation()}>
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button 
@@ -111,7 +112,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Pet Profile</AlertDialogTitle>
                   <AlertDialogDescription>
