@@ -4,15 +4,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Camera, CalendarIcon, X, ImageIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { dogBreeds, catBreeds } from "@/lib/petData";
-import { calculateAge } from "@/lib/dateUtils";
+import { X } from "lucide-react";
+import PhotoUpload from "./PhotoUpload";
+import PetTypeSelector from "./PetTypeSelector";
+import BreedSelector from "./BreedSelector";
+import GenderSelector from "./GenderSelector";
+import DateOfBirthSelector from "./DateOfBirthSelector";
+import WeightInput from "./WeightInput";
 
 interface Pet {
   id: string;
@@ -47,7 +45,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
     nextVaccination: ""
   });
 
-  // Update form data when pet changes
   useEffect(() => {
     if (pet) {
       setFormData({
@@ -63,43 +60,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
       });
     }
   }, [pet]);
-
-  const handlePhotoCapture = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment'; // Use rear camera
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setFormData({ ...formData, photo: result });
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
-
-  const handlePhotoGallery = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setFormData({ ...formData, photo: result });
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,9 +83,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
     onUpdatePet(updatedPet);
     onOpenChange(false);
   };
-
-  const availableBreeds = formData.type === "dog" ? dogBreeds : catBreeds;
-  const currentAge = formData.dateOfBirth ? calculateAge(formData.dateOfBirth) : null;
 
   if (!pet) return null;
 
@@ -154,28 +111,11 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
 
         <div className="mt-6 h-full overflow-y-auto pb-20">
           <form id="edit-pet-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Photo Upload */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                {formData.photo ? (
-                  <img src={formData.photo} alt="Pet" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <Camera className="h-8 w-8 text-gray-400" />
-                )}
-              </div>
-              <div className="flex space-x-2">
-                <Button type="button" variant="outline" size="sm" onClick={handlePhotoCapture}>
-                  <Camera className="h-4 w-4 mr-1" />
-                  Camera
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={handlePhotoGallery}>
-                  <ImageIcon className="h-4 w-4 mr-1" />
-                  Gallery
-                </Button>
-              </div>
-            </div>
+            <PhotoUpload 
+              photo={formData.photo}
+              onPhotoChange={(photo) => setFormData({ ...formData, photo })}
+            />
 
-            {/* Pet Name */}
             <div>
               <Label htmlFor="name">Pet Name *</Label>
               <Input
@@ -187,123 +127,34 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
               />
             </div>
 
-            {/* Pet Type */}
-            <div>
-              <Label>Pet Type *</Label>
-              <RadioGroup
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value as 'dog' | 'cat', breed: "" })}
-                className="flex space-x-6 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="dog" id="dog" />
-                  <Label htmlFor="dog">🐕 Dog</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cat" id="cat" />
-                  <Label htmlFor="cat">🐱 Cat</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            <PetTypeSelector
+              value={formData.type}
+              onChange={(value) => setFormData({ ...formData, type: value as 'dog' | 'cat', breed: "" })}
+            />
 
-            {/* Breed */}
-            {formData.type && (
-              <div>
-                <Label>Breed {formData.type === "dog" && "*"}</Label>
-                <Select value={formData.breed} onValueChange={(value) => setFormData({ ...formData, breed: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={`Select ${formData.type} breed`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableBreeds.map((breed) => (
-                      <SelectItem key={breed} value={breed}>
-                        {breed}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <BreedSelector
+              petType={formData.type}
+              value={formData.breed}
+              onChange={(value) => setFormData({ ...formData, breed: value })}
+            />
 
-            {/* Gender */}
-            <div>
-              <Label>Gender *</Label>
-              <RadioGroup
-                value={formData.gender}
-                onValueChange={(value) => setFormData({ ...formData, gender: value as 'male' | 'female' })}
-                className="flex space-x-6 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="male" id="male" />
-                  <Label htmlFor="male">♂️ Male</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="female" id="female" />
-                  <Label htmlFor="female">♀️ Female</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            <GenderSelector
+              value={formData.gender}
+              onChange={(value) => setFormData({ ...formData, gender: value as 'male' | 'female' })}
+            />
 
-            {/* Date of Birth */}
-            <div>
-              <Label>Date of Birth *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal mt-1",
-                      !formData.dateOfBirth && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dateOfBirth ? format(formData.dateOfBirth, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.dateOfBirth}
-                    onSelect={(date) => setFormData({ ...formData, dateOfBirth: date })}
-                    disabled={(date) => date > new Date() || date < new Date("1990-01-01")}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              {currentAge && (
-                <p className="text-sm text-gray-600 mt-1">Current age: {currentAge}</p>
-              )}
-            </div>
+            <DateOfBirthSelector
+              value={formData.dateOfBirth}
+              onChange={(date) => setFormData({ ...formData, dateOfBirth: date })}
+            />
 
-            {/* Weight */}
-            <div>
-              <Label htmlFor="weight">Weight *</Label>
-              <div className="flex space-x-2 mt-1">
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.1"
-                  value={formData.weight}
-                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                  placeholder="Weight"
-                  className="flex-1"
-                />
-                <Select 
-                  value={formData.weightUnit} 
-                  onValueChange={(value) => setFormData({ ...formData, weightUnit: value })}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lbs">lbs</SelectItem>
-                    <SelectItem value="kg">kg</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <WeightInput
+              weight={formData.weight}
+              weightUnit={formData.weightUnit}
+              onWeightChange={(weight) => setFormData({ ...formData, weight })}
+              onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
+            />
 
-            {/* Next Vaccination */}
             <div className="pb-4">
               <Label htmlFor="nextVaccination">Next Vaccination</Label>
               <Input
