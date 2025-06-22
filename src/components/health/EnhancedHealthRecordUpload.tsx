@@ -26,64 +26,45 @@ interface EnhancedHealthRecordUploadProps {
 
 const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: EnhancedHealthRecordUploadProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const { uploadReport, analyzeReport } = useHealthReports(petId);
   const { toast } = useToast();
 
-  const updateFileStatus = (id: string, updates: Partial<UploadFile>) => {
-    setUploadFiles(prev => prev.map(file => 
-      file.id === id ? { ...file, ...updates } : file
-    ));
-  };
-
   const processFile = async (uploadFile: UploadFile): Promise<string | null> => {
     try {
-      updateFileStatus(uploadFile.id, { status: 'processing', progress: 20 });
-
       // Extract data from the image/PDF with enhanced medical OCR
       console.log('Starting enhanced medical OCR for:', uploadFile.file.name);
       const reportData = await extractMedicalReportData(uploadFile.file);
       
-      updateFileStatus(uploadFile.id, { progress: 50 });
       console.log('Enhanced medical OCR completed for:', uploadFile.file.name, reportData);
 
       // Upload the report
       const reportId = await uploadReport(uploadFile.file, petId, reportData);
-      updateFileStatus(uploadFile.id, { progress: 75 });
 
       // Analyze with AI using medical database
       await analyzeReport(reportId, reportData, petInfo);
       
-      updateFileStatus(uploadFile.id, { 
-        status: 'completed', 
-        progress: 100, 
-        reportId 
-      });
-
       return reportId;
     } catch (error) {
       console.error('Error processing file:', uploadFile.file.name, error);
-      updateFileStatus(uploadFile.id, { 
-        status: 'error', 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        progress: 0 
-      });
-      return null;
+      throw error;
     }
   };
 
   const handleFilesProcessed = async (files: UploadFile[]) => {
     setIsProcessing(true);
-    setUploadFiles(files);
 
     try {
       // Process files sequentially to avoid overwhelming the system
       const reportIds: string[] = [];
 
       for (const file of files) {
-        const reportId = await processFile(file);
-        if (reportId) {
-          reportIds.push(reportId);
+        try {
+          const reportId = await processFile(file);
+          if (reportId) {
+            reportIds.push(reportId);
+          }
+        } catch (error) {
+          console.error('Failed to process file:', file.file.name, error);
         }
         
         // Small delay between files
@@ -126,7 +107,6 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
       onFilesProcessed={handleFilesProcessed}
       isProcessing={isProcessing}
       maxFiles={5}
-      uploadFiles={uploadFiles}
     />
   );
 };
