@@ -37,7 +37,16 @@ export const usePetConditions = (petId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setConditions(data || []);
+      
+      // Type assertion and filtering to ensure proper status values
+      const typedConditions = (data || []).map(condition => ({
+        ...condition,
+        status: ['active', 'resolved', 'managed'].includes(condition.status) 
+          ? condition.status as 'active' | 'resolved' | 'managed'
+          : 'active' as const
+      })) as PetCondition[];
+      
+      setConditions(typedConditions);
     } catch (error) {
       console.error('Error fetching conditions:', error);
       toast({

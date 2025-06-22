@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +35,7 @@ export const useHealthReports = (petId?: string) => {
       let query = supabase
         .from('health_reports')
         .select('*')
-        .order('actual_report_date', { ascending: false, nullsLast: true })
+        .order('actual_report_date', { ascending: false, nullsFirst: false })
         .order('report_date', { ascending: false });
 
       if (petId) {
@@ -44,7 +45,9 @@ export const useHealthReports = (petId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setReports(data || []);
+      
+      // Type assertion to handle the database response
+      setReports((data || []) as HealthReport[]);
     } catch (error) {
       console.error('Error fetching health reports:', error);
       toast({

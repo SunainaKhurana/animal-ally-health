@@ -41,7 +41,16 @@ export const usePrescriptions = (petId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setPrescriptions(data || []);
+      
+      // Type assertion and filtering to ensure proper status values
+      const typedPrescriptions = (data || []).map(prescription => ({
+        ...prescription,
+        status: ['active', 'completed', 'discontinued'].includes(prescription.status)
+          ? prescription.status as 'active' | 'completed' | 'discontinued'
+          : 'active' as const
+      })) as Prescription[];
+      
+      setPrescriptions(typedPrescriptions);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       toast({
