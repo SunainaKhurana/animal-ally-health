@@ -1,4 +1,3 @@
-
 export const dogBreeds = [
   "Golden Retriever",
   "Labrador Retriever",
@@ -6,6 +5,7 @@ export const dogBreeds = [
   "French Bulldog",
   "Bulldog",
   "Poodle",
+  "Toy Poodle",
   "Beagle",
   "Rottweiler",
   "Yorkshire Terrier",
@@ -14,6 +14,7 @@ export const dogBreeds = [
   "Border Collie",
   "Boston Terrier",
   "Shih Tzu",
+  "Cocker Spaniel",
   "Mixed Breed",
   "Other"
 ];

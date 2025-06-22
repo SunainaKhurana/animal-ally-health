@@ -6,7 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Camera } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Camera, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { dogBreeds, catBreeds } from "@/lib/petData";
 
 interface AddPetDialogProps {
@@ -20,7 +24,7 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
     name: "",
     type: "",
     breed: "",
-    age: "",
+    dateOfBirth: undefined as Date | undefined,
     weight: "",
     gender: "",
     photo: ""
@@ -28,13 +32,12 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.type || !formData.age || !formData.weight || !formData.gender) {
+    if (!formData.name || !formData.type || !formData.dateOfBirth || !formData.weight || !formData.gender) {
       return;
     }
 
     onAddPet({
       ...formData,
-      age: parseInt(formData.age),
       weight: parseFloat(formData.weight),
       nextVaccination: "2024-08-15" // Mock next vaccination date
     });
@@ -44,7 +47,7 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
       name: "",
       type: "",
       breed: "",
-      age: "",
+      dateOfBirth: undefined,
       weight: "",
       gender: "",
       photo: ""
@@ -144,31 +147,47 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
             </RadioGroup>
           </div>
 
-          {/* Age and Weight */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="age">Age (years) *</Label>
-              <Input
-                id="age"
-                type="number"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                placeholder="Age"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="weight">Weight (lbs) *</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.1"
-                value={formData.weight}
-                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                placeholder="Weight"
-                className="mt-1"
-              />
-            </div>
+          {/* Date of Birth */}
+          <div>
+            <Label>Date of Birth *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal mt-1",
+                    !formData.dateOfBirth && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.dateOfBirth ? format(formData.dateOfBirth, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={formData.dateOfBirth}
+                  onSelect={(date) => setFormData({ ...formData, dateOfBirth: date })}
+                  disabled={(date) => date > new Date() || date < new Date("1990-01-01")}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Weight */}
+          <div>
+            <Label htmlFor="weight">Weight (lbs) *</Label>
+            <Input
+              id="weight"
+              type="number"
+              step="0.1"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+              placeholder="Weight"
+              className="mt-1"
+            />
           </div>
 
           {/* Submit Button */}

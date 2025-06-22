@@ -1,13 +1,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { calculateAge } from "@/lib/dateUtils";
 
 interface Pet {
   id: string;
   name: string;
   type: 'dog' | 'cat';
   breed?: string;
-  age: number;
+  dateOfBirth: Date;
   weight: number;
   gender: 'male' | 'female';
   photo?: string;
@@ -27,6 +28,8 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
   const getGenderEmoji = (gender: string) => {
     return gender === 'male' ? '♂️' : '♀️';
   };
+
+  const age = calculateAge(pet.dateOfBirth);
 
   return (
     <Card 
@@ -56,7 +59,7 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
                 {pet.breed || pet.type}
               </Badge>
               <span className="text-xs text-gray-500">
-                {pet.age} years • {pet.weight} lbs
+                {age} • {pet.weight} lbs
               </span>
             </div>
 
