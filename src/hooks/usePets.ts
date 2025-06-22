@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -94,30 +93,52 @@ export const usePets = () => {
     }
 
     try {
-      const ageInYears = new Date().getFullYear() - petData.dateOfBirth.getFullYear();
-      const ageInMonths = new Date().getMonth() - petData.dateOfBirth.getMonth();
+      console.log('Adding pet with data:', petData);
+      
+      // Calculate age from date of birth
+      const now = new Date();
+      const birthDate = new Date(petData.dateOfBirth);
+      const ageInYears = now.getFullYear() - birthDate.getFullYear();
+      let ageInMonths = now.getMonth() - birthDate.getMonth();
+      
+      // Adjust for negative months
+      if (ageInMonths < 0) {
+        ageInMonths += 12;
+      }
+
+      // Convert weight to kg if needed
+      const weightInKg = petData.weightUnit === 'kg' ? petData.weight : petData.weight * 0.453592;
+
+      const insertData = {
+        name: petData.name,
+        type: petData.type,
+        breed: petData.breed || '',
+        species: petData.type, // Map type to species
+        age: ageInYears,
+        age_years: ageInYears,
+        age_months: ageInMonths,
+        weight: petData.weight,
+        weight_kg: weightInKg,
+        gender: petData.gender,
+        photo_url: petData.photo || null,
+        user_id: user.id,
+        owner_id: user.id
+      };
+
+      console.log('Insert data:', insertData);
 
       const { data, error } = await supabase
         .from('pets')
-        .insert({
-          name: petData.name,
-          type: petData.type,
-          breed: petData.breed || '',
-          species: petData.type,
-          age: ageInYears,
-          age_years: ageInYears,
-          age_months: ageInMonths >= 0 ? ageInMonths : 12 + ageInMonths,
-          weight: petData.weight,
-          weight_kg: petData.weightUnit === 'kg' ? petData.weight : petData.weight * 0.453592,
-          gender: petData.gender,
-          photo_url: petData.photo,
-          user_id: user.id,
-          owner_id: user.id
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Pet added successfully:', data);
 
       // Add to local state
       const newPet: Pet = {
@@ -142,7 +163,7 @@ export const usePets = () => {
       console.error('Error adding pet:', error);
       toast({
         title: "Error",
-        description: "Failed to add pet",
+        description: `Failed to add pet: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
