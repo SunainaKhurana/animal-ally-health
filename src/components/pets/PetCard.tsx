@@ -53,6 +53,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    setIsDeleteDialogOpen(true);
   };
 
   const handleDelete = () => {
