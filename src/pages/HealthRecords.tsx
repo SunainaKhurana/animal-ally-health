@@ -2,12 +2,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, TrendingUp, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, TrendingUp, Sparkles, Upload } from "lucide-react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
 import { useHealthReports } from "@/hooks/useHealthReports";
 import { supabase } from "@/integrations/supabase/client";
-import HealthRecordUpload from "@/components/health/HealthRecordUpload";
+import EnhancedHealthRecordUpload from "@/components/health/EnhancedHealthRecordUpload";
 import HealthReportCard from "@/components/health/HealthReportCard";
 import PetSelector from "@/components/pets/PetSelector";
 import { useToast } from "@/hooks/use-toast";
