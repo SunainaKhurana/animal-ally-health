@@ -164,6 +164,14 @@ const Index = () => {
               >
                 📋 Upload Vaccination Record
               </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start h-12"
+                onClick={() => pets.length === 1 ? window.location.href = `/health/${pets[0].id}` : null}
+                disabled={pets.length !== 1}
+              >
+                🏥 View Health Records
+              </Button>
               <Button variant="outline" className="w-full justify-start h-12">
                 📅 View Upcoming Appointments
               </Button>

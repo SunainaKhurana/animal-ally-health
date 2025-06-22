@@ -1,11 +1,9 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
-import { calculateAge } from "@/lib/dateUtils";
-import { useState } from "react";
+import { MoreVertical, Edit, Trash2, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 interface Pet {
   id: string;
@@ -27,111 +25,73 @@ interface PetCardProps {
 }
 
 const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const getTypeEmoji = (type: string) => {
-    return type === 'dog' ? '🐕' : '🐱';
-  };
-
-  const getGenderEmoji = (gender: string) => {
-    return gender === 'male' ? '♂️' : '♀️';
-  };
-
-  const age = calculateAge(pet.dateOfBirth);
-  const weightUnit = pet.weightUnit || 'lbs';
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent onClick when clicking delete button or its dialog
-    if ((e.target as HTMLElement).closest('[data-delete-button]') || 
-        (e.target as HTMLElement).closest('[role="dialog"]') ||
-        (e.target as HTMLElement).closest('[data-radix-popper-content-wrapper]')) {
-      return;
+  const navigate = useNavigate();
+  
+  const calculateAge = (dateOfBirth: Date) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    const ageInMonths = (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
+    
+    if (ageInMonths < 12) {
+      return `${ageInMonths} month${ageInMonths !== 1 ? 's' : ''} old`;
+    } else {
+      const years = Math.floor(ageInMonths / 12);
+      const months = ageInMonths % 12;
+      return months > 0 ? `${years}y ${months}m old` : `${years} year${years !== 1 ? 's' : ''} old`;
     }
-    onClick();
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = () => {
-    onDelete();
-    setIsDeleteDialogOpen(false);
   };
 
   return (
-    <Card 
-      className="cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-orange-200" 
-      onClick={handleCardClick}
-    >
+    <Card className="cursor-pointer hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-center space-x-4">
-          {/* Pet Avatar */}
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-200 to-orange-300 flex items-center justify-center text-2xl">
-            {pet.photo ? (
-              <img src={pet.photo} alt={pet.name} className="w-full h-full rounded-full object-cover" />
-            ) : (
-              getTypeEmoji(pet.type)
-            )}
-          </div>
-
-          {/* Pet Info */}
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <h4 className="font-semibold text-gray-900">{pet.name}</h4>
-              <span className="text-sm">{getGenderEmoji(pet.gender)}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3" onClick={onClick}>
+            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+              {pet.photo ? (
+                <img 
+                  src={pet.photo} 
+                  alt={pet.name}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-lg">{pet.type === 'dog' ? '🐕' : '🐱'}</span>
+              )}
             </div>
-            
-            <div className="flex items-center space-x-2 mb-2">
-              <Badge variant="secondary" className="text-xs">
-                {pet.breed || pet.type}
-              </Badge>
-              <span className="text-xs text-gray-500">
-                {age} • {pet.weight} {weightUnit}
-              </span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900">{pet.name}</h3>
+              <p className="text-sm text-gray-600">
+                {pet.breed} • {calculateAge(pet.dateOfBirth)}
+              </p>
+              <p className="text-xs text-gray-500">
+                {pet.weight} {pet.weightUnit || 'lbs'} • {pet.gender}
+              </p>
             </div>
-
-            {pet.nextVaccination && (
-              <div className="text-xs text-orange-600 font-medium">
-                Next vaccination: {pet.nextVaccination}
-              </div>
-            )}
           </div>
-
-          {/* Delete Button */}
-          <div data-delete-button onClick={(e) => e.stopPropagation()}>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleDeleteClick}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Pet Profile</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure? This will delete all the related health information of {pet.name} also. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleDelete}
-                    className="bg-red-500 hover:bg-red-600"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onClick}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/health/${pet.id}`)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Health Records
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={onDelete}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Pet
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
