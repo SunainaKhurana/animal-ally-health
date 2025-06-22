@@ -14,21 +14,30 @@ const PhotoUpload = ({ photo, onPhotoChange }: PhotoUploadProps) => {
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   const handlePhotoSelect = (photoDataUrl: string) => {
+    console.log('Photo selected for cropping:', photoDataUrl.substring(0, 50) + '...');
     setSelectedImage(photoDataUrl);
     setIsCropModalOpen(true);
   };
 
   const handleCropComplete = (croppedImageUrl: string) => {
+    console.log('Crop completed, updating photo:', croppedImageUrl.substring(0, 50) + '...');
     onPhotoChange(croppedImageUrl);
     setSelectedImage("");
+    setIsCropModalOpen(false);
   };
 
   const handlePhotoClick = () => {
     if (photo) {
+      console.log('Editing existing photo:', photo.substring(0, 50) + '...');
       // If there's an existing photo, allow editing it
       setSelectedImage(photo);
       setIsCropModalOpen(true);
     }
+  };
+
+  const handleModalClose = () => {
+    setIsCropModalOpen(false);
+    setSelectedImage("");
   };
 
   return (
@@ -38,7 +47,12 @@ const PhotoUpload = ({ photo, onPhotoChange }: PhotoUploadProps) => {
         onClick={handlePhotoClick}
       >
         {photo ? (
-          <img src={photo} alt="Pet" className="w-full h-full rounded-full object-cover" />
+          <img 
+            src={photo} 
+            alt="Pet" 
+            className="w-full h-full rounded-full object-cover"
+            key={photo} // Force re-render when photo changes
+          />
         ) : (
           <Camera className="h-8 w-8 text-gray-400" />
         )}
@@ -51,7 +65,7 @@ const PhotoUpload = ({ photo, onPhotoChange }: PhotoUploadProps) => {
 
       <ImageCropModal
         open={isCropModalOpen}
-        onOpenChange={setIsCropModalOpen}
+        onOpenChange={handleModalClose}
         imageSrc={selectedImage}
         onCropComplete={handleCropComplete}
       />

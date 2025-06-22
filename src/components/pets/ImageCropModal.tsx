@@ -40,6 +40,7 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
 
   const getCroppedImg = useCallback(() => {
     if (!completedCrop || !imgRef.current || !canvasRef.current) {
+      console.log('Missing required elements for cropping');
       return;
     }
 
@@ -48,6 +49,7 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
+      console.log('Could not get canvas context');
       return;
     }
 
@@ -56,6 +58,13 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
 
     canvas.width = completedCrop.width;
     canvas.height = completedCrop.height;
+
+    console.log('Cropping image with dimensions:', {
+      cropWidth: completedCrop.width,
+      cropHeight: completedCrop.height,
+      scaleX,
+      scaleY
+    });
 
     ctx.drawImage(
       image,
@@ -69,15 +78,20 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
       completedCrop.height,
     );
 
-    return canvas.toDataURL('image/jpeg', 0.8);
+    const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8);
+    console.log('Generated cropped image URL:', croppedImageUrl.substring(0, 50) + '...');
+    return croppedImageUrl;
   }, [completedCrop]);
 
   const handleCropSave = () => {
+    console.log('Attempting to save crop...');
     const croppedImageUrl = getCroppedImg();
     if (croppedImageUrl) {
+      console.log('Crop successful, calling onCropComplete');
       onCropComplete(croppedImageUrl);
+    } else {
+      console.log('Crop failed - no image URL generated');
     }
-    onOpenChange(false);
   };
 
   const handleAspectRatioChange = (value: string) => {
@@ -89,6 +103,15 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
     };
     setAspectRatio(ratios[value]);
   };
+
+  const handleCancel = () => {
+    console.log('Crop cancelled');
+    onOpenChange(false);
+  };
+
+  if (!imageSrc) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,7 +155,7 @@ const ImageCropModal = ({ open, onOpenChange, imageSrc, onCropComplete }: ImageC
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
           <Button onClick={handleCropSave} className="bg-orange-500 hover:bg-orange-600">
