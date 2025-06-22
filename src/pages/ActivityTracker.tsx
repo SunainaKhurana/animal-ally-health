@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -75,18 +74,15 @@ const ActivityTracker = () => {
             </Card>
           )}
 
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/prescriptions/${selectedPet.id}`)}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                💊 Medication Tracker
+                💊 Prescription Tracker
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Track medications and prescriptions for {selectedPet.name}</p>
-              <Button className="mt-2" variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Coming Soon
-              </Button>
+              <p className="text-gray-600">Upload and track prescriptions for {selectedPet.name}</p>
             </CardContent>
           </Card>
 

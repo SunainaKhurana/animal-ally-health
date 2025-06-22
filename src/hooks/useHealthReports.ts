@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +9,7 @@ export interface HealthReport {
   title: string;
   report_type: string;
   report_date: string;
+  actual_report_date: string | null;
   status: 'processing' | 'completed' | 'failed';
   image_url?: string;
   extracted_text?: string;
@@ -34,6 +34,7 @@ export const useHealthReports = (petId?: string) => {
       let query = supabase
         .from('health_reports')
         .select('*')
+        .order('actual_report_date', { ascending: false, nullsLast: true })
         .order('report_date', { ascending: false });
 
       if (petId) {
@@ -76,7 +77,7 @@ export const useHealthReports = (petId?: string) => {
         .from('health-reports')
         .getPublicUrl(fileName);
 
-      // Create health report record
+      // Create health report record with actual report date from OCR
       const { data, error } = await supabase
         .from('health_reports')
         .insert({
@@ -85,6 +86,7 @@ export const useHealthReports = (petId?: string) => {
           title: reportData.testType || reportData.reportType || 'Health Report',
           report_type: reportData.testType || reportData.reportType || 'General',
           report_date: reportData.reportDate || new Date().toISOString().split('T')[0],
+          actual_report_date: reportData.actualDate || reportData.reportDate || null,
           image_url: publicUrl,
           extracted_text: JSON.stringify(reportData),
           status: 'processing'
@@ -104,8 +106,19 @@ export const useHealthReports = (petId?: string) => {
 
   const analyzeReport = async (reportId: string, reportData: any, petInfo: any) => {
     try {
+      // Get pet conditions for enhanced analysis
+      const { data: conditions } = await supabase
+        .from('pet_conditions')
+        .select('*')
+        .eq('pet_id', petInfo.id);
+
+      const enhancedPetInfo = {
+        ...petInfo,
+        conditions: conditions || []
+      };
+
       const { data, error } = await supabase.functions.invoke('analyze-health-report', {
-        body: { reportData, petInfo, reportId }
+        body: { reportData, petInfo: enhancedPetInfo, reportId }
       });
 
       if (error) throw error;

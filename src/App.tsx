@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import Settings from "./pages/Settings";
 import WeightTracking from "./pages/WeightTracking";
 import WalksTracker from "./pages/WalksTracker";
 import ActivityTracker from "./pages/ActivityTracker";
+import PrescriptionsTracker from "./pages/PrescriptionsTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +35,7 @@ const App = () => (
             <Route path="/weight/:petId" element={<WeightTracking />} />
             <Route path="/activity" element={<ActivityTracker />} />
             <Route path="/walks/:petId" element={<WalksTracker />} />
+            <Route path="/prescriptions/:petId" element={<PrescriptionsTracker />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

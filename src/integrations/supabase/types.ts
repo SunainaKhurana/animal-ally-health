@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       health_reports: {
         Row: {
+          actual_report_date: string | null
           ai_analysis: string | null
           created_at: string | null
           extracted_text: string | null
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_report_date?: string | null
           ai_analysis?: string | null
           created_at?: string | null
           extracted_text?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_report_date?: string | null
           ai_analysis?: string | null
           created_at?: string | null
           extracted_text?: string | null
@@ -65,6 +68,123 @@ export type Database = {
           },
         ]
       }
+      medication_logs: {
+        Row: {
+          created_at: string | null
+          given_at: string
+          given_by: string
+          id: string
+          medication_name: string
+          notes: string | null
+          prescription_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          given_at: string
+          given_by: string
+          id?: string
+          medication_name: string
+          notes?: string | null
+          prescription_id: string
+        }
+        Update: {
+          created_at?: string | null
+          given_at?: string
+          given_by?: string
+          id?: string
+          medication_name?: string
+          notes?: string | null
+          prescription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_logs_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_conditions: {
+        Row: {
+          condition_name: string
+          created_at: string | null
+          diagnosed_date: string | null
+          id: string
+          notes: string | null
+          pet_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          condition_name: string
+          created_at?: string | null
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          pet_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          condition_name?: string
+          created_at?: string | null
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          pet_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_conditions_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_parents: {
+        Row: {
+          added_by: string
+          created_at: string | null
+          id: string
+          permissions: Json | null
+          pet_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string | null
+          id?: string
+          permissions?: Json | null
+          pet_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string | null
+          id?: string
+          permissions?: Json | null
+          pet_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_parents_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pets: {
         Row: {
           age: number
@@ -72,12 +192,17 @@ export type Database = {
           age_years: number | null
           breed: string
           created_at: string | null
+          current_diet: string | null
+          food_allergies: string[] | null
           gender: Database["public"]["Enums"]["pet_gender_new"] | null
           id: string
+          is_spayed_neutered: boolean | null
+          microchip_id: string | null
           name: string
           notes: string | null
           owner_id: string
           photo_url: string | null
+          special_conditions: string[] | null
           species: string
           type: Database["public"]["Enums"]["pet_type"]
           updated_at: string | null
@@ -91,12 +216,17 @@ export type Database = {
           age_years?: number | null
           breed: string
           created_at?: string | null
+          current_diet?: string | null
+          food_allergies?: string[] | null
           gender?: Database["public"]["Enums"]["pet_gender_new"] | null
           id?: string
+          is_spayed_neutered?: boolean | null
+          microchip_id?: string | null
           name: string
           notes?: string | null
           owner_id: string
           photo_url?: string | null
+          special_conditions?: string[] | null
           species: string
           type: Database["public"]["Enums"]["pet_type"]
           updated_at?: string | null
@@ -110,12 +240,17 @@ export type Database = {
           age_years?: number | null
           breed?: string
           created_at?: string | null
+          current_diet?: string | null
+          food_allergies?: string[] | null
           gender?: Database["public"]["Enums"]["pet_gender_new"] | null
           id?: string
+          is_spayed_neutered?: boolean | null
+          microchip_id?: string | null
           name?: string
           notes?: string | null
           owner_id?: string
           photo_url?: string | null
+          special_conditions?: string[] | null
           species?: string
           type?: Database["public"]["Enums"]["pet_type"]
           updated_at?: string | null
@@ -124,6 +259,59 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: []
+      }
+      prescriptions: {
+        Row: {
+          ai_analysis: string | null
+          created_at: string | null
+          extracted_text: string | null
+          id: string
+          image_url: string | null
+          medications: Json | null
+          pet_id: string
+          prescribed_date: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          created_at?: string | null
+          extracted_text?: string | null
+          id?: string
+          image_url?: string | null
+          medications?: Json | null
+          pet_id: string
+          prescribed_date: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          created_at?: string | null
+          extracted_text?: string | null
+          id?: string
+          image_url?: string | null
+          medications?: Json | null
+          pet_id?: string
+          prescribed_date?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -151,6 +339,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      walks: {
+        Row: {
+          created_at: string | null
+          distance_meters: number | null
+          duration_minutes: number | null
+          end_time: string | null
+          id: string
+          notes: string | null
+          pet_id: string
+          route_data: Json | null
+          start_time: string
+          user_id: string
+          weather: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          pet_id: string
+          route_data?: Json | null
+          start_time: string
+          user_id: string
+          weather?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          pet_id?: string
+          route_data?: Json | null
+          start_time?: string
+          user_id?: string
+          weather?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walks_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
