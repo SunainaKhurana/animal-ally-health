@@ -1,22 +1,61 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, TrendingUp } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, TrendingUp, User } from "lucide-react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
 import { useHealthReports } from "@/hooks/useHealthReports";
 import HealthRecordUpload from "@/components/health/HealthRecordUpload";
 import HealthReportCard from "@/components/health/HealthReportCard";
+import PetSelector from "@/components/pets/PetSelector";
 
 const HealthRecords = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { pets } = usePets();
   const { reports, loading, deleteReport } = useHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState(petId);
 
-  const pet = pets.find(p => p.id === petId);
+  const pet = pets.find(p => p.id === selectedPetId);
+
+  // Auto-open upload if URL parameter is set
+  useEffect(() => {
+    if (searchParams.get('upload') === 'true') {
+      setShowUpload(true);
+    }
+  }, [searchParams]);
+
+  // Update selected pet if URL changes
+  useEffect(() => {
+    if (petId && petId !== selectedPetId) {
+      setSelectedPetId(petId);
+    }
+  }, [petId, selectedPetId]);
+
+  const handlePetChange = (newPet: any) => {
+    setSelectedPetId(newPet.id);
+    navigate(`/health/${newPet.id}`, { replace: true });
+  };
+
+  if (!pet && pets.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p>No pets found</p>
+              <Button onClick={() => navigate('/')} className="mt-4">
+                Go Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (!pet) {
     return (
@@ -58,6 +97,18 @@ const HealthRecords = () => {
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6">
+        {/* Pet Selector - Show if multiple pets */}
+        {pets.length > 1 && (
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Switch Pet:</p>
+            <PetSelector
+              pets={pets}
+              selectedPet={pet}
+              onSelectPet={handlePetChange}
+            />
+          </div>
+        )}
+
         {/* Pet Info Card */}
         <Card className="bg-gradient-to-r from-orange-500 to-orange-400 text-white border-0">
           <CardContent className="p-6">

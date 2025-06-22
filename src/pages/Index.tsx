@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import PetCard from "@/components/pets/PetCard";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import VaccinationUpload from "@/components/vaccinations/VaccinationUpload";
+import MedicalRecordsCard from "@/components/health/MedicalRecordsCard";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { usePets } from "@/hooks/usePets";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +109,11 @@ const Index = () => {
           </CardContent>
         </Card>
 
+        {/* Medical Records Section - Show prominently when pets exist */}
+        {pets.length > 0 && (
+          <MedicalRecordsCard pets={pets} />
+        )}
+
         {/* My Pets Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -149,34 +154,22 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Simplified */}
         {pets.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Actions</CardTitle>
-              <CardDescription>Manage your pet's health records</CardDescription>
+              <CardDescription>Additional pet care features</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start h-12"
-                onClick={() => document.getElementById('vaccination-upload')?.click()}
-              >
-                📋 Upload Vaccination Record
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start h-12"
-                onClick={() => pets.length === 1 ? window.location.href = `/health/${pets[0].id}` : null}
-                disabled={pets.length !== 1}
-              >
-                🏥 View Health Records
-              </Button>
               <Button variant="outline" className="w-full justify-start h-12">
                 📅 View Upcoming Appointments
               </Button>
               <Button variant="outline" className="w-full justify-start h-12">
                 📊 Health Summary
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-12">
+                🔔 Set Reminders
               </Button>
             </CardContent>
           </Card>
