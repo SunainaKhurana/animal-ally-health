@@ -82,8 +82,8 @@ export const useHealthReports = (petId?: string) => {
         .insert({
           pet_id: petId,
           user_id: user.id,
-          title: reportData.reportType || 'Health Report',
-          report_type: reportData.reportType || 'General',
+          title: reportData.testType || reportData.reportType || 'Health Report',
+          report_type: reportData.testType || reportData.reportType || 'General',
           report_date: reportData.reportDate || new Date().toISOString().split('T')[0],
           image_url: publicUrl,
           extracted_text: JSON.stringify(reportData),
@@ -94,7 +94,6 @@ export const useHealthReports = (petId?: string) => {
 
       if (error) throw error;
 
-      // Don't show the upload success toast here - it will be shown when analysis completes
       fetchReports();
       return data.id;
     } catch (error) {
@@ -106,7 +105,7 @@ export const useHealthReports = (petId?: string) => {
   const analyzeReport = async (reportId: string, reportData: any, petInfo: any) => {
     try {
       const { data, error } = await supabase.functions.invoke('analyze-health-report', {
-        body: { reportData, petInfo }
+        body: { reportData, petInfo, reportId }
       });
 
       if (error) throw error;
@@ -116,13 +115,13 @@ export const useHealthReports = (petId?: string) => {
         .from('health_reports')
         .update({
           ai_analysis: JSON.stringify(data),
+          key_findings: data.keyFindings || '',
           status: 'completed'
         })
         .eq('id', reportId);
 
       if (updateError) throw updateError;
 
-      // Don't show analysis complete toast here - it will be shown via real-time updates
       fetchReports();
       return data;
     } catch (error) {
@@ -136,7 +135,7 @@ export const useHealthReports = (petId?: string) => {
 
       toast({
         title: "Analysis Failed",
-        description: "Failed to analyze health report. The report was saved but analysis couldn't be completed. Please try uploading again.",
+        description: "Failed to analyze health report. The report was saved but analysis couldn't be completed.",
         variant: "destructive",
       });
       
@@ -147,6 +146,24 @@ export const useHealthReports = (petId?: string) => {
 
   const deleteReport = async (reportId: string) => {
     try {
+      // Get the report to find the image URL
+      const { data: report } = await supabase
+        .from('health_reports')
+        .select('image_url')
+        .eq('id', reportId)
+        .single();
+
+      // Delete from storage if image exists
+      if (report?.image_url) {
+        const path = report.image_url.split('/').pop();
+        if (path) {
+          await supabase.storage
+            .from('health-reports')
+            .remove([path]);
+        }
+      }
+
+      // Delete from database
       const { error } = await supabase
         .from('health_reports')
         .delete()

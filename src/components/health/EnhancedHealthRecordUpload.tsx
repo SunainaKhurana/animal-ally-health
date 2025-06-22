@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useHealthReports } from "@/hooks/useHealthReports";
-import { extractHealthReportData } from "@/lib/enhancedOcrService";
+import { extractMedicalReportData } from "@/lib/medicalOcrService";
 import { useToast } from "@/hooks/use-toast";
 import MultipleFileUpload from "./MultipleFileUpload";
 
@@ -40,18 +40,18 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
     try {
       updateFileStatus(uploadFile.id, { status: 'processing', progress: 20 });
 
-      // Extract data from the image/PDF with enhanced OCR
-      console.log('Starting enhanced OCR for:', uploadFile.file.name);
-      const reportData = await extractHealthReportData(uploadFile.file);
+      // Extract data from the image/PDF with enhanced medical OCR
+      console.log('Starting enhanced medical OCR for:', uploadFile.file.name);
+      const reportData = await extractMedicalReportData(uploadFile.file);
       
       updateFileStatus(uploadFile.id, { progress: 50 });
-      console.log('Enhanced OCR completed for:', uploadFile.file.name, reportData);
+      console.log('Enhanced medical OCR completed for:', uploadFile.file.name, reportData);
 
       // Upload the report
       const reportId = await uploadReport(uploadFile.file, petId, reportData);
       updateFileStatus(uploadFile.id, { progress: 75 });
 
-      // Analyze with AI
+      // Analyze with AI using medical database
       await analyzeReport(reportId, reportData, petInfo);
       
       updateFileStatus(uploadFile.id, { 
@@ -77,24 +77,17 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
     setUploadFiles(files);
 
     try {
-      // Process files in parallel (but limit concurrency to avoid overwhelming the system)
-      const batchSize = 2;
+      // Process files sequentially to avoid overwhelming the system
       const reportIds: string[] = [];
 
-      for (let i = 0; i < files.length; i += batchSize) {
-        const batch = files.slice(i, i + batchSize);
-        const batchPromises = batch.map(file => processFile(file));
-        const batchResults = await Promise.all(batchPromises);
-        
-        // Collect successful report IDs
-        batchResults.forEach(reportId => {
-          if (reportId) reportIds.push(reportId);
-        });
-
-        // Small delay between batches to be gentle on the system
-        if (i + batchSize < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+      for (const file of files) {
+        const reportId = await processFile(file);
+        if (reportId) {
+          reportIds.push(reportId);
         }
+        
+        // Small delay between files
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       const successful = reportIds.length;
@@ -103,7 +96,7 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
       if (successful > 0) {
         toast({
           title: "Upload Complete! 🎉",
-          description: `${successful} report${successful !== 1 ? 's' : ''} uploaded and analyzed successfully.${failed > 0 ? ` ${failed} failed.` : ''}`,
+          description: `${successful} medical report${successful !== 1 ? 's' : ''} uploaded and analyzed with medical database integration.${failed > 0 ? ` ${failed} failed.` : ''}`,
           duration: 5000,
         });
         
@@ -120,7 +113,7 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
       console.error('Batch processing error:', error);
       toast({
         title: "Processing Error",
-        description: "An error occurred while processing your reports. Please try again.",
+        description: "An error occurred while processing your medical reports. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -133,6 +126,7 @@ const EnhancedHealthRecordUpload = ({ petId, petInfo, onUploadComplete }: Enhanc
       onFilesProcessed={handleFilesProcessed}
       isProcessing={isProcessing}
       maxFiles={5}
+      uploadFiles={uploadFiles}
     />
   );
 };
