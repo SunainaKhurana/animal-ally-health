@@ -18,6 +18,10 @@ const Index = () => {
     setIsAddPetOpen(false);
   };
 
+  const handleDeletePet = (petId: string) => {
+    setPets(pets.filter(pet => pet.id !== petId));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
       {/* Header */}
@@ -74,7 +78,8 @@ const Index = () => {
                 <PetCard 
                   key={pet.id} 
                   pet={pet} 
-                  onClick={() => setSelectedPet(pet)} 
+                  onClick={() => setSelectedPet(pet)}
+                  onDelete={() => handleDeletePet(pet.id)}
                 />
               ))
             )}

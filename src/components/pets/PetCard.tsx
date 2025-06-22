@@ -1,7 +1,11 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import { calculateAge } from "@/lib/dateUtils";
+import { useState } from "react";
 
 interface Pet {
   id: string;
@@ -19,9 +23,12 @@ interface Pet {
 interface PetCardProps {
   pet: Pet;
   onClick: () => void;
+  onDelete: () => void;
 }
 
-const PetCard = ({ pet, onClick }: PetCardProps) => {
+const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const getTypeEmoji = (type: string) => {
     return type === 'dog' ? '🐕' : '🐱';
   };
@@ -33,10 +40,23 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
   const age = calculateAge(pet.dateOfBirth);
   const weightUnit = pet.weightUnit || 'lbs';
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent onClick when clicking delete button
+    if ((e.target as HTMLElement).closest('[data-delete-button]')) {
+      return;
+    }
+    onClick();
+  };
+
+  const handleDelete = () => {
+    onDelete();
+    setIsDeleteDialogOpen(false);
+  };
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-orange-200" 
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <CardContent className="p-4">
         <div className="flex items-center space-x-4">
@@ -72,8 +92,37 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
             )}
           </div>
 
-          {/* Status Indicator */}
-          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+          {/* Delete Button */}
+          <div data-delete-button>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Pet Profile</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {pet.name}'s profile? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDelete}
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </CardContent>
     </Card>
