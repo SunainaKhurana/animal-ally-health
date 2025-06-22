@@ -30,11 +30,11 @@ const PetSwitcher = ({ pets, selectedPet, onSelectPet, onAddPet }: PetSwitcherPr
         <button
           key={pet.id}
           onClick={() => onSelectPet(pet)}
-          className={`flex-shrink-0 relative ${
-            selectedPet?.id === pet.id ? 'ring-2 ring-orange-500 ring-offset-2' : ''
-          }`}
+          className="flex-shrink-0 relative"
         >
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center">
+          <div className={`w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center border-4 transition-all ${
+            selectedPet?.id === pet.id ? 'border-orange-500 shadow-lg scale-110' : 'border-transparent'
+          }`}>
             {pet.photo ? (
               <img 
                 src={pet.photo} 

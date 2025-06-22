@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -56,18 +57,40 @@ export const usePets = () => {
       if (error) throw error;
 
       // Transform data to match frontend interface
-      const transformedPets = data?.map(pet => ({
-        id: pet.id,
-        name: pet.name,
-        type: pet.type as 'dog' | 'cat',
-        breed: pet.breed,
-        dateOfBirth: new Date(new Date().getFullYear() - pet.age_years, new Date().getMonth() - (pet.age_months || 0)),
-        weight: Number(pet.weight),
-        weightUnit: 'lbs', // Default for now
-        gender: pet.gender as 'male' | 'female',
-        photo: pet.photo_url,
-        nextVaccination: undefined // Will be handled later
-      })) || [];
+      const transformedPets = data?.map(pet => {
+        // Calculate date of birth from age
+        const currentDate = new Date();
+        const birthYear = currentDate.getFullYear() - (pet.age_years || pet.age || 0);
+        const birthMonth = currentDate.getMonth() - (pet.age_months || 0);
+        const dateOfBirth = new Date(birthYear, birthMonth, currentDate.getDate());
+
+        // Determine weight unit based on stored weight_kg
+        let displayWeight = pet.weight;
+        let weightUnit = 'lbs';
+        
+        // If we have weight_kg and it's different from weight, assume weight is in lbs
+        if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) > 0.1) {
+          displayWeight = pet.weight; // Keep original weight value
+          weightUnit = 'lbs';
+        } else if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) < 0.1) {
+          // If weight and weight_kg are similar, it's probably stored in kg
+          displayWeight = pet.weight;
+          weightUnit = 'kg';
+        }
+
+        return {
+          id: pet.id,
+          name: pet.name,
+          type: pet.type as 'dog' | 'cat',
+          breed: pet.breed,
+          dateOfBirth: dateOfBirth,
+          weight: Number(displayWeight),
+          weightUnit: weightUnit,
+          gender: pet.gender as 'male' | 'female',
+          photo: pet.photo_url,
+          nextVaccination: undefined // Will be handled later
+        };
+      }) || [];
 
       setPets(transformedPets);
     } catch (error) {
@@ -106,7 +129,7 @@ export const usePets = () => {
         ageInMonths += 12;
       }
 
-      // Convert weight to kg if needed
+      // Convert weight to kg if needed for storage
       const weightInKg = petData.weightUnit === 'kg' ? petData.weight : petData.weight * 0.453592;
 
       const insertData = {
@@ -117,8 +140,8 @@ export const usePets = () => {
         age: ageInYears,
         age_years: ageInYears,
         age_months: ageInMonths,
-        weight: petData.weight,
-        weight_kg: weightInKg,
+        weight: petData.weight, // Store original weight
+        weight_kg: weightInKg, // Store converted weight in kg
         gender: petData.gender,
         photo_url: petData.photo || null,
         user_id: user.id,
@@ -147,7 +170,7 @@ export const usePets = () => {
         type: data.type as 'dog' | 'cat',
         breed: data.breed,
         dateOfBirth: petData.dateOfBirth,
-        weight: Number(data.weight),
+        weight: petData.weight, // Keep original weight and unit
         weightUnit: petData.weightUnit,
         gender: data.gender as 'male' | 'female',
         photo: data.photo_url,
@@ -192,7 +215,7 @@ export const usePets = () => {
         ageInMonths += 12;
       }
 
-      // Convert weight to kg if needed
+      // Convert weight to kg if needed for storage
       const weightInKg = updatedPet.weightUnit === 'kg' ? updatedPet.weight : updatedPet.weight * 0.453592;
 
       const updateData = {
@@ -203,8 +226,8 @@ export const usePets = () => {
         age: ageInYears,
         age_years: ageInYears,
         age_months: ageInMonths,
-        weight: updatedPet.weight,
-        weight_kg: weightInKg,
+        weight: updatedPet.weight, // Store original weight
+        weight_kg: weightInKg, // Store converted weight in kg
         gender: updatedPet.gender,
         photo_url: updatedPet.photo || null,
       };

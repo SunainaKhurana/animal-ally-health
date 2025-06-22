@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Heart, Calendar, Activity, FileText, Pill, FlaskConical } from "lucide-react";
+import { Edit2, Heart, Calendar, Activity, FileText, Pill, FlaskConical, Route } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Pet {
@@ -107,13 +107,29 @@ const PetInfoSection = ({ pet, onEdit }: PetInfoSectionProps) => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate(`/weight/${pet.id}`)}
+        >
           <CardContent className="p-4 text-center">
             <Activity className="h-8 w-8 text-purple-500 mx-auto mb-2" />
             <h3 className="font-medium text-sm">Weight Tracking</h3>
             <p className="text-xs text-gray-600">Monitor growth</p>
           </CardContent>
         </Card>
+
+        {pet.type === 'dog' && (
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow col-span-2"
+            onClick={() => navigate(`/walks/${pet.id}`)}
+          >
+            <CardContent className="p-4 text-center">
+              <Route className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-medium text-sm">Walks Tracker</h3>
+              <p className="text-xs text-gray-600">Track daily walks and exercise</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent Activity */}
