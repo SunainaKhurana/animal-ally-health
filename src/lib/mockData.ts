@@ -7,6 +7,7 @@ export const mockPets = [
     breed: "Golden Retriever",
     dateOfBirth: new Date("2021-03-15"),
     weight: 65,
+    weightUnit: "lbs",
     gender: "male" as const,
     nextVaccination: "2024-08-15"
   },
@@ -16,6 +17,7 @@ export const mockPets = [
     type: "cat" as const,
     dateOfBirth: new Date("2022-01-10"),
     weight: 8.5,
+    weightUnit: "lbs",
     gender: "female" as const,
     nextVaccination: "2024-09-22"
   }

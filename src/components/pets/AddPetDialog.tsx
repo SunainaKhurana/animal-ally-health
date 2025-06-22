@@ -12,6 +12,7 @@ import { Camera, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { dogBreeds, catBreeds } from "@/lib/petData";
+import { calculateAge } from "@/lib/dateUtils";
 
 interface AddPetDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
     breed: "",
     dateOfBirth: undefined as Date | undefined,
     weight: "",
+    weightUnit: "lbs",
     gender: "",
     photo: ""
   });
@@ -49,12 +51,14 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
       breed: "",
       dateOfBirth: undefined,
       weight: "",
+      weightUnit: "lbs",
       gender: "",
       photo: ""
     });
   };
 
   const availableBreeds = formData.type === "dog" ? dogBreeds : catBreeds;
+  const currentAge = formData.dateOfBirth ? calculateAge(formData.dateOfBirth) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,20 +178,37 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
                 />
               </PopoverContent>
             </Popover>
+            {currentAge && (
+              <p className="text-sm text-gray-600 mt-1">Current age: {currentAge}</p>
+            )}
           </div>
 
           {/* Weight */}
           <div>
-            <Label htmlFor="weight">Weight (lbs) *</Label>
-            <Input
-              id="weight"
-              type="number"
-              step="0.1"
-              value={formData.weight}
-              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-              placeholder="Weight"
-              className="mt-1"
-            />
+            <Label htmlFor="weight">Weight *</Label>
+            <div className="flex space-x-2 mt-1">
+              <Input
+                id="weight"
+                type="number"
+                step="0.1"
+                value={formData.weight}
+                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                placeholder="Weight"
+                className="flex-1"
+              />
+              <Select 
+                value={formData.weightUnit} 
+                onValueChange={(value) => setFormData({ ...formData, weightUnit: value })}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lbs">lbs</SelectItem>
+                  <SelectItem value="kg">kg</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Submit Button */}

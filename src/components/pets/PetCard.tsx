@@ -10,6 +10,7 @@ interface Pet {
   breed?: string;
   dateOfBirth: Date;
   weight: number;
+  weightUnit?: string;
   gender: 'male' | 'female';
   photo?: string;
   nextVaccination?: string;
@@ -30,6 +31,7 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
   };
 
   const age = calculateAge(pet.dateOfBirth);
+  const weightUnit = pet.weightUnit || 'lbs';
 
   return (
     <Card 
@@ -59,7 +61,7 @@ const PetCard = ({ pet, onClick }: PetCardProps) => {
                 {pet.breed || pet.type}
               </Badge>
               <span className="text-xs text-gray-500">
-                {age} • {pet.weight} lbs
+                {age} • {pet.weight} {weightUnit}
               </span>
             </div>
 
