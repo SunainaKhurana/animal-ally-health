@@ -3,7 +3,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -20,21 +20,21 @@ serve(async (req) => {
   try {
     const { reportData, petInfo } = await req.json();
     
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!groqApiKey) {
+      throw new Error('Groq API key not configured');
     }
 
     // Create analysis prompt
     const prompt = createAnalysisPrompt(reportData, petInfo);
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama3-70b-8192',
         messages: [
           {
             role: 'system',
@@ -46,6 +46,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.3,
+        max_tokens: 2048,
       }),
     });
 
@@ -59,14 +60,14 @@ ${analysis}
 
 Format as a JSON array of strings.`;
 
-    const questionsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const questionsResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama3-8b-8192',
         messages: [
           {
             role: 'system',
@@ -78,6 +79,7 @@ Format as a JSON array of strings.`;
           }
         ],
         temperature: 0.5,
+        max_tokens: 512,
       }),
     });
 
