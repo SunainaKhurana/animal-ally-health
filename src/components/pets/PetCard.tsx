@@ -41,11 +41,17 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
   const weightUnit = pet.weightUnit || 'lbs';
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent onClick when clicking delete button
-    if ((e.target as HTMLElement).closest('[data-delete-button]')) {
+    // Prevent onClick when clicking delete button or its dialog
+    if ((e.target as HTMLElement).closest('[data-delete-button]') || 
+        (e.target as HTMLElement).closest('[role="dialog"]')) {
       return;
     }
     onClick();
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDeleteDialogOpen(true);
   };
 
   const handleDelete = () => {
@@ -100,6 +106,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
                   variant="ghost" 
                   size="icon"
                   className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleDeleteClick}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -108,7 +115,7 @@ const PetCard = ({ pet, onClick, onDelete }: PetCardProps) => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Pet Profile</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete {pet.name}'s profile? This action cannot be undone.
+                    Are you sure? This will delete all the related health information of {pet.name} also. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
