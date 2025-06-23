@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Heart, Activity, Calendar } from "lucide-react";
@@ -7,8 +8,12 @@ import PetInfoSection from "@/components/pets/PetInfoSection";
 import AddPetDialog from "@/components/pets/AddPetDialog";
 import EditPetDialog from "@/components/pets/EditPetDialog";
 import FloatingActionButton from "@/components/ui/FloatingActionButton";
+import HealthDashboard from "@/components/health/HealthDashboard";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { usePets } from "@/hooks/usePets";
+import { useSymptomReports } from "@/hooks/useSymptomReports";
+import { useDailyCheckins } from "@/hooks/useDailyCheckins";
+import { useHealthReports } from "@/hooks/useHealthReports";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +32,9 @@ interface Pet {
 
 const Index = () => {
   const { pets, loading, user, addPet, updatePet, deletePet } = usePets();
+  const { reports } = useSymptomReports();
+  const { checkins } = useDailyCheckins();
+  const { healthReports } = useHealthReports();
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [isAddPetOpen, setIsAddPetOpen] = useState(false);
   const [isEditPetOpen, setIsEditPetOpen] = useState(false);
@@ -78,6 +86,17 @@ const Index = () => {
     await updatePet(updatedPet);
     setSelectedPet(updatedPet);
     setIsEditPetOpen(false);
+  };
+
+  // Check if pet has health data
+  const hasHealthData = (pet: Pet) => {
+    const petReports = reports.filter(r => r.pet_id === pet.id);
+    const petCheckins = checkins.filter(c => c.pet_id === pet.id);
+    const petHealthRecords = healthReports.filter(r => r.pet_id === pet.id);
+    const storedAnalyses = JSON.parse(localStorage.getItem('petHealthAnalyses') || '[]');
+    const petAnalyses = storedAnalyses.filter((analysis: any) => analysis.petId === pet.id);
+    
+    return petReports.length > 0 || petCheckins.length > 0 || petHealthRecords.length > 0 || petAnalyses.length > 0;
   };
 
   if (loading) {
@@ -160,44 +179,72 @@ const Index = () => {
                   onEdit={handleEditPet}
                 />
 
-                {/* Health Assistant Section */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-red-500" />
-                    Health Assistant
-                  </h3>
-                  
-                  <div 
-                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate('/check-health')}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Activity className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">AI Health Assistant</h4>
-                        <p className="text-sm text-gray-600">Comprehensive health monitoring and AI analysis</p>
-                      </div>
-                    </div>
+                {/* Health Dashboard or Health Assistant Section */}
+                {hasHealthData(selectedPet) ? (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-red-500" />
+                      Health Dashboard
+                    </h3>
+                    <HealthDashboard pet={selectedPet} />
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-red-500" />
+                      Health Assistant
+                    </h3>
                     
-                    {/* Sub-activities */}
-                    <div className="pl-13 space-y-2 border-t pt-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
-                        Report symptoms and behaviors
+                    <div 
+                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => navigate('/check-health')}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Activity className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">AI Health Assistant</h4>
+                          <p className="text-sm text-gray-600">Comprehensive health monitoring and AI analysis</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                        Get AI-powered health insights
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                        Daily wellness tracking
+                      
+                      {/* Sub-activities */}
+                      <div className="pl-13 space-y-2 border-t pt-3">
+                        <div 
+                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/report-symptoms');
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                          Report symptoms and behaviors
+                        </div>
+                        <div 
+                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/check-health');
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                          Get AI-powered health insights
+                        </div>
+                        <div 
+                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-green-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/daily-tracker');
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                          Daily wellness tracking
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
