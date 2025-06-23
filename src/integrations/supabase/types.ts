@@ -61,8 +61,12 @@ export type Database = {
           age_group: string | null
           breeds_at_risk: string[] | null
           disease: string
+          disease_category: string | null
           gender_risk: string | null
           id: number
+          is_genetic: boolean | null
+          is_vaccine_preventable: boolean | null
+          pet_type: string | null
           recommended_tests: string | null
           region_climate: string | null
           seasonality: string | null
@@ -73,8 +77,12 @@ export type Database = {
           age_group?: string | null
           breeds_at_risk?: string[] | null
           disease: string
+          disease_category?: string | null
           gender_risk?: string | null
           id?: number
+          is_genetic?: boolean | null
+          is_vaccine_preventable?: boolean | null
+          pet_type?: string | null
           recommended_tests?: string | null
           region_climate?: string | null
           seasonality?: string | null
@@ -85,8 +93,12 @@ export type Database = {
           age_group?: string | null
           breeds_at_risk?: string[] | null
           disease?: string
+          disease_category?: string | null
           gender_risk?: string | null
           id?: number
+          is_genetic?: boolean | null
+          is_vaccine_preventable?: boolean | null
+          pet_type?: string | null
           recommended_tests?: string | null
           region_climate?: string | null
           seasonality?: string | null

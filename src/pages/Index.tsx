@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Heart, Activity, Calendar } from "lucide-react";
+import { LogOut, Heart, Activity, Calendar, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PetSwitcher from "@/components/pets/PetSwitcher";
 import PetInfoSection from "@/components/pets/PetInfoSection";
@@ -179,72 +179,57 @@ const Index = () => {
                   onEdit={handleEditPet}
                 />
 
-                {/* Health Dashboard or Health Assistant Section */}
-                {hasHealthData(selectedPet) ? (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Heart className="h-5 w-5 text-red-500" />
-                      Health Dashboard
-                    </h3>
-                    <HealthDashboard pet={selectedPet} />
-                  </div>
-                ) : (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Heart className="h-5 w-5 text-red-500" />
-                      Health Assistant
-                    </h3>
-                    
-                    <div 
-                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate('/check-health')}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Activity className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">AI Health Assistant</h4>
-                          <p className="text-sm text-gray-600">Comprehensive health monitoring and AI analysis</p>
-                        </div>
-                      </div>
-                      
-                      {/* Sub-activities */}
-                      <div className="pl-13 space-y-2 border-t pt-3">
-                        <div 
-                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/report-symptoms');
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
-                          Report symptoms and behaviors
-                        </div>
-                        <div 
-                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-blue-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/check-health');
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                          Get AI-powered health insights
-                        </div>
-                        <div 
-                          className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-green-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/daily-tracker');
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                          Daily wellness tracking
+                {/* Health Section */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    Health Assistant
+                  </h3>
+
+                  {/* Quick Action Button */}
+                  <Button 
+                    onClick={() => navigate('/report-symptoms')}
+                    className="w-full bg-red-500 hover:bg-red-600 h-12 mb-4"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Report Symptoms & Get AI Analysis
+                  </Button>
+
+                  {/* Health Dashboard or Getting Started */}
+                  {hasHealthData(selectedPet) ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+                      <HealthDashboard pet={selectedPet} />
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+                      <div className="text-center py-4">
+                        <div className="text-3xl mb-3">🩺</div>
+                        <h4 className="font-medium text-gray-900 mb-2">Start Health Tracking</h4>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Get AI-powered health insights for {selectedPet.name}
+                        </p>
+                        <div className="space-y-2">
+                          <Button 
+                            variant="outline"
+                            onClick={() => navigate('/daily-tracker')}
+                            className="w-full flex items-center gap-2"
+                          >
+                            <Calendar className="h-4 w-4" />
+                            Daily Check-in
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => navigate(`/health/${selectedPet.id}?upload=true`)}
+                            className="w-full flex items-center gap-2"
+                          >
+                            <Activity className="h-4 w-4" />
+                            Upload Health Records
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
