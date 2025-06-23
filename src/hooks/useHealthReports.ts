@@ -21,7 +21,7 @@ export interface HealthReport {
 }
 
 export const useHealthReports = (petId?: string) => {
-  const [reports, setReports] = useState<HealthReport[]>([]);
+  const [healthReports, setHealthReports] = useState<HealthReport[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -47,7 +47,7 @@ export const useHealthReports = (petId?: string) => {
       if (error) throw error;
       
       // Type assertion to handle the database response
-      setReports((data || []) as HealthReport[]);
+      setHealthReports((data || []) as HealthReport[]);
     } catch (error) {
       console.error('Error fetching health reports:', error);
       toast({
@@ -204,7 +204,7 @@ export const useHealthReports = (petId?: string) => {
   };
 
   return {
-    reports,
+    healthReports,
     loading,
     uploadReport,
     analyzeReport,
