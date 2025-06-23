@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Heart, Activity, Calendar } from "lucide-react";
@@ -168,49 +167,33 @@ const Index = () => {
                     Health Assistant
                   </h3>
                   
-                  <div className="grid grid-cols-1 gap-3">
-                    <div 
-                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate('/report-symptoms')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                          <span className="text-xl">🚨</span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Report Symptoms</h4>
-                          <p className="text-sm text-gray-600">Log concerning symptoms or behaviors</p>
-                        </div>
+                  <div 
+                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate('/check-health')}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Activity className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">AI Health Assistant</h4>
+                        <p className="text-sm text-gray-600">Comprehensive health monitoring and AI analysis</p>
                       </div>
                     </div>
-
-                    <div 
-                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate('/check-health')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Activity className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Check Health Status</h4>
-                          <p className="text-sm text-gray-600">AI-powered health assessment</p>
-                        </div>
+                    
+                    {/* Sub-activities */}
+                    <div className="pl-13 space-y-2 border-t pt-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                        Report symptoms and behaviors
                       </div>
-                    </div>
-
-                    <div 
-                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate('/daily-tracker')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Calendar className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Daily Tracker</h4>
-                          <p className="text-sm text-gray-600">Log daily wellness check-ins</p>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                        Get AI-powered health insights
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                        Daily wellness tracking
                       </div>
                     </div>
                   </div>
