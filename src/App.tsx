@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,9 @@ import WeightTracking from "./pages/WeightTracking";
 import WalksTracker from "./pages/WalksTracker";
 import ActivityTracker from "./pages/ActivityTracker";
 import PrescriptionsTracker from "./pages/PrescriptionsTracker";
+import ReportSymptoms from "./pages/ReportSymptoms";
+import CheckHealthStatus from "./pages/CheckHealthStatus";
+import DailyTracker from "./pages/DailyTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +40,9 @@ const App = () => (
             <Route path="/activity" element={<ActivityTracker />} />
             <Route path="/walks/:petId" element={<WalksTracker />} />
             <Route path="/prescriptions/:petId" element={<PrescriptionsTracker />} />
+            <Route path="/report-symptoms" element={<ReportSymptoms />} />
+            <Route path="/check-health" element={<CheckHealthStatus />} />
+            <Route path="/daily-tracker" element={<DailyTracker />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

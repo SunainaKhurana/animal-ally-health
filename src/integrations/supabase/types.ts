@@ -9,6 +9,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      daily_checkins: {
+        Row: {
+          checkin_date: string
+          created_at: string | null
+          energy_level: string
+          hunger_level: string
+          id: string
+          notes: string | null
+          pet_id: string
+          stool_consistency: string
+          thirst_level: string
+          user_id: string
+        }
+        Insert: {
+          checkin_date?: string
+          created_at?: string | null
+          energy_level: string
+          hunger_level: string
+          id?: string
+          notes?: string | null
+          pet_id: string
+          stool_consistency: string
+          thirst_level: string
+          user_id: string
+        }
+        Update: {
+          checkin_date?: string
+          created_at?: string | null
+          energy_level?: string
+          hunger_level?: string
+          id?: string
+          notes?: string | null
+          pet_id?: string
+          stool_consistency?: string
+          thirst_level?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_checkins_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disease_knowledge: {
+        Row: {
+          age_group: string | null
+          breeds_at_risk: string[] | null
+          disease: string
+          gender_risk: string | null
+          id: number
+          recommended_tests: string | null
+          region_climate: string | null
+          seasonality: string | null
+          symptoms: string[] | null
+          watch_signs: string | null
+        }
+        Insert: {
+          age_group?: string | null
+          breeds_at_risk?: string[] | null
+          disease: string
+          gender_risk?: string | null
+          id?: number
+          recommended_tests?: string | null
+          region_climate?: string | null
+          seasonality?: string | null
+          symptoms?: string[] | null
+          watch_signs?: string | null
+        }
+        Update: {
+          age_group?: string | null
+          breeds_at_risk?: string[] | null
+          disease?: string
+          gender_risk?: string | null
+          id?: number
+          recommended_tests?: string | null
+          region_climate?: string | null
+          seasonality?: string | null
+          symptoms?: string[] | null
+          watch_signs?: string | null
+        }
+        Relationships: []
+      }
       health_reports: {
         Row: {
           actual_report_date: string | null
@@ -339,6 +425,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      symptom_reports: {
+        Row: {
+          created_at: string | null
+          id: number
+          notes: string | null
+          pet_id: string | null
+          photo_url: string | null
+          reported_on: string
+          symptoms: string[]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          notes?: string | null
+          pet_id?: string | null
+          photo_url?: string | null
+          reported_on?: string
+          symptoms: string[]
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          notes?: string | null
+          pet_id?: string | null
+          photo_url?: string | null
+          reported_on?: string
+          symptoms?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "symptom_reports_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       walks: {
         Row: {
