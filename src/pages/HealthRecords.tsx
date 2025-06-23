@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
@@ -24,7 +23,7 @@ const HealthRecords = () => {
   const selectedPet = petId ? pets.find(p => p.id === petId) : pets[0];
   const currentPetId = selectedPet?.id;
   
-  const { reports, loading, deleteReport, refetch } = useHealthReports(currentPetId);
+  const { healthReports, loading, deleteReport, refetch } = useHealthReports(currentPetId);
   const [showUpload, setShowUpload] = useState(false);
   const [recentlyUploadedId, setRecentlyUploadedId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -128,8 +127,8 @@ const HealthRecords = () => {
     );
   }
 
-  const completedReports = reports.filter(r => r.status === 'completed');
-  const processingReports = reports.filter(r => r.status === 'processing');
+  const completedReports = healthReports.filter(r => r.status === 'completed');
+  const processingReports = healthReports.filter(r => r.status === 'processing');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">

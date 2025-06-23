@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ interface PetHealthRecordsTabProps {
 }
 
 const PetHealthRecordsTab = ({ petId, petInfo }: PetHealthRecordsTabProps) => {
-  const { reports, loading, deleteReport, refetch } = useHealthReports(petId);
+  const { healthReports, loading, deleteReport, refetch } = useHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
 
   const handleUploadComplete = (reportIds: string[]) => {
@@ -28,8 +27,8 @@ const PetHealthRecordsTab = ({ petId, petInfo }: PetHealthRecordsTabProps) => {
     refetch();
   };
 
-  const completedReports = reports.filter(r => r.status === 'completed');
-  const processingReports = reports.filter(r => r.status === 'processing');
+  const completedReports = healthReports.filter(r => r.status === 'completed');
+  const processingReports = healthReports.filter(r => r.status === 'processing');
 
   return (
     <div className="space-y-6">
