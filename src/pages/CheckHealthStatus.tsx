@@ -39,53 +39,83 @@ const CheckHealthStatus = () => {
       const symptoms = petReports.flatMap(r => r.symptoms);
       const recentNotes = petReports.map(r => r.notes).filter(Boolean);
 
-      const prompt = `Given this pet's profile and recent symptoms, provide a health assessment:
+      // Enhanced mock analysis for pet parents
+      let mockAnalysis;
+      
+      if (symptoms.length > 0) {
+        // Analysis based on reported symptoms
+        const hasGISymptoms = symptoms.some(s => 
+          ['vomiting', 'diarrhea', 'loss of appetite'].includes(s.toLowerCase())
+        );
+        const hasBehavioralSymptoms = symptoms.some(s => 
+          ['lethargy', 'shaking', 'restlessness'].includes(s.toLowerCase())
+        );
+        const hasThirstSymptoms = symptoms.some(s => 
+          ['excessive thirst', 'increased drinking'].includes(s.toLowerCase())
+        );
 
-Pet Profile:
-- Name: ${petProfile.name}
-- Type: ${petProfile.type}
-- Breed: ${petProfile.breed}
-- Age: ${petProfile.age} years
-- Weight: ${petProfile.weight} ${selectedPet.weightUnit || 'lbs'}
-- Gender: ${petProfile.gender}
-
-Recent Symptoms: ${symptoms.join(', ') || 'None reported'}
-Recent Notes: ${recentNotes.join('; ') || 'None'}
-
-Please provide:
-1. Top 3 most likely conditions (if symptoms present)
-2. Suggested immediate actions
-3. Recommended tests or vet consultations
-
-Keep the response concise and structured.`;
-
-      // Mock response for now since Groq API integration would need to be set up
-      const mockAnalysis = {
-        conditions: symptoms.length > 0 ? [
-          "Gastrointestinal upset (if vomiting/diarrhea present)",
-          "Anxiety or stress response (if behavioral symptoms)",
-          "Dietary indiscretion or food sensitivity"
-        ] : ["No concerning symptoms reported recently"],
-        nextSteps: symptoms.length > 0 ? [
-          "Monitor symptoms for 24-48 hours",
-          "Ensure adequate hydration",
-          "Consider bland diet if GI symptoms present",
-          "Contact vet if symptoms worsen or persist"
-        ] : [
-          "Continue regular monitoring",
-          "Maintain current care routine",
-          "Schedule routine wellness check if due"
-        ],
-        tests: symptoms.length > 0 ? [
-          "Blood work to check organ function",
-          "Fecal examination if GI symptoms",
-          "Physical examination by veterinarian"
-        ] : [
-          "Routine annual bloodwork",
-          "Dental examination",
-          "Vaccination status review"
-        ]
-      };
+        mockAnalysis = {
+          conditions: hasGISymptoms ? [
+            "Upset stomach - This is common and often resolves in 24-48 hours",
+            "Dietary indiscretion - Your pet may have eaten something they shouldn't have",
+            "Food sensitivity - Could be a reaction to a new food or treat"
+          ] : hasBehavioralSymptoms ? [
+            "Stress or anxiety - Changes in environment or routine can cause this",
+            "Minor illness - Your pet's body might be fighting off something small",
+            "Pain or discomfort - They might be feeling sore somewhere"
+          ] : hasThirstSymptoms ? [
+            "Dehydration - Make sure fresh water is always available",
+            "Dietary changes - New food or treats can increase thirst",
+            "Environmental factors - Hot weather or dry air can cause increased drinking"
+          ] : [
+            "Monitor closely - The symptoms you've reported need observation",
+            "Possible minor illness - Your pet might be feeling under the weather",
+            "Stress response - Changes in routine can affect pets"
+          ],
+          
+          nextSteps: hasGISymptoms ? [
+            "Withhold food for 12-24 hours, but keep water available",
+            "Start with small amounts of bland food (boiled chicken and rice)",
+            "Contact your vet if symptoms worsen or don't improve in 24 hours",
+            "Watch for signs of dehydration (dry gums, lethargy)"
+          ] : [
+            "Keep your pet comfortable and monitor their behavior",
+            "Maintain normal routine as much as possible",
+            "Ensure they're eating, drinking, and using the bathroom normally",
+            "Call your vet if you notice any worsening or new symptoms"
+          ],
+          
+          tests: symptoms.length > 2 || hasGISymptoms ? [
+            "Physical examination by your veterinarian",
+            "Basic blood work to check organ function",
+            "Stool sample if digestive issues persist"
+          ] : [
+            "Physical examination if symptoms continue",
+            "Temperature check to rule out fever",
+            "Monitor at home for 24-48 hours first"
+          ]
+        };
+      } else {
+        // No symptoms reported
+        mockAnalysis = {
+          conditions: [
+            `${selectedPet.name} appears to be healthy based on recent reports`,
+            "No concerning symptoms have been logged recently",
+            "Continue regular wellness monitoring"
+          ],
+          nextSteps: [
+            "Keep up with regular daily check-ins",
+            "Maintain current diet and exercise routine",
+            "Schedule routine wellness check if it's been over 6 months",
+            "Continue monitoring for any changes in behavior"
+          ],
+          tests: [
+            "Annual wellness bloodwork (if due)",
+            "Dental examination during next vet visit",
+            "Update vaccinations as scheduled"
+          ]
+        };
+      }
 
       setAnalysis(mockAnalysis);
     } catch (error) {
@@ -141,76 +171,83 @@ Keep the response concise and structured.`;
           {/* Analysis Results */}
           {analysis && (
             <>
-              {/* Possible Conditions */}
+              {/* What This Might Be */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-orange-500" />
-                    Possible Conditions
+                    What This Might Be
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <div className="space-y-3">
                     {analysis.conditions.map((condition: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded-full">
+                      <div key={index} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                        <span className="bg-orange-200 text-orange-800 text-xs font-semibold px-2 py-1 rounded-full min-w-[24px] text-center">
                           {index + 1}
                         </span>
-                        <span className="text-gray-700">{condition}</span>
-                      </li>
+                        <span className="text-gray-800 leading-relaxed">{condition}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Suggested Next Steps */}
+              {/* What You Should Do */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-blue-500" />
-                    Suggested Next Steps
+                    What You Should Do
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <div className="space-y-3">
                     {analysis.nextSteps.map((step: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                      <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                        <span className="bg-blue-200 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full min-w-[24px] text-center">
                           {index + 1}
                         </span>
-                        <span className="text-gray-700">{step}</span>
-                      </li>
+                        <span className="text-gray-800 leading-relaxed">{step}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Recommended Tests */}
+              {/* When to See the Vet */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Stethoscope className="h-5 w-5 text-green-500" />
-                    Recommended Tests
+                    When to See the Vet
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <div className="space-y-3">
                     {analysis.tests.map((test: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                      <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                        <span className="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full min-w-[24px] text-center">
                           {index + 1}
                         </span>
-                        <span className="text-gray-700">{test}</span>
-                      </li>
+                        <span className="text-gray-800 leading-relaxed">{test}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </CardContent>
               </Card>
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Disclaimer:</strong> This analysis is for informational purposes only and does not replace professional veterinary advice. Always consult with a qualified veterinarian for proper diagnosis and treatment.
-                </p>
+                <div className="flex items-start gap-3">
+                  <span className="text-yellow-600 text-xl">⚠️</span>
+                  <div>
+                    <h4 className="font-medium text-yellow-800 mb-1">Important Reminder</h4>
+                    <p className="text-sm text-yellow-700">
+                      This analysis is for guidance only and doesn't replace professional veterinary care. 
+                      If you're worried about {selectedPet?.name || 'your pet'}, trust your instincts and contact your vet.
+                    </p>
+                  </div>
+                </div>
               </div>
             </>
           )}

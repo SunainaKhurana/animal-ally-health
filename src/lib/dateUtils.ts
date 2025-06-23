@@ -1,30 +1,28 @@
 
-import { differenceInYears, differenceInMonths, differenceInDays } from 'date-fns';
+import { format, differenceInYears, differenceInMonths, parseISO } from 'date-fns';
 
-export const calculateAge = (dateOfBirth: Date): string => {
-  const now = new Date();
-  const years = differenceInYears(now, dateOfBirth);
+export const calculateAge = (birthDate: Date | string): string => {
+  const birth = typeof birthDate === 'string' ? parseISO(birthDate) : birthDate;
+  const today = new Date();
   
-  // Calculate remaining months after years
-  const afterYears = new Date(dateOfBirth);
-  afterYears.setFullYear(afterYears.getFullYear() + years);
-  const months = differenceInMonths(now, afterYears);
+  const years = differenceInYears(today, birth);
+  const months = differenceInMonths(today, birth) % 12;
   
-  // Calculate remaining days after years and months
-  const afterMonths = new Date(afterYears);
-  afterMonths.setMonth(afterMonths.getMonth() + months);
-  const days = differenceInDays(now, afterMonths);
-  
-  const parts = [];
-  if (years > 0) parts.push(years === 1 ? "1 year" : `${years} years`);
-  if (months > 0) parts.push(months === 1 ? "1 month" : `${months} months`);
-  if (days > 0) parts.push(days === 1 ? "1 day" : `${days} days`);
-  
-  if (parts.length === 0) return "Less than 1 day";
-  
-  return parts.join(", ");
+  if (years === 0) {
+    return `${months} month${months !== 1 ? 's' : ''} old`;
+  } else if (months === 0) {
+    return `${years} year${years !== 1 ? 's' : ''} old`;
+  } else {
+    return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''} old`;
+  }
 };
 
-export const calculateAgeInYears = (dateOfBirth: Date): number => {
-  return differenceInYears(new Date(), dateOfBirth);
+export const formatDate = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  return format(dateObj, 'MMM dd, yyyy');
+};
+
+export const formatDateTime = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  return format(dateObj, 'MMM dd, yyyy HH:mm');
 };

@@ -58,12 +58,18 @@ export const usePets = () => {
 
       // Transform data to match frontend interface
       const transformedPets = data?.map(pet => {
-        // Calculate date of birth from age
+        // Calculate date of birth from stored age information
         const currentDate = new Date();
-        const birthYear = currentDate.getFullYear() - (pet.age_years || pet.age || 0);
-        const birthMonth = currentDate.getMonth() - (pet.age_months || 0);
-        const dateOfBirth = new Date(birthYear, birthMonth, currentDate.getDate());
-
+        
+        // Use age_years and age_months if available, otherwise fall back to age
+        const years = pet.age_years || pet.age || 0;
+        const months = pet.age_months || 0;
+        
+        // Calculate birth date more accurately
+        const birthDate = new Date(currentDate);
+        birthDate.setFullYear(currentDate.getFullYear() - years);
+        birthDate.setMonth(currentDate.getMonth() - months);
+        
         // Determine weight unit based on stored weight_kg
         let displayWeight = pet.weight;
         let weightUnit = 'lbs';
@@ -83,7 +89,7 @@ export const usePets = () => {
           name: pet.name,
           type: pet.type as 'dog' | 'cat',
           breed: pet.breed,
-          dateOfBirth: dateOfBirth,
+          dateOfBirth: birthDate,
           weight: Number(displayWeight),
           weightUnit: weightUnit,
           gender: pet.gender as 'male' | 'female',
@@ -118,15 +124,26 @@ export const usePets = () => {
     try {
       console.log('Adding pet with data:', petData);
       
-      // Calculate age from date of birth
+      // Calculate age from date of birth more precisely
       const now = new Date();
       const birthDate = new Date(petData.dateOfBirth);
-      const ageInYears = now.getFullYear() - birthDate.getFullYear();
+      
+      let ageInYears = now.getFullYear() - birthDate.getFullYear();
       let ageInMonths = now.getMonth() - birthDate.getMonth();
       
-      // Adjust for negative months
-      if (ageInMonths < 0) {
+      // Adjust for cases where birthday hasn't occurred this year
+      if (ageInMonths < 0 || (ageInMonths === 0 && now.getDate() < birthDate.getDate())) {
+        ageInYears--;
         ageInMonths += 12;
+      }
+      
+      // Adjust for day of month
+      if (now.getDate() < birthDate.getDate()) {
+        ageInMonths--;
+        if (ageInMonths < 0) {
+          ageInMonths += 12;
+          ageInYears--;
+        }
       }
 
       // Convert weight to kg if needed for storage
@@ -204,15 +221,26 @@ export const usePets = () => {
     try {
       console.log('Updating pet with data:', updatedPet);
       
-      // Calculate age from date of birth
+      // Calculate age from date of birth more precisely
       const now = new Date();
       const birthDate = new Date(updatedPet.dateOfBirth);
-      const ageInYears = now.getFullYear() - birthDate.getFullYear();
+      
+      let ageInYears = now.getFullYear() - birthDate.getFullYear();
       let ageInMonths = now.getMonth() - birthDate.getMonth();
       
-      // Adjust for negative months
-      if (ageInMonths < 0) {
+      // Adjust for cases where birthday hasn't occurred this year
+      if (ageInMonths < 0 || (ageInMonths === 0 && now.getDate() < birthDate.getDate())) {
+        ageInYears--;
         ageInMonths += 12;
+      }
+      
+      // Adjust for day of month
+      if (now.getDate() < birthDate.getDate()) {
+        ageInMonths--;
+        if (ageInMonths < 0) {
+          ageInMonths += 12;
+          ageInYears--;
+        }
       }
 
       // Convert weight to kg if needed for storage

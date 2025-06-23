@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Heart, Activity, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PetSwitcher from "@/components/pets/PetSwitcher";
 import PetInfoSection from "@/components/pets/PetInfoSection";
 import AddPetDialog from "@/components/pets/AddPetDialog";
@@ -31,6 +32,7 @@ const Index = () => {
   const [isAddPetOpen, setIsAddPetOpen] = useState(false);
   const [isEditPetOpen, setIsEditPetOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Auto-select first pet when pets load
   useEffect(() => {
@@ -158,6 +160,61 @@ const Index = () => {
                   pet={selectedPet}
                   onEdit={handleEditPet}
                 />
+
+                {/* Health Assistant Section */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    Health Assistant
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    <div 
+                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => navigate('/report-symptoms')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                          <span className="text-xl">🚨</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Report Symptoms</h4>
+                          <p className="text-sm text-gray-600">Log concerning symptoms or behaviors</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div 
+                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => navigate('/check-health')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Activity className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Check Health Status</h4>
+                          <p className="text-sm text-gray-600">AI-powered health assessment</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div 
+                      className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => navigate('/daily-tracker')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Calendar className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Daily Tracker</h4>
+                          <p className="text-sm text-gray-600">Log daily wellness check-ins</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
