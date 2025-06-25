@@ -16,7 +16,7 @@ import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import HealthDashboard from '@/components/health/HealthDashboard';
-import ConditionsSelector from '@/components/health/ConditionsSelector';
+import CollapsibleConditionsSection from '@/components/health/CollapsibleConditionsSection';
 
 const CareTab = () => {
   const { selectedPet, updatePet } = usePetContext();
@@ -67,8 +67,8 @@ const CareTab = () => {
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-6">
-        {/* Health Conditions */}
-        <ConditionsSelector 
+        {/* Health Conditions - New Collapsible Design */}
+        <CollapsibleConditionsSection 
           petId={selectedPet.id} 
           petSpecies={selectedPet.type || 'dog'} 
         />

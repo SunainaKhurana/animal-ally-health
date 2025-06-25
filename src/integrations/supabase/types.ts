@@ -51,6 +51,13 @@ export type Database = {
             foreignKeyName: "daily_checkins_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "daily_checkins_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -161,6 +168,13 @@ export type Database = {
             foreignKeyName: "health_reports_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "health_reports_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -240,6 +254,13 @@ export type Database = {
             foreignKeyName: "pet_conditions_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "pet_conditions_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -274,6 +295,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pet_parents_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
           {
             foreignKeyName: "pet_parents_pet_id_fkey"
             columns: ["pet_id"]
@@ -412,6 +440,13 @@ export type Database = {
             foreignKeyName: "prescriptions_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "prescriptions_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -480,6 +515,13 @@ export type Database = {
             foreignKeyName: "symptom_reports_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "symptom_reports_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -530,6 +572,13 @@ export type Database = {
             foreignKeyName: "walks_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
+            referencedRelation: "pet_condition_summary"
+            referencedColumns: ["pet_id"]
+          },
+          {
+            foreignKeyName: "walks_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
             referencedRelation: "pets"
             referencedColumns: ["id"]
           },
@@ -537,7 +586,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pet_condition_summary: {
+        Row: {
+          condition_name: string | null
+          created_at: string | null
+          pet_id: string | null
+          pet_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
