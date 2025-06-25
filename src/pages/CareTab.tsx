@@ -70,7 +70,7 @@ const CareTab = () => {
         {/* Health Conditions */}
         <ConditionsSelector 
           petId={selectedPet.id} 
-          petSpecies={selectedPet.species || selectedPet.type || 'dog'} 
+          petSpecies={selectedPet.type || 'dog'} 
         />
 
         {/* Health Profile */}
