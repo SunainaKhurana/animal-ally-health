@@ -1,15 +1,78 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Stethoscope, HelpCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageCircle, Stethoscope, HelpCircle, FileText, Send, User, Bot } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
 const AssistantTab = () => {
   const { selectedPet } = usePetContext();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const commonQuestions = [
+    "Why is my dog drinking more water than usual?",
+    "Should I be worried about vomiting?",
+    "What can I feed my dog with diarrhea?",
+    "What vaccines are due soon?",
+    `How is ${selectedPet?.name}'s health looking this week?`
+  ];
+
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim() || !selectedPet) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: message,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      // Here you would integrate with Make.com
+      // For now, we'll simulate a response
+      setTimeout(() => {
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content: `I understand you're asking about ${selectedPet.name}. Based on their profile as a ${selectedPet.breed} ${selectedPet.type}, I'd be happy to help with that question. This is where the AI response from Make.com would appear with personalized advice based on ${selectedPet.name}'s health history.`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuestionClick = (question: string) => {
+    handleSendMessage(question);
+  };
 
   if (!selectedPet) {
     return (
@@ -21,7 +84,10 @@ const AssistantTab = () => {
           </div>
         </div>
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">No pet selected</p>
+          <div className="text-center">
+            <p className="text-gray-500 mb-4">Please select a pet to get health assistance</p>
+            <PetSwitcher />
+          </div>
         </div>
         <PetZoneNavigation />
       </div>
@@ -38,7 +104,7 @@ const AssistantTab = () => {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto p-4 space-y-6">
+      <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Pet Context Card */}
         <Card>
           <CardContent className="p-4">
@@ -48,17 +114,14 @@ const AssistantTab = () => {
               </div>
               <div>
                 <h3 className="font-semibold">AI Health Assistant</h3>
-                <p className="text-sm text-gray-600">Specialized for {selectedPet.name}</p>
+                <p className="text-sm text-gray-600">Ask anything about {selectedPet.name}'s health. I'll help based on their history.</p>
               </div>
             </div>
-            <p className="text-sm text-gray-600">
-              I can help answer questions about {selectedPet.name}'s health, behavior, and care based on their profile and recent health data.
-            </p>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <div className="grid gap-3">
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             className="w-full justify-start h-auto p-4" 
             variant="outline"
@@ -67,32 +130,110 @@ const AssistantTab = () => {
             <Stethoscope className="h-5 w-5 mr-3 text-red-500" />
             <div className="text-left">
               <p className="font-medium">Report Symptoms</p>
-              <p className="text-sm text-gray-600">Get AI analysis of health concerns</p>
+              <p className="text-sm text-gray-600">Log health concerns</p>
             </div>
           </Button>
 
           <Button 
             className="w-full justify-start h-auto p-4" 
             variant="outline"
-            onClick={() => navigate('/check-health')}
+            onClick={() => navigate('/care')}
           >
-            <HelpCircle className="h-5 w-5 mr-3 text-blue-500" />
+            <FileText className="h-5 w-5 mr-3 text-blue-500" />
             <div className="text-left">
-              <p className="font-medium">Ask Health Questions</p>
-              <p className="text-sm text-gray-600">Chat about {selectedPet.name}'s care</p>
+              <p className="font-medium">Upload Records</p>
+              <p className="text-sm text-gray-600">Add health documents</p>
             </div>
           </Button>
         </div>
 
-        {/* Chat Interface - Placeholder */}
-        <Card>
+        {/* Chat Interface */}
+        <Card className="flex-1">
           <CardHeader>
-            <CardTitle className="text-base">Recent Conversations</CardTitle>
+            <CardTitle className="text-base">Chat with AI Assistant</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-gray-500 text-center py-8">
-              Your conversations with the AI assistant will appear here
-            </p>
+          <CardContent className="space-y-4">
+            {/* Messages */}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {messages.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bot className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Start a conversation about {selectedPet.name}'s health</p>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg ${
+                      message.type === 'user' 
+                        ? 'bg-blue-500 text-white ml-auto' 
+                        : 'bg-gray-100 text-gray-900'
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        {message.type === 'assistant' && <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                        {message.type === 'user' && <User className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                        <p className="text-sm">{message.content}</p>
+                      </div>
+                      <p className="text-xs opacity-70 mt-1">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 text-gray-900 p-3 rounded-lg max-w-[80%]">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Common Questions */}
+            {messages.length === 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Common questions:</p>
+                <div className="space-y-2">
+                  {commonQuestions.map((question, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      className="w-full text-left justify-start h-auto p-3 text-sm"
+                      onClick={() => handleQuestionClick(question)}
+                    >
+                      <HelpCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                      {question}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder={`Ask about ${selectedPet.name}'s health...`}
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
+                disabled={isLoading}
+              />
+              <Button
+                onClick={() => handleSendMessage(inputMessage)}
+                disabled={!inputMessage.trim() || isLoading}
+                size="icon"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
