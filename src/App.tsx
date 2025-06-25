@@ -1,55 +1,68 @@
+import "@/app/globals.css";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useEffect, useState } from "react";
+import { redirect, useNavigate } from "react-router-dom";
 
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthForm } from "@/components/auth/AuthForm";
-import BottomNavigation from "@/components/navigation/BottomNavigation";
+import { PetProvider } from "@/contexts/PetContext";
 import Index from "./pages/Index";
 import HealthRecords from "./pages/HealthRecords";
+import ReportSymptoms from "./pages/ReportSymptoms";
+import CheckHealthStatus from "./pages/CheckHealthStatus";
+import WalksTracker from "./pages/WalksTracker";
+import WeightTracking from "./pages/WeightTracking";
+import ActivityTracker from "./pages/ActivityTracker";
+import DailyTracker from "./pages/DailyTracker";
+import PrescriptionsTracker from "./pages/PrescriptionsTracker";
 import PetProfile from "./pages/PetProfile";
 import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
-import WeightTracking from "./pages/WeightTracking";
-import WalksTracker from "./pages/WalksTracker";
-import ActivityTracker from "./pages/ActivityTracker";
-import PrescriptionsTracker from "./pages/PrescriptionsTracker";
-import ReportSymptoms from "./pages/ReportSymptoms";
-import CheckHealthStatus from "./pages/CheckHealthStatus";
-import DailyTracker from "./pages/DailyTracker";
 import NotFound from "./pages/NotFound";
+import CareTab from "./pages/CareTab";
+import ActivityTab from "./pages/ActivityTab";
+import AssistantTab from "./pages/AssistantTab";
+import MoreTab from "./pages/MoreTab";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <div className="pb-16">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/health" element={<HealthRecords />} />
-            <Route path="/health/:petId" element={<HealthRecords />} />
-            <Route path="/pet/:petId" element={<PetProfile />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/weight/:petId" element={<WeightTracking />} />
-            <Route path="/activity" element={<ActivityTracker />} />
-            <Route path="/walks/:petId" element={<WalksTracker />} />
-            <Route path="/prescriptions/:petId" element={<PrescriptionsTracker />} />
-            <Route path="/report-symptoms" element={<ReportSymptoms />} />
-            <Route path="/check-health" element={<CheckHealthStatus />} />
-            <Route path="/daily-tracker" element={<DailyTracker />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-        <BottomNavigation />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <PetProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/care" element={<CareTab />} />
+              <Route path="/activity" element={<ActivityTab />} />
+              <Route path="/assistant" element={<AssistantTab />} />
+              <Route path="/more" element={<MoreTab />} />
+              
+              {/* Legacy routes - redirect or maintain for backward compatibility */}
+              <Route path="/health/:petId" element={<HealthRecords />} />
+              <Route path="/report-symptoms" element={<ReportSymptoms />} />
+              <Route path="/check-health" element={<CheckHealthStatus />} />
+              <Route path="/walks" element={<WalksTracker />} />
+              <Route path="/weight" element={<WeightTracking />} />
+              <Route path="/activity-tracker" element={<ActivityTracker />} />
+              <Route path="/daily" element={<DailyTracker />} />
+              <Route path="/prescriptions" element={<PrescriptionsTracker />} />
+              <Route path="/pet/:petId" element={<PetProfile />} />
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PetProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

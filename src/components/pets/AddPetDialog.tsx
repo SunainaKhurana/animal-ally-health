@@ -11,6 +11,8 @@ import BreedSelector from "./BreedSelector";
 import GenderSelector from "./GenderSelector";
 import DateOfBirthSelector from "./DateOfBirthSelector";
 import WeightInput from "./WeightInput";
+import PreExistingConditionsSelector from "./PreExistingConditionsSelector";
+import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 
 interface AddPetDialogProps {
   open: boolean;
@@ -27,7 +29,9 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
     weight: "",
     weightUnit: "lbs",
     gender: "",
-    photo: ""
+    photo: "",
+    preExistingConditions: [] as string[],
+    reproductiveStatus: "not_yet"
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +55,9 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
       weight: "",
       weightUnit: "lbs",
       gender: "",
-      photo: ""
+      photo: "",
+      preExistingConditions: [],
+      reproductiveStatus: "not_yet"
     });
   };
 
@@ -117,12 +123,22 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
               onChange={(date) => setFormData({ ...formData, dateOfBirth: date })}
             />
 
+            <WeightInput
+              weight={formData.weight}
+              weightUnit={formData.weightUnit}
+              onWeightChange={(weight) => setFormData({ ...formData, weight })}
+              onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
+            />
+
+            <PreExistingConditionsSelector
+              value={formData.preExistingConditions}
+              onChange={(conditions) => setFormData({ ...formData, preExistingConditions: conditions })}
+            />
+
             <div className="pb-4">
-              <WeightInput
-                weight={formData.weight}
-                weightUnit={formData.weightUnit}
-                onWeightChange={(weight) => setFormData({ ...formData, weight })}
-                onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
+              <ReproductiveStatusSelector
+                value={formData.reproductiveStatus}
+                onChange={(status) => setFormData({ ...formData, reproductiveStatus: status })}
               />
             </div>
           </form>

@@ -10,6 +10,8 @@ import BreedSelector from "./BreedSelector";
 import GenderSelector from "./GenderSelector";
 import DateOfBirthSelector from "./DateOfBirthSelector";
 import WeightInput from "./WeightInput";
+import PreExistingConditionsSelector from "./PreExistingConditionsSelector";
+import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 
 interface Pet {
   id: string;
@@ -22,6 +24,8 @@ interface Pet {
   gender: 'male' | 'female';
   photo?: string;
   nextVaccination?: string;
+  preExistingConditions?: string[];
+  reproductiveStatus?: 'spayed' | 'neutered' | 'not_yet';
 }
 
 interface EditPetDialogProps {
@@ -41,7 +45,9 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
     weightUnit: "lbs",
     gender: "" as 'male' | 'female' | "",
     photo: "",
-    nextVaccination: ""
+    nextVaccination: "",
+    preExistingConditions: [] as string[],
+    reproductiveStatus: "not_yet"
   });
 
   useEffect(() => {
@@ -56,7 +62,9 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
         weightUnit: pet.weightUnit || "lbs",
         gender: pet.gender,
         photo: pet.photo || "",
-        nextVaccination: pet.nextVaccination || ""
+        nextVaccination: pet.nextVaccination || "",
+        preExistingConditions: pet.preExistingConditions || [],
+        reproductiveStatus: pet.reproductiveStatus || "not_yet"
       });
     }
   }, [pet]);
@@ -64,14 +72,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pet || !formData.name || !formData.type || !formData.dateOfBirth || !formData.weight || !formData.gender) {
-      console.log('Form validation failed:', {
-        pet: !!pet,
-        name: formData.name,
-        type: formData.type,
-        dateOfBirth: formData.dateOfBirth,
-        weight: formData.weight,
-        gender: formData.gender
-      });
+      console.log('Form validation failed');
       return;
     }
 
@@ -85,7 +86,9 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
       weightUnit: formData.weightUnit,
       gender: formData.gender as 'male' | 'female',
       photo: formData.photo,
-      nextVaccination: formData.nextVaccination
+      nextVaccination: formData.nextVaccination,
+      preExistingConditions: formData.preExistingConditions,
+      reproductiveStatus: formData.reproductiveStatus as 'spayed' | 'neutered' | 'not_yet'
     };
 
     console.log('Submitting updated pet data:', updatedPet);
@@ -165,6 +168,16 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
               weightUnit={formData.weightUnit}
               onWeightChange={(weight) => setFormData({ ...formData, weight })}
               onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
+            />
+
+            <PreExistingConditionsSelector
+              value={formData.preExistingConditions}
+              onChange={(conditions) => setFormData({ ...formData, preExistingConditions: conditions })}
+            />
+
+            <ReproductiveStatusSelector
+              value={formData.reproductiveStatus}
+              onChange={(status) => setFormData({ ...formData, reproductiveStatus: status })}
             />
 
             <div className="pb-4">

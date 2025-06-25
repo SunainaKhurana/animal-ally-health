@@ -14,6 +14,8 @@ interface Pet {
   gender: 'male' | 'female';
   photo?: string;
   nextVaccination?: string;
+  preExistingConditions?: string[];
+  reproductiveStatus?: 'spayed' | 'neutered' | 'not_yet';
 }
 
 export const usePets = () => {
@@ -94,7 +96,9 @@ export const usePets = () => {
           weightUnit: weightUnit,
           gender: pet.gender as 'male' | 'female',
           photo: pet.photo_url,
-          nextVaccination: undefined // Will be handled later
+          nextVaccination: undefined, // Will be handled later
+          preExistingConditions: pet.pre_existing_conditions || [],
+          reproductiveStatus: pet.reproductive_status as 'spayed' | 'neutered' | 'not_yet' || 'not_yet'
         };
       }) || [];
 
@@ -162,7 +166,9 @@ export const usePets = () => {
         gender: petData.gender,
         photo_url: petData.photo || null,
         user_id: user.id,
-        owner_id: user.id
+        owner_id: user.id,
+        pre_existing_conditions: petData.preExistingConditions || [],
+        reproductive_status: petData.reproductiveStatus || 'not_yet'
       };
 
       console.log('Insert data:', insertData);
@@ -191,6 +197,8 @@ export const usePets = () => {
         weightUnit: petData.weightUnit,
         gender: data.gender as 'male' | 'female',
         photo: data.photo_url,
+        preExistingConditions: data.pre_existing_conditions || [],
+        reproductiveStatus: data.reproductive_status as 'spayed' | 'neutered' | 'not_yet' || 'not_yet'
       };
 
       setPets(prev => [newPet, ...prev]);
@@ -258,6 +266,8 @@ export const usePets = () => {
         weight_kg: weightInKg, // Store converted weight in kg
         gender: updatedPet.gender,
         photo_url: updatedPet.photo || null,
+        pre_existing_conditions: updatedPet.preExistingConditions || [],
+        reproductive_status: updatedPet.reproductiveStatus || 'not_yet'
       };
 
       console.log('Update data being sent to Supabase:', updateData);
