@@ -1,5 +1,5 @@
 
-import "@/app/globals.css";
+import "./index.css";
 import { useEffect, useState } from "react";
 
 import { Toaster } from "@/components/ui/toaster";
