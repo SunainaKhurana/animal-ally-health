@@ -300,6 +300,8 @@ export type Database = {
           notes: string | null
           owner_id: string
           photo_url: string | null
+          pre_existing_conditions: string[] | null
+          reproductive_status: string | null
           special_conditions: string[] | null
           species: string
           type: Database["public"]["Enums"]["pet_type"]
@@ -324,6 +326,8 @@ export type Database = {
           notes?: string | null
           owner_id: string
           photo_url?: string | null
+          pre_existing_conditions?: string[] | null
+          reproductive_status?: string | null
           special_conditions?: string[] | null
           species: string
           type: Database["public"]["Enums"]["pet_type"]
@@ -348,6 +352,8 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           photo_url?: string | null
+          pre_existing_conditions?: string[] | null
+          reproductive_status?: string | null
           special_conditions?: string[] | null
           species?: string
           type?: Database["public"]["Enums"]["pet_type"]
@@ -441,6 +447,7 @@ export type Database = {
       symptom_reports: {
         Row: {
           created_at: string | null
+          diagnosis: string | null
           id: number
           notes: string | null
           pet_id: string | null
@@ -450,6 +457,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          diagnosis?: string | null
           id?: number
           notes?: string | null
           pet_id?: string | null
@@ -459,6 +467,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          diagnosis?: string | null
           id?: number
           notes?: string | null
           pet_id?: string | null
