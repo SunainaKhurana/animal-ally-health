@@ -42,7 +42,7 @@ const CareTab = () => {
   const [selectedConditions, setSelectedConditions] = useState<string[]>(
     selectedPet?.preExistingConditions || []
   );
-  const [reproductiveStatus, setReproductiveStatus] = useState(
+  const [reproductiveStatus, setReproductiveStatus] = useState<'spayed' | 'neutered' | 'not_yet'>(
     selectedPet?.reproductiveStatus || 'not_yet'
   );
 
@@ -77,7 +77,7 @@ const CareTab = () => {
     if (selectedPet) {
       await updatePet({
         ...selectedPet,
-        reproductiveStatus: reproductiveStatus as 'spayed' | 'neutered' | 'not_yet'
+        reproductiveStatus: reproductiveStatus
       });
       setEditingReproductive(false);
     }
@@ -92,6 +92,10 @@ const CareTab = () => {
 
   const removeCondition = (condition: string) => {
     setSelectedConditions(selectedConditions.filter(c => c !== condition));
+  };
+
+  const handleReproductiveStatusChange = (value: string) => {
+    setReproductiveStatus(value as 'spayed' | 'neutered' | 'not_yet');
   };
 
   return (
@@ -218,7 +222,7 @@ const CareTab = () => {
               
               {editingReproductive ? (
                 <div className="space-y-3">
-                  <Select value={reproductiveStatus} onValueChange={setReproductiveStatus}>
+                  <Select value={reproductiveStatus} onValueChange={handleReproductiveStatusChange}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
