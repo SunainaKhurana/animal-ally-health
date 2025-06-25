@@ -2,9 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -12,36 +10,17 @@ import {
   Upload, 
   Calendar, 
   Pill,
-  Heart,
-  Plus,
-  X
+  Heart
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import HealthDashboard from '@/components/health/HealthDashboard';
-
-const COMMON_CONDITIONS = [
-  'Hip Dysplasia',
-  'Addison\'s Disease',
-  'Diabetes',
-  'Epilepsy',
-  'Heart Disease',
-  'Kidney Disease',
-  'Arthritis',
-  'Allergies',
-  'Thyroid Issues',
-  'Eye Problems'
-];
+import ConditionsSelector from '@/components/health/ConditionsSelector';
 
 const CareTab = () => {
   const { selectedPet, updatePet } = usePetContext();
-  const [editingConditions, setEditingConditions] = useState(false);
   const [editingReproductive, setEditingReproductive] = useState(false);
-  const [newCondition, setNewCondition] = useState('');
-  const [selectedConditions, setSelectedConditions] = useState<string[]>(
-    selectedPet?.preExistingConditions || []
-  );
   const [reproductiveStatus, setReproductiveStatus] = useState<'spayed' | 'neutered' | 'not_yet'>(
     selectedPet?.reproductiveStatus || 'not_yet'
   );
@@ -63,16 +42,6 @@ const CareTab = () => {
     );
   }
 
-  const handleSaveConditions = async () => {
-    if (selectedPet) {
-      await updatePet({
-        ...selectedPet,
-        preExistingConditions: selectedConditions
-      });
-      setEditingConditions(false);
-    }
-  };
-
   const handleSaveReproductiveStatus = async () => {
     if (selectedPet) {
       await updatePet({
@@ -81,17 +50,6 @@ const CareTab = () => {
       });
       setEditingReproductive(false);
     }
-  };
-
-  const addCondition = (condition: string) => {
-    if (condition && !selectedConditions.includes(condition)) {
-      setSelectedConditions([...selectedConditions, condition]);
-    }
-    setNewCondition('');
-  };
-
-  const removeCondition = (condition: string) => {
-    setSelectedConditions(selectedConditions.filter(c => c !== condition));
   };
 
   const handleReproductiveStatusChange = (value: string) => {
@@ -109,6 +67,12 @@ const CareTab = () => {
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-6">
+        {/* Health Conditions */}
+        <ConditionsSelector 
+          petId={selectedPet.id} 
+          petSpecies={selectedPet.species || selectedPet.type || 'dog'} 
+        />
+
         {/* Health Profile */}
         <Card>
           <CardHeader>
@@ -118,95 +82,6 @@ const CareTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Pre-existing Conditions */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Pre-existing Conditions</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingConditions(!editingConditions)}
-                >
-                  {editingConditions ? 'Cancel' : 'Edit'}
-                </Button>
-              </div>
-              
-              {editingConditions ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add custom condition"
-                      value={newCondition}
-                      onChange={(e) => setNewCondition(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addCondition(newCondition)}
-                    />
-                    <Button 
-                      size="sm" 
-                      onClick={() => addCondition(newCondition)}
-                      disabled={!newCondition}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    {COMMON_CONDITIONS.map((condition) => (
-                      <Button
-                        key={condition}
-                        variant={selectedConditions.includes(condition) ? "default" : "outline"}
-                        size="sm"
-                        className="text-xs justify-start"
-                        onClick={() => {
-                          if (selectedConditions.includes(condition)) {
-                            removeCondition(condition);
-                          } else {
-                            addCondition(condition);
-                          }
-                        }}
-                      >
-                        {condition}
-                      </Button>
-                    ))}
-                  </div>
-                  
-                  {selectedConditions.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Selected Conditions:</Label>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedConditions.map((condition) => (
-                          <Badge key={condition} variant="secondary" className="text-xs">
-                            {condition}
-                            <button
-                              onClick={() => removeCondition(condition)}
-                              className="ml-1 hover:text-red-500"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Button onClick={handleSaveConditions} className="w-full">
-                    Save Conditions
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-1">
-                  {selectedPet.preExistingConditions && selectedPet.preExistingConditions.length > 0 ? (
-                    selectedPet.preExistingConditions.map((condition, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {condition}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-sm">No conditions recorded</p>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Reproductive Status */}
             <div>
               <div className="flex items-center justify-between mb-2">
