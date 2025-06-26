@@ -41,6 +41,7 @@ const QuickLogButton = () => {
       // Save to daily_checkins with notes and tags
       const logEntry = {
         pet_id: selectedPet.id,
+        user_id: user.id,
         energy_level: 'normal' as const,
         hunger_level: 'normal' as const,
         thirst_level: 'normal' as const,
