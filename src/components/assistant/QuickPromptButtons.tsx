@@ -10,25 +10,25 @@ const QuickPromptButtons = ({ onPromptSelect }: QuickPromptButtonsProps) => {
   const { selectedPet } = usePetContext();
 
   const prompts = [
-    "Why is my dog drinking more water than usual?",
+    "Why is my pet drinking more water than usual?",
     "Should I be worried about vomiting?",
-    "What can I feed my dog with diarrhea?",
-    "What vaccines are due soon?",
-    `How is ${selectedPet?.name}'s health looking this week?`,
-    "My dog seems lethargic, what should I watch for?",
-    "Is it normal for my dog to eat grass?",
-    "How often should I bathe my dog?"
+    "What can I feed my pet with diarrhea?",
+    "My pet seems lethargic, what should I watch for?",
+    "Is it normal for my pet to eat grass?",
+    "What vaccinations are due for my pet?",
+    `How is ${selectedPet?.name}'s overall health?`,
+    "My pet is not eating, what should I do?"
   ];
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-gray-700">Common questions:</p>
+      <p className="text-sm font-medium text-gray-700">Or ask a quick question:</p>
       <div className="grid grid-cols-1 gap-2">
         {prompts.map((prompt, index) => (
           <Button
             key={index}
             variant="outline"
-            className="text-left justify-start h-auto p-3 text-sm whitespace-normal"
+            className="text-left justify-start h-auto p-3 text-sm whitespace-normal hover:bg-gray-50"
             onClick={() => onPromptSelect(prompt)}
           >
             {prompt}
