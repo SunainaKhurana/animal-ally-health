@@ -4,7 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
-import EnhancedAssistantChat from '@/components/assistant/EnhancedAssistantChat';
+import SimplifiedAssistantChat from '@/components/assistant/SimplifiedAssistantChat';
 
 const AssistantTab = () => {
   const { selectedPet } = usePetContext();
@@ -55,10 +55,10 @@ const AssistantTab = () => {
           </CardContent>
         </Card>
 
-        {/* Enhanced Chat Interface */}
+        {/* Simplified Chat Interface */}
         <Card className="flex-1">
           <CardContent className="p-0">
-            <EnhancedAssistantChat />
+            <SimplifiedAssistantChat />
           </CardContent>
         </Card>
       </div>
