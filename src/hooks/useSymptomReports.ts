@@ -92,9 +92,10 @@ export const useSymptomReports = (petId?: string) => {
       }
 
       // Insert symptom report with proper field mapping
+      // IMPORTANT: Always use empty array [] instead of null for symptoms to satisfy NOT NULL constraint
       const insertData = {
         pet_id: petId,
-        symptoms: symptoms.length > 0 ? symptoms : null, // Use null instead of empty array for better SQL handling
+        symptoms: symptoms.length > 0 ? symptoms : [], // Always use empty array, never null
         notes: notes || null,
         photo_url: photoUrl || null,
         // diagnosis and ai_response are intentionally left null for Make.com to populate
