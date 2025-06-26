@@ -481,6 +481,7 @@ export type Database = {
       }
       symptom_reports: {
         Row: {
+          ai_response: string | null
           created_at: string | null
           diagnosis: string | null
           id: number
@@ -491,6 +492,7 @@ export type Database = {
           symptoms: string[]
         }
         Insert: {
+          ai_response?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: number
@@ -501,6 +503,7 @@ export type Database = {
           symptoms: string[]
         }
         Update: {
+          ai_response?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: number

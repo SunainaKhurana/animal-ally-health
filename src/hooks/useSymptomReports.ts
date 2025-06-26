@@ -11,6 +11,8 @@ export interface SymptomReport {
   photo_url?: string;
   reported_on: string;
   created_at: string;
+  diagnosis?: string;
+  ai_response?: string;
 }
 
 export const useSymptomReports = (petId?: string) => {
@@ -67,6 +69,15 @@ export const useSymptomReports = (petId?: string) => {
         const fileExt = photo.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
+        // First create the storage bucket if it doesn't exist
+        const { error: bucketError } = await supabase.storage
+          .createBucket('symptom-photos', { public: true });
+        
+        // Ignore error if bucket already exists
+        if (bucketError && !bucketError.message.includes('already exists')) {
+          console.log('Bucket creation info:', bucketError);
+        }
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('symptom-photos')
           .upload(fileName, photo);
@@ -80,13 +91,15 @@ export const useSymptomReports = (petId?: string) => {
         photoUrl = publicUrl;
       }
 
+      // Insert symptom report without diagnosis or ai_response - let Make.com handle those
       const { data, error } = await supabase
         .from('symptom_reports')
         .insert({
           pet_id: petId,
-          symptoms,
+          symptoms: symptoms.length > 0 ? symptoms : null,
           notes,
-          photo_url: photoUrl
+          photo_url: photoUrl,
+          // Leave diagnosis and ai_response empty for Make.com to populate
         })
         .select()
         .single();
@@ -95,7 +108,7 @@ export const useSymptomReports = (petId?: string) => {
 
       toast({
         title: "Success",
-        description: "Symptom report submitted successfully",
+        description: "Request submitted successfully",
       });
 
       fetchReports();
@@ -104,7 +117,7 @@ export const useSymptomReports = (petId?: string) => {
       console.error('Error adding symptom report:', error);
       toast({
         title: "Error",
-        description: "Failed to submit symptom report",
+        description: "Failed to submit request",
         variant: "destructive",
       });
       throw error;

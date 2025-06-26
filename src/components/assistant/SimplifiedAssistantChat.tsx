@@ -11,10 +11,11 @@ import SymptomLogger from './SymptomLogger';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'assistant';
+  type: 'user' | 'assistant' | 'processing';
   content: string;
   timestamp: Date;
   hasImage?: boolean;
+  reportId?: number;
 }
 
 const COMMON_QUESTIONS = [
@@ -55,25 +56,28 @@ const SimplifiedAssistantChat = () => {
     setIsLoading(true);
 
     try {
-      // Always create a symptom report entry for tracking and Make.com processing
-      await addSymptomReport(
+      // Create symptom report entry for Make.com processing
+      const report = await addSymptomReport(
         selectedPet.id,
         [], // No specific symptoms for general questions
         message,
         imageFile
       );
 
-      // Simulate AI response (this will be replaced by actual Make.com integration)
-      setTimeout(() => {
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: `Thanks for your question about ${selectedPet.name}. ${generateMockResponse(message)}`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }, 1500);
+      // Add processing message
+      const processingMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'processing',
+        content: 'Processing your request...',
+        timestamp: new Date(),
+        reportId: report?.id
+      };
+      setMessages(prev => [...prev, processingMessage]);
+
+      toast({
+        title: "Request Submitted",
+        description: "Your request is being processed. You'll see the response shortly.",
+      });
 
     } catch (error) {
       toast({
@@ -81,6 +85,7 @@ const SimplifiedAssistantChat = () => {
         description: "Failed to process your message. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -104,7 +109,7 @@ const SimplifiedAssistantChat = () => {
     if (!selectedPet) return;
 
     try {
-      await addSymptomReport(selectedPet.id, symptoms, notes, image);
+      const report = await addSymptomReport(selectedPet.id, symptoms, notes, image);
       
       const symptomMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -116,23 +121,20 @@ const SimplifiedAssistantChat = () => {
 
       setMessages(prev => [...prev, symptomMessage]);
       setShowSymptomLogger(false);
-      setIsLoading(true);
 
-      // Simulate diagnosis response
-      setTimeout(() => {
-        const diagnosisMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: `Based on the symptoms you've reported for ${selectedPet.name}, I'm analyzing the information. A detailed assessment will be provided shortly.\n\n⚠️ This is AI-generated advice. Please consult a veterinarian if symptoms persist or worsen.`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, diagnosisMessage]);
-        setIsLoading(false);
-      }, 2000);
+      // Add processing message for symptom diagnosis
+      const processingMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'processing',
+        content: 'Analyzing symptoms and generating diagnosis...',
+        timestamp: new Date(),
+        reportId: report?.id
+      };
+      setMessages(prev => [...prev, processingMessage]);
 
       toast({
         title: "Symptoms Logged",
-        description: "Processing your symptom report...",
+        description: "Your symptom report is being analyzed...",
       });
     } catch (error) {
       toast({
@@ -197,16 +199,30 @@ const SimplifiedAssistantChat = () => {
                 <div className={`max-w-[85%] rounded-lg p-3 ${
                   message.type === 'user' 
                     ? 'bg-blue-500 text-white' 
+                    : message.type === 'processing'
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                     : 'bg-gray-100 text-gray-900'
                 }`}>
                   <div className="flex items-start gap-2">
-                    {message.type === 'assistant' && <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                    {message.type === 'processing' && (
+                      <div className="flex space-x-1 mt-1">
+                        <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    )}
+                    {message.type !== 'processing' && message.type !== 'user' && <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
                     <div className="flex-1">
                       <p className="text-sm whitespace-pre-line">{message.content}</p>
                       {message.hasImage && (
                         <div className="mt-2 text-xs opacity-75 flex items-center gap-1">
                           <Camera className="h-3 w-3" />
                           Image attached
+                        </div>
+                      )}
+                      {message.type === 'processing' && (
+                        <div className="mt-2 text-xs opacity-75">
+                          Make.com is processing your request...
                         </div>
                       )}
                     </div>
@@ -217,22 +233,6 @@ const SimplifiedAssistantChat = () => {
                 </div>
               </div>
             ))}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-900 p-3 rounded-lg max-w-[80%]">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                    <span className="text-sm">Thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
@@ -290,11 +290,6 @@ const SimplifiedAssistantChat = () => {
       </div>
     </div>
   );
-};
-
-// Helper function for mock responses
-const generateMockResponse = (question: string): string => {
-  return `I'd be happy to help with that! Based on your pet's profile and the question you've asked, I'll provide some guidance. This information is being processed and a detailed response will be available shortly.`;
 };
 
 export default SimplifiedAssistantChat;
