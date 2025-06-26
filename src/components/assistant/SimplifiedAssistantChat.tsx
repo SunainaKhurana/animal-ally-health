@@ -11,7 +11,7 @@ import SymptomLogger from './SymptomLogger';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'assistant' | 'processing';
+  type: 'user' | 'processing';
   content: string;
   timestamp: Date;
   hasImage?: boolean;
@@ -56,11 +56,12 @@ const SimplifiedAssistantChat = () => {
     setIsLoading(true);
 
     try {
-      // Create symptom report entry for Make.com processing
+      // Always create symptom report entry for Make.com processing
+      // For general questions, symptoms will be empty array, notes will contain the question
       const report = await addSymptomReport(
         selectedPet.id,
-        [], // No specific symptoms for general questions
-        message,
+        [], // Empty symptoms array for general questions
+        message, // Question goes into notes field
         imageFile
       );
 
@@ -68,21 +69,21 @@ const SimplifiedAssistantChat = () => {
       const processingMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'processing',
-        content: 'Processing your request...',
+        content: 'Waiting for vet assistant...',
         timestamp: new Date(),
         reportId: report?.id
       };
       setMessages(prev => [...prev, processingMessage]);
 
       toast({
-        title: "Request Submitted",
-        description: "Your request is being processed. You'll see the response shortly.",
+        title: "Question Submitted",
+        description: "Your question is being processed by our vet assistant.",
       });
 
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to process your message. Please try again.",
+        description: "Failed to submit your question. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -90,8 +91,11 @@ const SimplifiedAssistantChat = () => {
     }
   };
 
-  const handleQuestionSelect = (question: string) => {
-    setInputMessage(question);
+  const handleQuestionSelect = async (question: string) => {
+    if (!selectedPet) return;
+    
+    // Directly submit the suggested question
+    await handleSendMessage(question);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +130,7 @@ const SimplifiedAssistantChat = () => {
       const processingMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'processing',
-        content: 'Analyzing symptoms and generating diagnosis...',
+        content: 'Waiting for vet assistant...',
         timestamp: new Date(),
         reportId: report?.id
       };
@@ -134,7 +138,7 @@ const SimplifiedAssistantChat = () => {
 
       toast({
         title: "Symptoms Logged",
-        description: "Your symptom report is being analyzed...",
+        description: "Your symptom report is being analyzed by our vet assistant.",
       });
     } catch (error) {
       toast({
@@ -185,6 +189,7 @@ const SimplifiedAssistantChat = () => {
                     variant="outline"
                     className="text-left justify-start h-auto p-3 text-sm whitespace-normal hover:bg-gray-50"
                     onClick={() => handleQuestionSelect(question)}
+                    disabled={isLoading}
                   >
                     {question}
                   </Button>
@@ -199,9 +204,7 @@ const SimplifiedAssistantChat = () => {
                 <div className={`max-w-[85%] rounded-lg p-3 ${
                   message.type === 'user' 
                     ? 'bg-blue-500 text-white' 
-                    : message.type === 'processing'
-                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                    : 'bg-gray-100 text-gray-900'
+                    : 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                 }`}>
                   <div className="flex items-start gap-2">
                     {message.type === 'processing' && (
@@ -211,18 +214,12 @@ const SimplifiedAssistantChat = () => {
                         <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       </div>
                     )}
-                    {message.type !== 'processing' && message.type !== 'user' && <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />}
                     <div className="flex-1">
                       <p className="text-sm whitespace-pre-line">{message.content}</p>
                       {message.hasImage && (
                         <div className="mt-2 text-xs opacity-75 flex items-center gap-1">
                           <Camera className="h-3 w-3" />
                           Image attached
-                        </div>
-                      )}
-                      {message.type === 'processing' && (
-                        <div className="mt-2 text-xs opacity-75">
-                          Make.com is processing your request...
                         </div>
                       )}
                     </div>
@@ -256,7 +253,7 @@ const SimplifiedAssistantChat = () => {
         
         <div className="flex gap-2">
           <Input
-            placeholder="Ask me anything about your pet"
+            placeholder="Ask me anything about your pet…"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputMessage, uploadedImage || undefined)}

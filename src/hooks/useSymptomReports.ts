@@ -91,24 +91,35 @@ export const useSymptomReports = (petId?: string) => {
         photoUrl = publicUrl;
       }
 
-      // Insert symptom report without diagnosis or ai_response - let Make.com handle those
+      // Insert symptom report with proper field mapping
+      const insertData = {
+        pet_id: petId,
+        symptoms: symptoms.length > 0 ? symptoms : null, // Use null instead of empty array for better SQL handling
+        notes: notes || null,
+        photo_url: photoUrl || null,
+        // diagnosis and ai_response are intentionally left null for Make.com to populate
+        diagnosis: null,
+        ai_response: null
+      };
+
+      console.log('Inserting symptom report:', insertData);
+
       const { data, error } = await supabase
         .from('symptom_reports')
-        .insert({
-          pet_id: petId,
-          symptoms: symptoms.length > 0 ? symptoms : null,
-          notes,
-          photo_url: photoUrl,
-          // Leave diagnosis and ai_response empty for Make.com to populate
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+
+      console.log('Successfully inserted symptom report:', data);
 
       toast({
         title: "Success",
-        description: "Request submitted successfully",
+        description: "Your request has been submitted successfully",
       });
 
       fetchReports();
@@ -117,7 +128,7 @@ export const useSymptomReports = (petId?: string) => {
       console.error('Error adding symptom report:', error);
       toast({
         title: "Error",
-        description: "Failed to submit request",
+        description: "Failed to submit your request. Please try again.",
         variant: "destructive",
       });
       throw error;
