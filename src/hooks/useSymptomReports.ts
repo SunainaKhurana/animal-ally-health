@@ -91,17 +91,25 @@ export const useSymptomReports = (petId?: string) => {
         photoUrl = publicUrl;
       }
 
-      // Insert symptom report with proper field mapping
-      // IMPORTANT: Always use empty array [] instead of null for symptoms to satisfy NOT NULL constraint
-      const insertData = {
+      // Insert symptom report with different handling for symptoms
+      // For general questions: symptoms is null or omitted
+      // For symptom reports: symptoms is an array (can be empty or with values)
+      const insertData: any = {
         pet_id: petId,
-        symptoms: symptoms.length > 0 ? symptoms : [], // Always use empty array, never null
         notes: notes || null,
         photo_url: photoUrl || null,
         // diagnosis and ai_response are intentionally left null for Make.com to populate
         diagnosis: null,
         ai_response: null
       };
+
+      // Only include symptoms field if symptoms were explicitly provided (not empty array for general questions)
+      if (symptoms.length > 0) {
+        insertData.symptoms = symptoms;
+      } else {
+        // For general questions, set symptoms to null to distinguish from symptom reports
+        insertData.symptoms = null;
+      }
 
       console.log('Inserting symptom report:', insertData);
 
