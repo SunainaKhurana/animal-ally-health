@@ -489,7 +489,7 @@ export type Database = {
           pet_id: string | null
           photo_url: string | null
           reported_on: string
-          symptoms: string[]
+          symptoms: string[] | null
         }
         Insert: {
           ai_response?: string | null
@@ -500,7 +500,7 @@ export type Database = {
           pet_id?: string | null
           photo_url?: string | null
           reported_on?: string
-          symptoms: string[]
+          symptoms?: string[] | null
         }
         Update: {
           ai_response?: string | null
@@ -511,7 +511,7 @@ export type Database = {
           pet_id?: string | null
           photo_url?: string | null
           reported_on?: string
-          symptoms?: string[]
+          symptoms?: string[] | null
         }
         Relationships: [
           {
