@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
@@ -19,6 +19,8 @@ const SimplifiedAssistantChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSymptomLogger, setShowSymptomLogger] = useState(false);
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastFailedMessage, setLastFailedMessage] = useState<{ message: string; imageFile?: File } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +39,16 @@ const SimplifiedAssistantChat = () => {
     }
   }, [messages.length]);
 
-  const handleSendMessage = async (message: string, imageFile?: File) => {
+  const handleSendMessage = async (message: string, imageFile?: File, isRetry: boolean = false) => {
     if (!message.trim() && !imageFile || !selectedPet) return;
+
+    console.log('Attempting to send message:', { message: message.substring(0, 50), hasImage: !!imageFile, isRetry });
+
+    // Check if we're already loading and not retrying
+    if (isLoading && !isRetry) {
+      console.log('Already loading, ignoring duplicate request');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -48,11 +58,16 @@ const SimplifiedAssistantChat = () => {
       hasImage: !!imageFile
     };
 
-    addMessage(userMessage);
+    if (!isRetry) {
+      addMessage(userMessage);
+    }
+    
     setIsLoading(true);
-    setShowQuickSuggestions(true); // Show suggestions after sending a message
+    setShowQuickSuggestions(true);
 
     try {
+      console.log('Submitting symptom report...');
+      
       // Create symptom report entry for Make.com processing
       const report = await addSymptomReport(
         selectedPet.id,
@@ -61,24 +76,66 @@ const SimplifiedAssistantChat = () => {
         imageFile
       );
 
+      console.log('Symptom report created successfully:', report?.id);
+
       // Add processing message with friendly text
       if (report?.id) {
         addProcessingMessage(report.id, 'Vet Assistant is reviewing... hang tight.');
       }
+
+      // Clear retry state on success
+      setRetryCount(0);
+      setLastFailedMessage(null);
 
       toast({
         title: "Question Submitted",
         description: "Your question is being processed by our vet assistant.",
       });
 
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit your question. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error('Failed to send message:', error);
+      
+      // Store failed message for retry
+      setLastFailedMessage({ message, imageFile });
+      
+      // Determine if we should show retry option
+      const shouldAllowRetry = retryCount < 3 && !error.message?.includes('Authentication');
+      
+      if (shouldAllowRetry) {
+        setRetryCount(prev => prev + 1);
+        
+        toast({
+          title: "Send Failed",
+          description: `Message failed to send. Tap retry to try again. (Attempt ${retryCount + 1}/3)`,
+          variant: "destructive",
+        });
+      } else {
+        // Reset retry count after max attempts
+        setRetryCount(0);
+        setLastFailedMessage(null);
+        
+        let errorMessage = "Failed to submit your question. Please try again.";
+        if (error.message?.includes('Authentication')) {
+          errorMessage = "Please sign in again to submit your question.";
+        } else if (error.message?.includes('network')) {
+          errorMessage = "Network error. Please check your connection.";
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (lastFailedMessage) {
+      console.log('Retrying failed message...');
+      handleSendMessage(lastFailedMessage.message, lastFailedMessage.imageFile, true);
     }
   };
 
@@ -99,7 +156,7 @@ const SimplifiedAssistantChat = () => {
     };
 
     addMessage(symptomMessage);
-    setShowQuickSuggestions(true); // Show suggestions after logging symptoms
+    setShowQuickSuggestions(true);
 
     try {
       const report = await addSymptomReport(selectedPet.id, symptoms, notes, image);
@@ -163,6 +220,22 @@ const SimplifiedAssistantChat = () => {
             {messages.map((message) => (
               <ChatMessageComponent key={message.id} message={message} />
             ))}
+            
+            {/* Retry Button for Failed Messages */}
+            {lastFailedMessage && retryCount > 0 && retryCount < 3 && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleRetry}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={isLoading}
+                >
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Retry sending message
+                </Button>
+              </div>
+            )}
             
             {/* Quick Suggestions (Collapsed by default) */}
             {showQuickSuggestions && messages.length > 0 && (

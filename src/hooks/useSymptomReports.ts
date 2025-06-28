@@ -58,73 +58,144 @@ export const useSymptomReports = (petId?: string) => {
     notes?: string,
     photo?: File
   ) => {
+    console.log('Starting symptom report submission...', { petId, symptoms: symptoms.length, hasNotes: !!notes, hasPhoto: !!photo });
+    
     try {
+      // Check authentication first
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Authentication error:', authError);
+        throw new Error('Authentication failed. Please sign in again.');
+      }
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('Please sign in to submit a report.');
+      }
+      
+      console.log('User authenticated successfully:', user.id);
+
       let photoUrl: string | undefined;
 
       // Upload photo if provided
       if (photo) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        console.log('Starting photo upload...', { fileName: photo.name, fileSize: photo.size });
+        
         const fileExt = photo.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
-        // First create the storage bucket if it doesn't exist
-        const { error: bucketError } = await supabase.storage
-          .createBucket('symptom-photos', { public: true });
-        
-        // Ignore error if bucket already exists
-        if (bucketError && !bucketError.message.includes('already exists')) {
-          console.log('Bucket creation info:', bucketError);
+        // Create bucket if it doesn't exist (with better error handling)
+        try {
+          const { error: bucketError } = await supabase.storage
+            .createBucket('symptom-photos', { public: true });
+          
+          if (bucketError && !bucketError.message.includes('already exists')) {
+            console.error('Bucket creation error:', bucketError);
+          } else {
+            console.log('Storage bucket ready');
+          }
+        } catch (bucketErr) {
+          console.log('Bucket creation info:', bucketErr);
         }
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('symptom-photos')
-          .upload(fileName, photo);
+        // Upload file with retry logic
+        let uploadAttempts = 0;
+        const maxAttempts = 3;
+        let uploadData;
+        let uploadError;
+        
+        while (uploadAttempts < maxAttempts) {
+          uploadAttempts++;
+          console.log(`Photo upload attempt ${uploadAttempts}/${maxAttempts}`);
+          
+          const result = await supabase.storage
+            .from('symptom-photos')
+            .upload(fileName, photo);
+          
+          uploadData = result.data;
+          uploadError = result.error;
+          
+          if (!uploadError) {
+            console.log('Photo uploaded successfully');
+            break;
+          }
+          
+          console.error(`Upload attempt ${uploadAttempts} failed:`, uploadError);
+          
+          if (uploadAttempts < maxAttempts) {
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * uploadAttempts));
+          }
+        }
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('All upload attempts failed:', uploadError);
+          throw new Error(`Photo upload failed: ${uploadError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('symptom-photos')
           .getPublicUrl(fileName);
 
         photoUrl = publicUrl;
+        console.log('Photo URL generated:', photoUrl);
       }
 
-      // Insert symptom report with different handling for symptoms
-      // For general questions: symptoms is null or omitted
-      // For symptom reports: symptoms is an array (can be empty or with values)
+      // Prepare data for insertion
       const insertData: any = {
         pet_id: petId,
         notes: notes || null,
         photo_url: photoUrl || null,
-        // diagnosis and ai_response are intentionally left null for Make.com to populate
         diagnosis: null,
         ai_response: null
       };
 
-      // Only include symptoms field if symptoms were explicitly provided (not empty array for general questions)
+      // Handle symptoms appropriately
       if (symptoms.length > 0) {
         insertData.symptoms = symptoms;
       } else {
-        // For general questions, set symptoms to null to distinguish from symptom reports
         insertData.symptoms = null;
       }
 
-      console.log('Inserting symptom report:', insertData);
+      console.log('Inserting symptom report:', { ...insertData, photo_url: photoUrl ? '[URL_SET]' : null });
 
-      const { data, error } = await supabase
-        .from('symptom_reports')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Supabase insert error:', error);
-        throw error;
+      // Insert with retry logic
+      let insertAttempts = 0;
+      const maxInsertAttempts = 3;
+      let data;
+      let error;
+      
+      while (insertAttempts < maxInsertAttempts) {
+        insertAttempts++;
+        console.log(`Database insert attempt ${insertAttempts}/${maxInsertAttempts}`);
+        
+        const result = await supabase
+          .from('symptom_reports')
+          .insert(insertData)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+        
+        if (!error) {
+          console.log('Database insert successful:', data);
+          break;
+        }
+        
+        console.error(`Insert attempt ${insertAttempts} failed:`, error);
+        
+        if (insertAttempts < maxInsertAttempts) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 500 * insertAttempts));
+        }
       }
 
-      console.log('Successfully inserted symptom report:', data);
+      if (error) {
+        console.error('All insert attempts failed:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      console.log('Symptom report submitted successfully:', data.id);
 
       toast({
         title: "Success",
@@ -133,11 +204,25 @@ export const useSymptomReports = (petId?: string) => {
 
       fetchReports();
       return data;
-    } catch (error) {
-      console.error('Error adding symptom report:', error);
+    } catch (error: any) {
+      console.error('Error in addSymptomReport:', error);
+      
+      // Provide specific error messages based on error type
+      let userMessage = "Failed to submit your request. Please try again.";
+      
+      if (error.message?.includes('Authentication')) {
+        userMessage = "Please sign in again to submit your request.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        userMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('Photo upload')) {
+        userMessage = "Photo upload failed. Please try with a smaller image.";
+      } else if (error.message?.includes('Database')) {
+        userMessage = "Database error. Please try again in a moment.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to submit your request. Please try again.",
+        description: userMessage,
         variant: "destructive",
       });
       throw error;
