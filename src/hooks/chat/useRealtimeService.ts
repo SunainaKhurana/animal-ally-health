@@ -11,33 +11,64 @@ export const useRealtimeService = (
   pendingReportsCount: number
 ) => {
   const handleRealtimeUpdate = useCallback((payload: any) => {
+    console.log('Real-time UPDATE received:', payload.new?.id);
+    
+    if (!payload.new || !payload.new.id) {
+      console.warn('Invalid real-time update payload:', payload);
+      return;
+    }
+
     const updatedReport = payload.new;
     
     if (updatedReport.diagnosis || updatedReport.ai_response) {
+      console.log('Real-time update contains response for report:', updatedReport.id);
       onResponseReceived(updatedReport);
     }
   }, [onResponseReceived]);
 
   const handleRealtimeInsert = useCallback((payload: any) => {
+    console.log('Real-time INSERT received:', payload.new?.id);
+    
+    if (!payload.new || !payload.new.id) {
+      console.warn('Invalid real-time insert payload:', payload);
+      return;
+    }
+
     const newReport = payload.new;
     if (newReport.diagnosis || newReport.ai_response) {
+      console.log('Real-time insert contains response for report:', newReport.id);
       onResponseReceived(newReport);
     }
   }, [onResponseReceived]);
 
   const handleBackupUpdate = useCallback((payload: any) => {
+    console.log('Backup real-time UPDATE received:', payload.new?.id);
+    
     // Only process if primary channel hasn't handled it recently
     const timeSinceLastPoll = Date.now() - lastPollTime;
     if (timeSinceLastPoll > 1000) {
+      if (!payload.new || !payload.new.id) {
+        console.warn('Invalid backup real-time payload:', payload);
+        return;
+      }
+
       const updatedReport = payload.new;
       if (updatedReport.diagnosis || updatedReport.ai_response) {
+        console.log('Backup channel processing response for report:', updatedReport.id);
         onResponseReceived(updatedReport);
       }
+    } else {
+      console.log('Skipping backup processing - primary channel recently active');
     }
   }, [onResponseReceived, lastPollTime]);
 
   useEffect(() => {
-    if (!petId) return;
+    if (!petId) {
+      console.log('No petId provided, skipping real-time setup');
+      return;
+    }
+
+    console.log('Setting up real-time channels for pet:', petId);
 
     // Primary channel for updates
     const updateChannel = supabase
@@ -63,12 +94,15 @@ export const useRealtimeService = (
         handleRealtimeInsert
       )
       .subscribe((status) => {
-        console.log('Primary channel status:', status);
+        console.log('Primary real-time channel status:', status);
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Primary channel failed, falling back to polling');
           // Fallback to aggressive polling
           if (pendingReportsCount > 0) {
             startPolling();
           }
+        } else if (status === 'SUBSCRIBED') {
+          console.log('Primary real-time channel connected successfully');
         }
       });
 
@@ -85,9 +119,12 @@ export const useRealtimeService = (
         },
         handleBackupUpdate
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Backup real-time channel status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up real-time channels for pet:', petId);
       supabase.removeChannel(updateChannel);
       supabase.removeChannel(backupChannel);
     };
