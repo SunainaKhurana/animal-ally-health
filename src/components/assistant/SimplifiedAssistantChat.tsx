@@ -1,17 +1,17 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, MessageCircle, Plus, Camera } from 'lucide-react';
+import { Send, MessageCircle, Plus, Camera, Bot } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
+import { supabase } from '@/integrations/supabase/client';
 import SymptomLogger from './SymptomLogger';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'processing';
+  type: 'user' | 'assistant' | 'processing';
   content: string;
   timestamp: Date;
   hasImage?: boolean;
@@ -39,6 +39,69 @@ const SimplifiedAssistantChat = () => {
   const [showSymptomLogger, setShowSymptomLogger] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
+  // Listen for real-time updates from Make.com responses
+  useEffect(() => {
+    if (!selectedPet) return;
+
+    const channel = supabase
+      .channel('symptom-reports-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'symptom_reports',
+          filter: `pet_id=eq.${selectedPet.id}`
+        },
+        (payload) => {
+          console.log('Symptom report updated:', payload);
+          const updatedReport = payload.new;
+          
+          // Check if diagnosis or ai_response was added
+          if (updatedReport.diagnosis || updatedReport.ai_response) {
+            handleMakeComResponse(updatedReport);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedPet]);
+
+  const handleMakeComResponse = (report: any) => {
+    const responseContent = report.diagnosis || report.ai_response;
+    if (!responseContent) return;
+
+    // Find and update the processing message for this report
+    setMessages(prev => prev.map(msg => {
+      if (msg.reportId === report.id && msg.type === 'processing') {
+        return {
+          ...msg,
+          type: 'assistant' as const,
+          content: responseContent,
+          timestamp: new Date()
+        };
+      }
+      return msg;
+    }));
+
+    // Remove any duplicate processing messages for this report
+    setMessages(prev => prev.filter((msg, index, arr) => {
+      if (msg.reportId === report.id && msg.type === 'processing') {
+        // Keep only the first processing message for this report
+        return arr.findIndex(m => m.reportId === report.id && m.type === 'processing') === index;
+      }
+      return true;
+    }));
+
+    toast({
+      title: "Response Received",
+      description: "Your vet assistant has provided an analysis.",
+    });
+  };
+
   const handleSendMessage = async (message: string, imageFile?: File) => {
     if (!message.trim() && !imageFile || !selectedPet) return;
 
@@ -56,8 +119,7 @@ const SimplifiedAssistantChat = () => {
     setIsLoading(true);
 
     try {
-      // Always create symptom report entry for Make.com processing
-      // For general questions, symptoms will be empty array, notes will contain the question
+      // Create symptom report entry for Make.com processing
       const report = await addSymptomReport(
         selectedPet.id,
         [], // Empty symptoms array for general questions
@@ -69,7 +131,7 @@ const SimplifiedAssistantChat = () => {
       const processingMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'processing',
-        content: 'Waiting for vet assistant...',
+        content: 'Vet assistant is reviewing your question...',
         timestamp: new Date(),
         reportId: report?.id
       };
@@ -93,8 +155,6 @@ const SimplifiedAssistantChat = () => {
 
   const handleQuestionSelect = async (question: string) => {
     if (!selectedPet) return;
-    
-    // Directly submit the suggested question
     await handleSendMessage(question);
   };
 
@@ -118,7 +178,7 @@ const SimplifiedAssistantChat = () => {
       const symptomMessage: ChatMessage = {
         id: Date.now().toString(),
         type: 'user',
-        content: `Symptoms logged: ${symptoms.join(', ')}${notes ? `\n\nNotes: ${notes}` : ''}`,
+        content: `Symptoms reported: ${symptoms.join(', ')}${notes ? `\n\nNotes: ${notes}` : ''}`,
         timestamp: new Date(),
         hasImage: !!image
       };
@@ -130,7 +190,7 @@ const SimplifiedAssistantChat = () => {
       const processingMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'processing',
-        content: 'Waiting for vet assistant...',
+        content: 'Vet assistant is analyzing the symptoms...',
         timestamp: new Date(),
         reportId: report?.id
       };
@@ -204,6 +264,8 @@ const SimplifiedAssistantChat = () => {
                 <div className={`max-w-[85%] rounded-lg p-3 ${
                   message.type === 'user' 
                     ? 'bg-blue-500 text-white' 
+                    : message.type === 'assistant'
+                    ? 'bg-gray-100 text-gray-900'
                     : 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                 }`}>
                   <div className="flex items-start gap-2">
@@ -213,6 +275,9 @@ const SimplifiedAssistantChat = () => {
                         <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                         <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       </div>
+                    )}
+                    {message.type === 'assistant' && (
+                      <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-600" />
                     )}
                     <div className="flex-1">
                       <p className="text-sm whitespace-pre-line">{message.content}</p>
