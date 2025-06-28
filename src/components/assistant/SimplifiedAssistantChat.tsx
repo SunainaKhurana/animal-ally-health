@@ -23,7 +23,7 @@ const SimplifiedAssistantChat = () => {
     if (!message.trim() && !imageFile || !selectedPet) return;
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       type: 'user',
       content: message || "Shared an image",
       timestamp: new Date(),
@@ -71,18 +71,19 @@ const SimplifiedAssistantChat = () => {
   const handleSymptomSubmit = async (symptoms: string[], notes: string, image?: File) => {
     if (!selectedPet) return;
 
+    const symptomMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      content: `Symptoms reported: ${symptoms.join(', ')}${notes ? `\n\nNotes: ${notes}` : ''}`,
+      timestamp: new Date(),
+      hasImage: !!image
+    };
+
+    addMessage(symptomMessage);
+
     try {
       const report = await addSymptomReport(selectedPet.id, symptoms, notes, image);
       
-      const symptomMessage: ChatMessage = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: `Symptoms reported: ${symptoms.join(', ')}${notes ? `\n\nNotes: ${notes}` : ''}`,
-        timestamp: new Date(),
-        hasImage: !!image
-      };
-
-      addMessage(symptomMessage);
       setShowSymptomLogger(false);
 
       // Add processing message for symptom diagnosis
