@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
@@ -15,7 +15,7 @@ const SimplifiedAssistantChat = () => {
   const { selectedPet } = usePetContext();
   const { toast } = useToast();
   const { addSymptomReport } = useSymptomReports();
-  const { messages, addMessage, addProcessingMessage } = useChatMessages(selectedPet?.id);
+  const { messages, addMessage, addProcessingMessage, connectionHealth, pendingResponsesCount } = useChatMessages(selectedPet?.id);
   const [isLoading, setIsLoading] = useState(false);
   const [showSymptomLogger, setShowSymptomLogger] = useState(false);
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
@@ -24,10 +24,12 @@ const SimplifiedAssistantChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Optimized auto-scroll with requestAnimationFrame
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      });
     }
   }, [messages]);
 
@@ -35,7 +37,9 @@ const SimplifiedAssistantChat = () => {
   useEffect(() => {
     if (messagesContainerRef.current && messages.length > 0) {
       const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
     }
   }, [messages.length]);
 
@@ -192,8 +196,25 @@ const SimplifiedAssistantChat = () => {
 
   return (
     <div className="flex flex-col h-full max-h-[600px]">
-      {/* Log Symptoms Button */}
+      {/* Connection Status & Log Symptoms Button */}
       <div className="p-4 border-b">
+        {/* Connection Health Indicator */}
+        {(connectionHealth === 'polling' || pendingResponsesCount > 0) && (
+          <div className="mb-3 flex items-center justify-center gap-2 text-xs text-gray-600">
+            {connectionHealth === 'polling' ? (
+              <>
+                <WifiOff className="h-3 w-3" />
+                <span>Checking for responses...</span>
+              </>
+            ) : (
+              <>
+                <Wifi className="h-3 w-3" />
+                <span>Waiting for {pendingResponsesCount} response{pendingResponsesCount !== 1 ? 's' : ''}...</span>
+              </>
+            )}
+          </div>
+        )}
+        
         <Button
           onClick={() => setShowSymptomLogger(true)}
           className="w-full bg-red-500 hover:bg-red-600 text-white"

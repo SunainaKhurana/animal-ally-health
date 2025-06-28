@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SymptomReport } from '@/hooks/useSymptomReports';
@@ -16,6 +16,17 @@ export interface ChatMessage {
 export const useChatMessages = (petId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { toast } = useToast();
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingReportsRef = useRef<Set<number>>(new Set());
+  const lastPollTimeRef = useRef<number>(0);
+  const connectionHealthRef = useRef<'connected' | 'disconnected' | 'polling'>('connected');
+
+  // Memoized message map for O(1) lookups
+  const messageMap = useMemo(() => {
+    const map = new Map<string, ChatMessage>();
+    messages.forEach(msg => map.set(msg.id, msg));
+    return map;
+  }, [messages]);
 
   // Load historical symptom reports and reconstruct chat history
   useEffect(() => {
@@ -35,6 +46,7 @@ export const useChatMessages = (petId?: string) => {
         if (error) throw error;
 
         const chatMessages: ChatMessage[] = [];
+        const pendingReports = new Set<number>();
 
         reports?.forEach((report: SymptomReport) => {
           // Create user message
@@ -84,10 +96,17 @@ export const useChatMessages = (petId?: string) => {
               reportId: report.id
             };
             chatMessages.push(processingMessage);
+            pendingReports.add(report.id);
           }
         });
 
         setMessages(chatMessages);
+        pendingReportsRef.current = pendingReports;
+
+        // Start aggressive polling if there are pending reports
+        if (pendingReports.size > 0) {
+          startAggressivePolling();
+        }
       } catch (error) {
         console.error('Error loading chat history:', error);
         toast({
@@ -101,11 +120,57 @@ export const useChatMessages = (petId?: string) => {
     loadChatHistory();
   }, [petId, toast]);
 
-  // Listen for real-time updates from Make.com responses with optimized polling
+  // Aggressive polling for pending responses
+  const startAggressivePolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for 3 minutes max (3s * 60 = 180s)
+
+    pollIntervalRef.current = setInterval(async () => {
+      pollCount++;
+      
+      if (pendingReportsRef.current.size === 0 || pollCount > maxPolls) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        connectionHealthRef.current = 'connected';
+        return;
+      }
+
+      connectionHealthRef.current = 'polling';
+      
+      try {
+        const pendingIds = Array.from(pendingReportsRef.current);
+        const { data: reports, error } = await supabase
+          .from('symptom_reports')
+          .select('*')
+          .in('id', pendingIds);
+
+        if (error) throw error;
+
+        reports?.forEach((report: SymptomReport) => {
+          if (report.diagnosis || report.ai_response) {
+            handleMakeComResponse(report);
+          }
+        });
+
+        lastPollTimeRef.current = Date.now();
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+  }, []);
+
+  // Multi-channel real-time listening with improved performance
   useEffect(() => {
     if (!petId) return;
 
-    const channel = supabase
+    // Primary channel for updates
+    const updateChannel = supabase
       .channel(`symptom-reports-updates-${petId}`)
       .on(
         'postgres_changes',
@@ -116,10 +181,9 @@ export const useChatMessages = (petId?: string) => {
           filter: `pet_id=eq.${petId}`
         },
         (payload) => {
-          console.log('Symptom report updated:', payload);
+          console.log('Real-time update received:', payload.new);
           const updatedReport = payload.new;
           
-          // Check if diagnosis or ai_response was added
           if (updatedReport.diagnosis || updatedReport.ai_response) {
             handleMakeComResponse(updatedReport);
           }
@@ -134,64 +198,130 @@ export const useChatMessages = (petId?: string) => {
           filter: `pet_id=eq.${petId}`
         },
         (payload) => {
-          console.log('New symptom report created:', payload);
-          // This helps sync across devices immediately
+          console.log('Real-time insert received:', payload.new);
+          // Handle immediate responses (if any)
+          const newReport = payload.new;
+          if (newReport.diagnosis || newReport.ai_response) {
+            handleMakeComResponse(newReport);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Primary channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          connectionHealthRef.current = 'connected';
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          connectionHealthRef.current = 'disconnected';
+          // Fallback to aggressive polling
+          if (pendingReportsRef.current.size > 0) {
+            startAggressivePolling();
+          }
+        }
+      });
+
+    // Secondary backup channel for redundancy
+    const backupChannel = supabase
+      .channel(`symptom-backup-${petId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'symptom_reports',
+          filter: `pet_id=eq.${petId}`
+        },
+        (payload) => {
+          // Only process if primary channel hasn't handled it recently
+          const timeSinceLastPoll = Date.now() - lastPollTimeRef.current;
+          if (timeSinceLastPoll > 1000) {
+            const updatedReport = payload.new;
+            if (updatedReport.diagnosis || updatedReport.ai_response) {
+              handleMakeComResponse(updatedReport);
+            }
+          }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(updateChannel);
+      supabase.removeChannel(backupChannel);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [petId]);
+  }, [petId, startAggressivePolling]);
 
-  const handleMakeComResponse = (report: any) => {
+  // Optimized response handler with direct message replacement
+  const handleMakeComResponse = useCallback((report: any) => {
     const responseContent = report.diagnosis || report.ai_response;
     if (!responseContent) return;
 
-    setMessages(prev => {
-      // Remove the processing message for this report
-      const withoutProcessing = prev.filter(msg => 
-        !(msg.reportId === report.id && msg.type === 'processing')
-      );
+    // Remove from pending reports
+    pendingReportsRef.current.delete(report.id);
 
-      // Add or update the assistant message
-      const existingAssistantIndex = withoutProcessing.findIndex(msg => 
-        msg.reportId === report.id && msg.type === 'assistant'
-      );
+    // Stop polling if no more pending reports
+    if (pendingReportsRef.current.size === 0 && pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+      connectionHealthRef.current = 'connected';
+    }
 
-      if (existingAssistantIndex >= 0) {
-        // Update existing assistant message
-        withoutProcessing[existingAssistantIndex] = {
-          ...withoutProcessing[existingAssistantIndex],
-          content: responseContent,
-          timestamp: new Date()
-        };
-        return withoutProcessing;
-      } else {
-        // Add new assistant message
-        const assistantMessage: ChatMessage = {
-          id: `assistant-${report.id}`,
-          type: 'assistant',
-          content: responseContent,
-          timestamp: new Date(),
-          reportId: report.id
-        };
-        return [...withoutProcessing, assistantMessage];
-      }
+    // Optimized state update using requestAnimationFrame for smooth UI
+    requestAnimationFrame(() => {
+      setMessages(prev => {
+        const newMessages = [...prev];
+        let updatedProcessing = false;
+
+        // Direct replacement instead of filtering
+        for (let i = 0; i < newMessages.length; i++) {
+          const msg = newMessages[i];
+          
+          // Remove processing message
+          if (msg.reportId === report.id && msg.type === 'processing') {
+            newMessages.splice(i, 1);
+            i--; // Adjust index after removal
+            updatedProcessing = true;
+            continue;
+          }
+          
+          // Update existing assistant message
+          if (msg.reportId === report.id && msg.type === 'assistant') {
+            newMessages[i] = {
+              ...msg,
+              content: responseContent,
+              timestamp: new Date()
+            };
+            return newMessages;
+          }
+        }
+
+        // Add new assistant message if no existing one was found
+        if (updatedProcessing || !newMessages.some(msg => msg.reportId === report.id && msg.type === 'assistant')) {
+          const assistantMessage: ChatMessage = {
+            id: `assistant-${report.id}`,
+            type: 'assistant',
+            content: responseContent,
+            timestamp: new Date(),
+            reportId: report.id
+          };
+          newMessages.push(assistantMessage);
+        }
+
+        return newMessages;
+      });
     });
 
-    toast({
-      title: "Response Received",
-      description: "Your vet assistant has provided an analysis.",
-    });
-  };
+    // Minimal toast notification
+    console.log('AI response received for report:', report.id);
+  }, []);
 
-  const addMessage = (message: ChatMessage) => {
+  const addMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => [...prev, message]);
-  };
+  }, []);
 
-  const addProcessingMessage = (reportId: number, content: string) => {
+  const addProcessingMessage = useCallback((reportId: number, content: string) => {
     const processingMessage: ChatMessage = {
       id: `processing-${reportId}`,
       type: 'processing',
@@ -199,12 +329,30 @@ export const useChatMessages = (petId?: string) => {
       timestamp: new Date(),
       reportId
     };
-    setMessages(prev => [...prev, processingMessage]);
-  };
+    
+    // Add to pending reports for polling
+    pendingReportsRef.current.add(reportId);
+    
+    // Start aggressive polling immediately
+    startAggressivePolling();
+    
+    addMessage(processingMessage);
+  }, [addMessage, startAggressivePolling]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     messages,
     addMessage,
-    addProcessingMessage
+    addProcessingMessage,
+    connectionHealth: connectionHealthRef.current,
+    pendingResponsesCount: pendingReportsRef.current.size
   };
 };

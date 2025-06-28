@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Bot, Camera } from 'lucide-react';
 
 interface ChatMessageProps {
@@ -11,7 +12,7 @@ interface ChatMessageProps {
   };
 }
 
-const ChatMessage = ({ message }: ChatMessageProps) => {
+const ChatMessage = React.memo(({ message }: ChatMessageProps) => {
   return (
     <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] rounded-lg p-3 ${
@@ -48,6 +49,8 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
       </div>
     </div>
   );
-};
+});
+
+ChatMessage.displayName = 'ChatMessage';
 
 export default ChatMessage;
