@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
@@ -18,6 +18,24 @@ const SimplifiedAssistantChat = () => {
   const { messages, addMessage, addProcessingMessage } = useChatMessages(selectedPet?.id);
   const [isLoading, setIsLoading] = useState(false);
   const [showSymptomLogger, setShowSymptomLogger] = useState(false);
+  const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom when messages container becomes visible
+  useEffect(() => {
+    if (messagesContainerRef.current && messages.length > 0) {
+      const container = messagesContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages.length]);
 
   const handleSendMessage = async (message: string, imageFile?: File) => {
     if (!message.trim() && !imageFile || !selectedPet) return;
@@ -32,6 +50,7 @@ const SimplifiedAssistantChat = () => {
 
     addMessage(userMessage);
     setIsLoading(true);
+    setShowQuickSuggestions(true); // Show suggestions after sending a message
 
     try {
       // Create symptom report entry for Make.com processing
@@ -42,9 +61,9 @@ const SimplifiedAssistantChat = () => {
         imageFile
       );
 
-      // Add processing message
+      // Add processing message with friendly text
       if (report?.id) {
-        addProcessingMessage(report.id, 'Vet assistant is reviewing your question...');
+        addProcessingMessage(report.id, 'Vet Assistant is reviewing... hang tight.');
       }
 
       toast({
@@ -80,6 +99,7 @@ const SimplifiedAssistantChat = () => {
     };
 
     addMessage(symptomMessage);
+    setShowQuickSuggestions(true); // Show suggestions after logging symptoms
 
     try {
       const report = await addSymptomReport(selectedPet.id, symptoms, notes, image);
@@ -88,7 +108,7 @@ const SimplifiedAssistantChat = () => {
 
       // Add processing message for symptom diagnosis
       if (report?.id) {
-        addProcessingMessage(report.id, 'Vet assistant is analyzing the symptoms...');
+        addProcessingMessage(report.id, 'Vet Assistant is analyzing the symptoms... hang tight.');
       }
 
       toast({
@@ -128,7 +148,10 @@ const SimplifiedAssistantChat = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 p-4">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto space-y-4 p-4 scroll-smooth"
+      >
         {messages.length === 0 ? (
           <CommonQuestions
             petName={selectedPet?.name}
@@ -140,6 +163,50 @@ const SimplifiedAssistantChat = () => {
             {messages.map((message) => (
               <ChatMessageComponent key={message.id} message={message} />
             ))}
+            
+            {/* Quick Suggestions (Collapsed by default) */}
+            {showQuickSuggestions && messages.length > 0 && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowQuickSuggestions(!showQuickSuggestions)}
+                  className="w-full justify-between text-sm text-gray-600 hover:text-gray-800"
+                >
+                  <span>Quick questions</span>
+                  {showQuickSuggestions ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                
+                {showQuickSuggestions && (
+                  <div className="mt-2 space-y-1">
+                    {[
+                      "How is my pet's overall health?",
+                      "Any concerns I should watch for?",
+                      "Feeding recommendations?",
+                      "Exercise suggestions?"
+                    ].map((question, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-xs text-gray-600 hover:bg-white"
+                        onClick={() => handleQuestionSelect(question)}
+                        disabled={isLoading}
+                      >
+                        {question}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Invisible div for auto-scrolling */}
+            <div ref={messagesEndRef} />
           </>
         )}
       </div>

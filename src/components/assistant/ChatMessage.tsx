@@ -19,14 +19,14 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
           ? 'bg-blue-500 text-white' 
           : message.type === 'assistant'
           ? 'bg-gray-100 text-gray-900'
-          : 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+          : 'bg-blue-50 text-blue-800 border border-blue-200'
       }`}>
         <div className="flex items-start gap-2">
           {message.type === 'processing' && (
             <div className="flex space-x-1 mt-1">
-              <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           )}
           {message.type === 'assistant' && (

@@ -78,8 +78,8 @@ export const useChatMessages = (petId?: string) => {
               id: `processing-${report.id}`,
               type: 'processing',
               content: report.symptoms && report.symptoms.length > 0 
-                ? 'Vet assistant is analyzing the symptoms...'
-                : 'Vet assistant is reviewing your question...',
+                ? 'Vet Assistant is analyzing the symptoms... hang tight.'
+                : 'Vet Assistant is reviewing... hang tight.',
               timestamp: new Date(report.created_at),
               reportId: report.id
             };
@@ -101,12 +101,12 @@ export const useChatMessages = (petId?: string) => {
     loadChatHistory();
   }, [petId, toast]);
 
-  // Listen for real-time updates from Make.com responses
+  // Listen for real-time updates from Make.com responses with optimized polling
   useEffect(() => {
     if (!petId) return;
 
     const channel = supabase
-      .channel('symptom-reports-updates')
+      .channel(`symptom-reports-updates-${petId}`)
       .on(
         'postgres_changes',
         {
@@ -123,6 +123,19 @@ export const useChatMessages = (petId?: string) => {
           if (updatedReport.diagnosis || updatedReport.ai_response) {
             handleMakeComResponse(updatedReport);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'symptom_reports',
+          filter: `pet_id=eq.${petId}`
+        },
+        (payload) => {
+          console.log('New symptom report created:', payload);
+          // This helps sync across devices immediately
         }
       )
       .subscribe();
