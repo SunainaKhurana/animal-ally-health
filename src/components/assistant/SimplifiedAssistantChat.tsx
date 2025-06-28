@@ -1,15 +1,15 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronDown, ChevronUp, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
 import SymptomLogger from './SymptomLogger';
-import ChatMessageComponent from './ChatMessage';
 import ChatInput from './ChatInput';
-import CommonQuestions from './CommonQuestions';
+import ConnectionStatus from './ConnectionStatus';
+import MessagesContainer from './MessagesContainer';
 
 const SimplifiedAssistantChat = () => {
   const { selectedPet } = usePetContext();
@@ -21,27 +21,6 @@ const SimplifiedAssistantChat = () => {
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastFailedMessage, setLastFailedMessage] = useState<{ message: string; imageFile?: File } | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  // Optimized auto-scroll with requestAnimationFrame
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      });
-    }
-  }, [messages]);
-
-  // Auto-scroll to bottom when messages container becomes visible
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight;
-      });
-    }
-  }, [messages.length]);
 
   const handleSendMessage = async (message: string, imageFile?: File, isRetry: boolean = false) => {
     if (!message.trim() && !imageFile || !selectedPet) return;
@@ -198,22 +177,10 @@ const SimplifiedAssistantChat = () => {
     <div className="flex flex-col h-full max-h-[600px]">
       {/* Connection Status & Log Symptoms Button */}
       <div className="p-4 border-b">
-        {/* Connection Health Indicator */}
-        {(connectionHealth === 'polling' || pendingResponsesCount > 0) && (
-          <div className="mb-3 flex items-center justify-center gap-2 text-xs text-gray-600">
-            {connectionHealth === 'polling' ? (
-              <>
-                <WifiOff className="h-3 w-3" />
-                <span>Checking for responses...</span>
-              </>
-            ) : (
-              <>
-                <Wifi className="h-3 w-3" />
-                <span>Waiting for {pendingResponsesCount} response{pendingResponsesCount !== 1 ? 's' : ''}...</span>
-              </>
-            )}
-          </div>
-        )}
+        <ConnectionStatus
+          connectionHealth={connectionHealth}
+          pendingResponsesCount={pendingResponsesCount}
+        />
         
         <Button
           onClick={() => setShowSymptomLogger(true)}
@@ -226,84 +193,16 @@ const SimplifiedAssistantChat = () => {
       </div>
 
       {/* Messages */}
-      <div 
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto space-y-4 p-4 scroll-smooth"
-      >
-        {messages.length === 0 ? (
-          <CommonQuestions
-            petName={selectedPet?.name}
-            onQuestionSelect={handleQuestionSelect}
-            isLoading={isLoading}
-          />
-        ) : (
-          <>
-            {messages.map((message) => (
-              <ChatMessageComponent key={message.id} message={message} />
-            ))}
-            
-            {/* Retry Button for Failed Messages */}
-            {lastFailedMessage && retryCount > 0 && retryCount < 3 && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleRetry}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 border-red-200 hover:bg-red-50"
-                  disabled={isLoading}
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Retry sending message
-                </Button>
-              </div>
-            )}
-            
-            {/* Quick Suggestions (Collapsed by default) */}
-            {showQuickSuggestions && messages.length > 0 && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowQuickSuggestions(!showQuickSuggestions)}
-                  className="w-full justify-between text-sm text-gray-600 hover:text-gray-800"
-                >
-                  <span>Quick questions</span>
-                  {showQuickSuggestions ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-                
-                {showQuickSuggestions && (
-                  <div className="mt-2 space-y-1">
-                    {[
-                      "How is my pet's overall health?",
-                      "Any concerns I should watch for?",
-                      "Feeding recommendations?",
-                      "Exercise suggestions?"
-                    ].map((question, index) => (
-                      <Button
-                        key={index}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-xs text-gray-600 hover:bg-white"
-                        onClick={() => handleQuestionSelect(question)}
-                        disabled={isLoading}
-                      >
-                        {question}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Invisible div for auto-scrolling */}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
+      <MessagesContainer
+        messages={messages}
+        selectedPetName={selectedPet?.name}
+        onQuestionSelect={handleQuestionSelect}
+        isLoading={isLoading}
+        lastFailedMessage={lastFailedMessage}
+        retryCount={retryCount}
+        onRetry={handleRetry}
+        showQuickSuggestions={showQuickSuggestions}
+      />
 
       {/* Input */}
       <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
