@@ -6,7 +6,7 @@ import { usePollingService } from './chat/usePollingService';
 import { useRealtimeService } from './chat/useRealtimeService';
 import { useMessageService } from './chat/useMessageService';
 
-export { ChatMessage } from './chat/types';
+export type { ChatMessage } from './chat/types';
 
 export const useChatMessages = (petId?: string) => {
   const { toast } = useToast();
