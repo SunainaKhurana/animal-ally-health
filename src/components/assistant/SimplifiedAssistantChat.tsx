@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
 import SymptomLogger from './SymptomLogger';
-import ChatMessage from './ChatMessage';
+import ChatMessageComponent from './ChatMessage';
 import ChatInput from './ChatInput';
 import CommonQuestions from './CommonQuestions';
 
@@ -137,7 +137,7 @@ const SimplifiedAssistantChat = () => {
         ) : (
           <>
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessageComponent key={message.id} message={message} />
             ))}
           </>
         )}
