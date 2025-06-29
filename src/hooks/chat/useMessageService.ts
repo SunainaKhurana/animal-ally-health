@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { ChatMessage } from './types';
 
@@ -15,6 +14,7 @@ export const useMessageService = () => {
   const addMessage = useCallback((message: ChatMessage) => {
     console.log('Adding message:', message.type, message.id);
     setMessages(prev => [...prev, message]);
+    return message;
   }, []);
 
   const addProcessingMessage = useCallback((reportId: number, content: string) => {
@@ -27,10 +27,10 @@ export const useMessageService = () => {
       reportId
     };
     
-    addMessage(processingMessage);
-  }, [addMessage]);
+    setMessages(prev => [...prev, processingMessage]);
+    return processingMessage;
+  }, []);
 
-  // Optimized response handler with direct message replacement
   const handleResponse = useCallback((report: any) => {
     console.log('Handling response for report:', report.id);
     

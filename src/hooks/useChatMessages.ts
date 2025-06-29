@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -199,9 +198,7 @@ export const useChatMessages = (petId?: string) => {
     const processingMessage = messageService.addProcessingMessage(reportId, content);
     
     // Add to cache
-    if (processingMessage) {
-      addCachedMessage(petId, processingMessage);
-    }
+    addCachedMessage(petId, processingMessage);
   };
 
   const addMessage = (message: any) => {
@@ -210,9 +207,7 @@ export const useChatMessages = (petId?: string) => {
     const addedMessage = messageService.addMessage(message);
     
     // Add to cache
-    if (addedMessage) {
-      addCachedMessage(petId, addedMessage);
-    }
+    addCachedMessage(petId, addedMessage);
     
     return addedMessage;
   };
