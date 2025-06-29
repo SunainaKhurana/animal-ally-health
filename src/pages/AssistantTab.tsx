@@ -1,15 +1,74 @@
 
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
+import { useAuth } from '@/contexts/AuthContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import SimplifiedAssistantChat from '@/components/assistant/SimplifiedAssistantChat';
 
 const AssistantTab = () => {
-  const { selectedPet } = usePetContext();
+  const { selectedPet, loading: petsLoading, error: petsError, retry: retryPets } = usePetContext();
+  const { user, loading: authLoading, error: authError, retry: retryAuth } = useAuth();
 
-  if (!selectedPet) {
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication error
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Error</h2>
+          <p className="text-gray-600 mb-4">{authError}</p>
+          <Button onClick={retryAuth} className="bg-blue-600 hover:bg-blue-700">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show pets error
+  if (petsError) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-gray-900">Assistant</h1>
+            <PetSwitcher />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center max-w-md mx-auto p-6">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Pets</h2>
+            <p className="text-gray-600 mb-4">{petsError}</p>
+            <Button onClick={retryPets} className="bg-blue-600 hover:bg-blue-700">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+        <PetZoneNavigation />
+      </div>
+    );
+  }
+
+  // Show no pet selected state
+  if (!selectedPet && !petsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
@@ -50,7 +109,7 @@ const AssistantTab = () => {
                   <MessageCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">AI Health Assistant for {selectedPet.name}</h3>
+                  <h3 className="font-semibold">AI Health Assistant for {selectedPet?.name}</h3>
                   <p className="text-sm text-gray-600">Get personalized health advice and report symptoms</p>
                 </div>
               </div>

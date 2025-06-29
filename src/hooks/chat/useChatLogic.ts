@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
@@ -13,20 +13,34 @@ export const useChatLogic = (selectedPetId?: string) => {
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastFailedMessage, setLastFailedMessage] = useState<{ message: string; imageFile?: File } | null>(null);
+  
+  // Use ref to track the current pet ID to prevent race conditions
+  const currentPetIdRef = useRef(selectedPetId);
 
-  // Reset loading and retry states when pet changes
+  // Reset states when pet changes
   useEffect(() => {
-    console.log('Pet changed, resetting chat states');
-    setIsLoading(false);
-    setShowQuickSuggestions(false);
-    setRetryCount(0);
-    setLastFailedMessage(null);
+    if (currentPetIdRef.current !== selectedPetId) {
+      console.log('Pet changed in chat logic, resetting states');
+      currentPetIdRef.current = selectedPetId;
+      
+      // Reset all states
+      setIsLoading(false);
+      setShowQuickSuggestions(false);
+      setRetryCount(0);
+      setLastFailedMessage(null);
+    }
   }, [selectedPetId]);
 
   const handleSendMessage = async (message: string, imageFile?: File, isRetry: boolean = false) => {
-    if (!message.trim() && !imageFile || !selectedPetId) return;
+    // Check if pet is still the same (prevent race conditions)
+    const petIdAtStart = selectedPetId;
+    
+    if (!message.trim() && !imageFile || !petIdAtStart) {
+      console.log('No message/image or pet ID, aborting');
+      return;
+    }
 
-    console.log('Attempting to send message:', { message: message.substring(0, 50), hasImage: !!imageFile, isRetry });
+    console.log('Attempting to send message:', { message: message.substring(0, 50), hasImage: !!imageFile, isRetry, petId: petIdAtStart });
 
     if (isLoading && !isRetry) {
       console.log('Already loading, ignoring duplicate request');
@@ -52,11 +66,17 @@ export const useChatLogic = (selectedPetId?: string) => {
       console.log('Submitting symptom report...');
       
       const report = await addSymptomReport(
-        selectedPetId,
+        petIdAtStart,
         [],
         message,
         imageFile
       );
+
+      // Check if pet is still the same after async operation
+      if (currentPetIdRef.current !== petIdAtStart) {
+        console.log('Pet changed during submission, aborting');
+        return;
+      }
 
       console.log('Symptom report created successfully:', report?.id);
 
@@ -74,6 +94,12 @@ export const useChatLogic = (selectedPetId?: string) => {
 
     } catch (error: any) {
       console.error('Failed to send message:', error);
+      
+      // Check if pet is still the same after error
+      if (currentPetIdRef.current !== petIdAtStart) {
+        console.log('Pet changed during error handling, aborting');
+        return;
+      }
       
       setLastFailedMessage({ message, imageFile });
       

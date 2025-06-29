@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Pet {
   id: string;
@@ -21,42 +21,35 @@ interface Pet {
 export const usePets = () => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user, session } = useAuth();
 
-  useEffect(() => {
-    // Check auth state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchPets();
-      } else {
-        setLoading(false);
-      }
-    });
+  const fetchPets = async (retryCount = 0) => {
+    if (!user || !session) {
+      setPets([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchPets();
-      } else {
-        setPets([]);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchPets = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      
+      console.log('Fetching pets for user:', user.id);
+      
+      const { data, error: fetchError } = await supabase
         .from('pets')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Fetched pets:', data?.length || 0);
 
       // Transform data to match frontend interface
       const transformedPets = data?.map(pet => {
@@ -103,17 +96,37 @@ export const usePets = () => {
       }) || [];
 
       setPets(transformedPets);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error fetching pets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load pets",
-        variant: "destructive",
-      });
+      
+      // Retry logic for transient errors
+      if (retryCount < 2 && (error.message?.includes('network') || error.code === 'PGRST301')) {
+        console.log(`Retrying pets fetch (attempt ${retryCount + 1})...`);
+        setTimeout(() => fetchPets(retryCount + 1), 1000 * (retryCount + 1));
+        return;
+      }
+      
+      setError(error.message || 'Failed to load pets');
+      
+      // Only show toast for non-auth errors
+      if (!error.message?.includes('Authentication') && !error.message?.includes('JWT')) {
+        toast({
+          title: "Error",
+          description: "Failed to load pets. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch pets when user or session changes
+  useEffect(() => {
+    console.log('User/session changed, fetching pets...');
+    fetchPets();
+  }, [user, session]);
 
   const addPet = async (petData: Omit<Pet, 'id'>) => {
     if (!user) {
@@ -209,7 +222,7 @@ export const usePets = () => {
       });
 
       return newPet;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding pet:', error);
       toast({
         title: "Error",
@@ -294,7 +307,7 @@ export const usePets = () => {
         title: "Success",
         description: `${updatedPet.name}'s profile has been updated!`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating pet:', error);
       toast({
         title: "Error",
@@ -321,7 +334,7 @@ export const usePets = () => {
         title: "Success",
         description: "Pet has been deleted",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting pet:', error);
       toast({
         title: "Error",
@@ -334,7 +347,7 @@ export const usePets = () => {
   return {
     pets,
     loading,
-    user,
+    error,
     addPet,
     updatePet,
     deletePet,
