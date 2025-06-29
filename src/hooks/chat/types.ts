@@ -6,6 +6,7 @@ export interface ChatMessage {
   timestamp: Date;
   hasImage?: boolean;
   reportId?: number;
+  isProcessing?: boolean;
 }
 
 export type ConnectionHealth = 'connected' | 'disconnected' | 'polling';
