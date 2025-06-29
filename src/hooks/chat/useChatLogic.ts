@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
@@ -13,6 +13,15 @@ export const useChatLogic = (selectedPetId?: string) => {
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastFailedMessage, setLastFailedMessage] = useState<{ message: string; imageFile?: File } | null>(null);
+
+  // Reset loading and retry states when pet changes
+  useEffect(() => {
+    console.log('Pet changed, resetting chat states');
+    setIsLoading(false);
+    setShowQuickSuggestions(false);
+    setRetryCount(0);
+    setLastFailedMessage(null);
+  }, [selectedPetId]);
 
   const handleSendMessage = async (message: string, imageFile?: File, isRetry: boolean = false) => {
     if (!message.trim() && !imageFile || !selectedPetId) return;

@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
@@ -30,7 +30,7 @@ const AssistantTab = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
@@ -39,28 +39,33 @@ const AssistantTab = () => {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+      {/* Main Content - takes remaining height */}
+      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
         {/* Pet Context Card */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <MessageCircle className="h-5 w-5 text-blue-600" />
+        <div className="p-4 pb-2">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">AI Health Assistant for {selectedPet.name}</h3>
+                  <p className="text-sm text-gray-600">Get personalized health advice and report symptoms</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">AI Health Assistant for {selectedPet.name}</h3>
-                <p className="text-sm text-gray-600">Get personalized health advice and report symptoms</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Simplified Chat Interface */}
-        <Card className="flex-1">
-          <CardContent className="p-0">
-            <SimplifiedAssistantChat />
-          </CardContent>
-        </Card>
+        {/* Chat Interface - takes remaining space with bottom padding */}
+        <div className="flex-1 px-4 pb-24">
+          <Card className="h-full">
+            <CardContent className="p-0 h-full">
+              <SimplifiedAssistantChat />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <PetZoneNavigation />

@@ -29,12 +29,15 @@ export const useChatMessages = (petId?: string) => {
   // Memoized function to load chat history
   const loadChatHistory = useCallback(async () => {
     if (!petId) {
-      console.log('No petId provided, clearing messages');
+      console.log('No petId provided, clearing messages immediately');
       messageService.setMessages([]);
       return;
     }
 
     console.log('Loading chat history for pet:', petId);
+
+    // Clear messages immediately when pet changes
+    messageService.setMessages([]);
 
     try {
       const { data: reports, error } = await supabase
@@ -112,8 +115,12 @@ export const useChatMessages = (petId?: string) => {
   // Load historical symptom reports and reconstruct chat history
   useEffect(() => {
     console.log('useEffect triggered for pet:', petId);
+    
+    // Cleanup previous polling state when pet changes
+    pollingService.cleanup();
+    
     loadChatHistory();
-  }, [loadChatHistory]);
+  }, [loadChatHistory, pollingService]);
 
   const addProcessingMessage = (reportId: number, content: string) => {
     console.log('Adding processing message for report:', reportId);
