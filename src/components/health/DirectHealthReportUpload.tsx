@@ -75,6 +75,18 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
     });
   };
 
+  const resetForm = () => {
+    setFile(null);
+    setReportType('');
+    setReportDate(undefined);
+    setReportLabel('');
+    setVetDiagnosis('');
+    
+    // Clear file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -126,23 +138,17 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Show success toast
       toast({
         title: "Report uploaded!",
         description: "Processing... You'll be notified when analysis is complete.",
       });
 
-      // Reset form
-      setFile(null);
-      setReportType('');
-      setReportDate(undefined);
-      setReportLabel('');
-      setVetDiagnosis('');
-      
-      // Clear file input
-      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-
-      onOpenChange(false);
+      // Wait 2 seconds before resetting form for better UX
+      setTimeout(() => {
+        resetForm();
+        onOpenChange(false);
+      }, 2000);
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -173,6 +179,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
                 type="file"
                 accept="image/*,.pdf"
                 onChange={handleFileChange}
+                disabled={isUploading}
                 className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium"
               />
             </div>
@@ -186,7 +193,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
           {/* Report Type */}
           <div className="space-y-2">
             <Label>Report Type *</Label>
-            <Select value={reportType} onValueChange={setReportType}>
+            <Select value={reportType} onValueChange={setReportType} disabled={isUploading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
@@ -205,6 +212,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  disabled={isUploading}
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !reportDate && "text-muted-foreground"
@@ -234,6 +242,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
               placeholder="e.g., Annual Checkup, Pre-Surgery..."
               value={reportLabel}
               onChange={(e) => setReportLabel(e.target.value)}
+              disabled={isUploading}
             />
           </div>
 
@@ -245,6 +254,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
               placeholder="Enter your vet's diagnosis or notes..."
               value={vetDiagnosis}
               onChange={(e) => setVetDiagnosis(e.target.value)}
+              disabled={isUploading}
               rows={3}
             />
           </div>
