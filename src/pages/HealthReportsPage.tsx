@@ -20,9 +20,9 @@ const HealthReportsPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
   const [filters, setFilters] = useState({
-    reportType: '',
-    dateRange: '',
-    status: ''
+    reportType: 'all',
+    dateRange: 'all',
+    status: 'all'
   });
 
   const pet = pets.find(p => p.id === petId);
@@ -43,8 +43,8 @@ const HealthReportsPage = () => {
 
   // Filter reports based on current filters
   const filteredReports = healthReports.filter(report => {
-    if (filters.reportType && report.report_type !== filters.reportType) return false;
-    if (filters.status && report.status !== filters.status) return false;
+    if (filters.reportType !== 'all' && report.report_type !== filters.reportType) return false;
+    if (filters.status !== 'all' && report.status !== filters.status) return false;
     return true;
   });
 

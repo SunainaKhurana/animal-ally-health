@@ -19,13 +19,13 @@ const HealthReportsFilters = ({ filters, onFiltersChange, reports }: HealthRepor
   // Get unique report types
   const reportTypes = [...new Set(reports.map(report => report.report_type))];
   
-  const hasActiveFilters = filters.reportType || filters.dateRange || filters.status;
+  const hasActiveFilters = filters.reportType !== 'all' || filters.dateRange !== 'all' || filters.status !== 'all';
 
   const clearFilters = () => {
     onFiltersChange({
-      reportType: '',
-      dateRange: '',
-      status: ''
+      reportType: 'all',
+      dateRange: 'all',
+      status: 'all'
     });
   };
 
@@ -46,7 +46,7 @@ const HealthReportsFilters = ({ filters, onFiltersChange, reports }: HealthRepor
               <SelectValue placeholder="Report Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               {reportTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
@@ -61,7 +61,7 @@ const HealthReportsFilters = ({ filters, onFiltersChange, reports }: HealthRepor
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
