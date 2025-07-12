@@ -67,6 +67,19 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
     });
   };
 
+  const calculateAge = (dateOfBirth: Date) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
   const handleSubmit = async () => {
     if (!file || !reportType || !selectedPet || !user) {
       toast({
@@ -83,6 +96,9 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
       // Convert file to base64
       const base64Data = await convertFileToBase64(file);
 
+      // Calculate pet age from dateOfBirth
+      const petAge = calculateAge(selectedPet.dateOfBirth);
+
       // Prepare webhook payload
       const webhookPayload = {
         pet_id: selectedPet.id,
@@ -95,7 +111,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
         file_size: file.size,
         pet_name: selectedPet.name,
         pet_breed: selectedPet.breed,
-        pet_age: selectedPet.age,
+        pet_age: petAge,
         timestamp: new Date().toISOString()
       };
 
