@@ -62,39 +62,47 @@ const HealthReportsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sticky Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/care')}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {pet.name}'s Health Reports
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {healthReports.length} reports uploaded
-                </p>
-              </div>
-            </div>
+      {/* Clean Header with proper spacing */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          {/* Navigation */}
+          <div className="flex items-center mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/care')}
+              className="mr-2 -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Title Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+              {pet.name}'s Health Reports
+            </h1>
+            <p className="text-lg text-gray-600">
+              {healthReports.length} {healthReports.length === 1 ? 'report' : 'reports'} uploaded
+            </p>
+          </div>
+
+          {/* Action Button */}
+          <div className="flex justify-end">
             <Button
               onClick={() => setShowUpload(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base font-medium"
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-5 w-5 mr-2" />
               Upload Health Report
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+      {/* Content Area */}
+      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
         {/* Filters */}
         <HealthReportsFilters 
           filters={filters}
@@ -112,12 +120,12 @@ const HealthReportsPage = () => {
 
         {/* Failed Reports */}
         {failedReports.length > 0 && (
-          <Card>
+          <Card className="border border-red-200 bg-red-50">
             <CardHeader>
-              <CardTitle className="text-lg text-red-600 flex items-center gap-2">
+              <CardTitle className="text-lg text-red-700 flex items-center gap-3">
                 <Activity className="h-5 w-5" />
                 Failed Reports
-                <Badge variant="destructive" className="ml-2">{failedReports.length}</Badge>
+                <Badge variant="destructive" className="ml-auto">{failedReports.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -127,11 +135,12 @@ const HealthReportsPage = () => {
                     report={report}
                     onDelete={() => refetch()}
                   />
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-3 right-3">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setShowUpload(true)}
+                      className="text-sm"
                     >
                       Retry Upload
                     </Button>
@@ -142,48 +151,48 @@ const HealthReportsPage = () => {
           </Card>
         )}
 
-        {/* Completed Reports Grid */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-green-500" />
+        {/* Main Reports Section */}
+        <Card className="border-gray-200">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-xl flex items-center gap-3">
+              <FileText className="h-6 w-6 text-green-500" />
               {completedReports.length > 0 ? 'Health Reports' : 'No Reports Yet'}
               {completedReports.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{completedReports.length}</Badge>
+                <Badge variant="secondary" className="ml-auto text-sm">{completedReports.length}</Badge>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {loading ? (
-              <div className="text-center py-8">
+              <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading reports...</p>
               </div>
             ) : completedReports.length === 0 ? (
-              // Empty State
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-10 w-10 text-blue-600" />
+              // Empty State with better spacing
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FileText className="h-12 w-12 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-2xl font-semibold text-gray-900 mb-3">
                   No health reports yet
                 </h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                <p className="text-gray-600 mb-8 max-w-md mx-auto text-lg leading-relaxed">
                   Upload {pet.name}'s first diagnostic report to get AI-powered insights in plain language. 
                   We support images and PDFs of blood work, x-rays, and other medical reports.
                 </p>
                 <Button 
                   onClick={() => setShowUpload(true)}
                   size="lg"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-base font-medium"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Upload First Report
                 </Button>
               </div>
             ) : (
-              // Reports Grid in reverse chronological order
-              <div className="space-y-4">
+              // Reports Grid with better spacing
+              <div className="space-y-6">
                 {completedReports
                   .sort((a, b) => new Date(b.actual_report_date || b.report_date).getTime() - new Date(a.actual_report_date || a.report_date).getTime())
                   .map((report) => (
@@ -192,10 +201,10 @@ const HealthReportsPage = () => {
                       report={report}
                       onDelete={() => refetch()}
                     />
-                    {/* New Badge */}
+                    {/* New Badge with better positioning */}
                     {isNewReport(report.created_at || report.report_date) && (
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-green-500 text-white">New</Badge>
+                      <div className="absolute top-4 right-4">
+                        <Badge className="bg-green-500 text-white px-3 py-1">New</Badge>
                       </div>
                     )}
                   </div>
@@ -205,33 +214,33 @@ const HealthReportsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Activity Summary */}
+        {/* Recent Activity Summary with improved spacing */}
         {healthReports.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-purple-500" />
+          <Card className="border-gray-200">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl flex items-center gap-3">
+                <Calendar className="h-6 w-6 text-purple-500" />
                 Recent Activity
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {healthReports.slice(0, 5).map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div key={report.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
                       <div>
-                        <div className="font-medium text-sm">
+                        <div className="font-medium text-base text-gray-900">
                           {report.report_label || report.title}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-sm text-gray-600 mt-1">
                           {new Date(report.actual_report_date || report.report_date).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
                     <Badge 
                       variant={report.status === 'completed' ? 'default' : 'secondary'}
-                      className="text-xs"
+                      className="text-sm px-3 py-1"
                     >
                       {report.status}
                     </Badge>
