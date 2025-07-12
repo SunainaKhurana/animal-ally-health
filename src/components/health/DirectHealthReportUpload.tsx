@@ -12,6 +12,7 @@ import { CalendarIcon, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { usePetContext } from '@/contexts/PetContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface DirectHealthReportUploadProps {
@@ -35,6 +36,7 @@ const REPORT_TYPES = [
 
 const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUploadProps) => {
   const { selectedPet } = usePetContext();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -76,7 +78,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedPet || !file || !reportType || !reportDate) {
+    if (!selectedPet || !user || !file || !reportType || !reportDate) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields and select a file.",
@@ -94,7 +96,7 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
       
       const payload = {
         pet_id: selectedPet.id,
-        user_id: selectedPet.user_id,
+        user_id: user.id,
         report_type: reportType,
         report_date: format(reportDate, 'yyyy-MM-dd'),
         report_label: reportLabel || null,
