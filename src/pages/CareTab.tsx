@@ -15,10 +15,14 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
 import CollapsibleConditionsSection from '@/components/health/CollapsibleConditionsSection';
 import QuickLogButton from '@/components/quick-actions/QuickLogButton';
+import HealthReportsSection from '@/components/health/HealthReportsSection';
+import DirectHealthReportUpload from '@/components/health/DirectHealthReportUpload';
+import { useState } from 'react';
 
 const CareTab = () => {
   const { selectedPet } = usePetContext();
   const navigate = useNavigate();
+  const [showUpload, setShowUpload] = useState(false);
 
   if (!selectedPet) {
     return (
@@ -86,6 +90,9 @@ const CareTab = () => {
           </CardContent>
         </Card>
 
+        {/* Health Reports Section */}
+        <HealthReportsSection />
+
         {/* Health Conditions */}
         <CollapsibleConditionsSection 
           petId={selectedPet.id} 
@@ -109,7 +116,11 @@ const CareTab = () => {
               <Stethoscope className="h-4 w-4 mr-2" />
               Report Symptoms
             </Button>
-            <Button className="w-full" variant="outline">
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => setShowUpload(true)}
+            >
               <Upload className="h-4 w-4 mr-2" />
               Upload Health Report
             </Button>
@@ -126,6 +137,11 @@ const CareTab = () => {
       </div>
 
       <PetZoneNavigation />
+
+      <DirectHealthReportUpload
+        open={showUpload}
+        onOpenChange={setShowUpload}
+      />
     </div>
   );
 };

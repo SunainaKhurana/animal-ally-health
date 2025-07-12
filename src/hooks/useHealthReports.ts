@@ -27,7 +27,62 @@ export const useHealthReports = (petId?: string) => {
 
   useEffect(() => {
     fetchReports();
-  }, [petId]);
+    
+    // Set up real-time subscription for new reports from Make.com
+    if (petId) {
+      const channel = supabase
+        .channel('health-reports-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'health_reports',
+            filter: `pet_id=eq.${petId}`
+          },
+          (payload) => {
+            console.log('Real-time health report update:', payload);
+            
+            if (payload.eventType === 'INSERT') {
+              const newReport = payload.new as HealthReport;
+              setHealthReports(prev => [newReport, ...prev]);
+              
+              // Show toast for new completed reports
+              if (newReport.status === 'completed') {
+                toast({
+                  title: "Report Analysis Complete",
+                  description: `${newReport.title} has been analyzed and is ready to view.`,
+                });
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedReport = payload.new as HealthReport;
+              setHealthReports(prev => 
+                prev.map(report => 
+                  report.id === updatedReport.id ? updatedReport : report
+                )
+              );
+              
+              // Show toast when processing completes
+              if (updatedReport.status === 'completed' && payload.old?.status === 'processing') {
+                toast({
+                  title: "Report Analysis Complete",
+                  description: `${updatedReport.title} analysis is ready to view.`,
+                });
+              }
+            } else if (payload.eventType === 'DELETE') {
+              setHealthReports(prev => 
+                prev.filter(report => report.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [petId, toast]);
 
   const fetchReports = async () => {
     try {
@@ -46,7 +101,6 @@ export const useHealthReports = (petId?: string) => {
 
       if (error) throw error;
       
-      // Type assertion to handle the database response
       setHealthReports((data || []) as HealthReport[]);
     } catch (error) {
       console.error('Error fetching health reports:', error);
@@ -57,106 +111,6 @@ export const useHealthReports = (petId?: string) => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const uploadReport = async (file: File, petId: string, reportData: any): Promise<string> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('health-reports')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('health-reports')
-        .getPublicUrl(fileName);
-
-      // Create health report record with actual report date from OCR
-      const { data, error } = await supabase
-        .from('health_reports')
-        .insert({
-          pet_id: petId,
-          user_id: user.id,
-          title: reportData.testType || reportData.reportType || 'Health Report',
-          report_type: reportData.testType || reportData.reportType || 'General',
-          report_date: reportData.reportDate || new Date().toISOString().split('T')[0],
-          actual_report_date: reportData.actualDate || reportData.reportDate || null,
-          image_url: publicUrl,
-          extracted_text: JSON.stringify(reportData),
-          status: 'processing'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      fetchReports();
-      return data.id;
-    } catch (error) {
-      console.error('Error uploading health report:', error);
-      throw new Error(`Failed to upload health report: ${error.message || 'Unknown error'}`);
-    }
-  };
-
-  const analyzeReport = async (reportId: string, reportData: any, petInfo: any) => {
-    try {
-      // Get pet conditions for enhanced analysis
-      const { data: conditions } = await supabase
-        .from('pet_conditions')
-        .select('*')
-        .eq('pet_id', petInfo.id);
-
-      const enhancedPetInfo = {
-        ...petInfo,
-        conditions: conditions || []
-      };
-
-      const { data, error } = await supabase.functions.invoke('analyze-health-report', {
-        body: { reportData, petInfo: enhancedPetInfo, reportId }
-      });
-
-      if (error) throw error;
-
-      // Update report with analysis
-      const { error: updateError } = await supabase
-        .from('health_reports')
-        .update({
-          ai_analysis: JSON.stringify(data),
-          key_findings: data.keyFindings || '',
-          status: 'completed'
-        })
-        .eq('id', reportId);
-
-      if (updateError) throw updateError;
-
-      fetchReports();
-      return data;
-    } catch (error) {
-      console.error('Error analyzing health report:', error);
-      
-      // Update status to failed
-      await supabase
-        .from('health_reports')
-        .update({ status: 'failed' })
-        .eq('id', reportId);
-
-      toast({
-        title: "Analysis Failed",
-        description: "Failed to analyze health report. The report was saved but analysis couldn't be completed.",
-        variant: "destructive",
-      });
-      
-      fetchReports();
-      throw error;
     }
   };
 
@@ -206,8 +160,6 @@ export const useHealthReports = (petId?: string) => {
   return {
     healthReports,
     loading,
-    uploadReport,
-    analyzeReport,
     deleteReport,
     refetch: fetchReports
   };
