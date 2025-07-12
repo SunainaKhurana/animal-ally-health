@@ -18,6 +18,9 @@ export interface HealthReport {
   ai_analysis?: string;
   created_at: string;
   updated_at: string;
+  report_label?: string;
+  vet_diagnosis?: string;
+  parent_report_id?: string;
 }
 
 export const useHealthReports = (petId?: string) => {
@@ -157,10 +160,36 @@ export const useHealthReports = (petId?: string) => {
     }
   };
 
+  const updateReport = async (reportId: string, updates: Partial<HealthReport>) => {
+    try {
+      const { error } = await supabase
+        .from('health_reports')
+        .update(updates)
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Health report updated successfully",
+      });
+
+      fetchReports();
+    } catch (error) {
+      console.error('Error updating health report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update health report",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     healthReports,
     loading,
     deleteReport,
+    updateReport,
     refetch: fetchReports
   };
 };

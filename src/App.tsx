@@ -1,31 +1,30 @@
 
-import "./index.css";
-import { useEffect, useState } from "react";
-
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ChatCacheProvider } from "@/contexts/ChatCacheContext";
 import { PetProvider } from "@/contexts/PetContext";
+import { ChatCacheProvider } from "@/contexts/ChatCacheContext";
 import Index from "./pages/Index";
-import HealthRecords from "./pages/HealthRecords";
-import ReportSymptoms from "./pages/ReportSymptoms";
-import CheckHealthStatus from "./pages/CheckHealthStatus";
-import WalksTracker from "./pages/WalksTracker";
-import WeightTracking from "./pages/WeightTracking";
-import ActivityTracker from "./pages/ActivityTracker";
-import DailyTracker from "./pages/DailyTracker";
-import PrescriptionsTracker from "./pages/PrescriptionsTracker";
-import PetProfile from "./pages/PetProfile";
-import UserProfile from "./pages/UserProfile";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
 import CareTab from "./pages/CareTab";
 import ActivityTab from "./pages/ActivityTab";
 import AssistantTab from "./pages/AssistantTab";
 import MoreTab from "./pages/MoreTab";
+import PetProfile from "./pages/PetProfile";
+import HealthReportsPage from "./pages/HealthReportsPage";
+import NotFound from "./pages/NotFound";
+import ReportSymptoms from "./pages/ReportSymptoms";
+import CheckHealthStatus from "./pages/CheckHealthStatus";
+import ActivityTracker from "./pages/ActivityTracker";
+import WalksTracker from "./pages/WalksTracker";
+import DailyTracker from "./pages/DailyTracker";
+import PrescriptionsTracker from "./pages/PrescriptionsTracker";
+import WeightTracking from "./pages/WeightTracking";
+import HealthRecords from "./pages/HealthRecords";
+import Settings from "./pages/Settings";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -34,33 +33,33 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <ChatCacheProvider>
-              <PetProvider>
+            <PetProvider>
+              <ChatCacheProvider>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/care" element={<CareTab />} />
                   <Route path="/activity" element={<ActivityTab />} />
                   <Route path="/assistant" element={<AssistantTab />} />
                   <Route path="/more" element={<MoreTab />} />
-                  
-                  {/* Legacy routes - redirect or maintain for backward compatibility */}
-                  <Route path="/health/:petId" element={<HealthRecords />} />
+                  <Route path="/pet/:petId" element={<PetProfile />} />
+                  <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
                   <Route path="/report-symptoms" element={<ReportSymptoms />} />
                   <Route path="/check-health" element={<CheckHealthStatus />} />
-                  <Route path="/walks" element={<WalksTracker />} />
-                  <Route path="/weight" element={<WeightTracking />} />
                   <Route path="/activity-tracker" element={<ActivityTracker />} />
-                  <Route path="/daily" element={<DailyTracker />} />
+                  <Route path="/walks" element={<WalksTracker />} />
+                  <Route path="/daily-tracker" element={<DailyTracker />} />
                   <Route path="/prescriptions" element={<PrescriptionsTracker />} />
-                  <Route path="/pet/:petId" element={<PetProfile />} />
-                  <Route path="/profile" element={<UserProfile />} />
+                  <Route path="/weight-tracking" element={<WeightTracking />} />
+                  <Route path="/health-records" element={<HealthRecords />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<UserProfile />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </PetProvider>
-            </ChatCacheProvider>
+              </ChatCacheProvider>
+            </PetProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

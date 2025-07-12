@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { 
   MessageCircle,
   Stethoscope,
-  Upload,
   Calendar,
   Pill,
-  Heart
+  Heart,
+  FileText,
+  Plus
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
@@ -15,14 +16,12 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
 import CollapsibleConditionsSection from '@/components/health/CollapsibleConditionsSection';
 import QuickLogButton from '@/components/quick-actions/QuickLogButton';
-import HealthReportsSection from '@/components/health/HealthReportsSection';
-import DirectHealthReportUpload from '@/components/health/DirectHealthReportUpload';
-import { useState } from 'react';
+import { useHealthReports } from '@/hooks/useHealthReports';
 
 const CareTab = () => {
   const { selectedPet } = usePetContext();
   const navigate = useNavigate();
-  const [showUpload, setShowUpload] = useState(false);
+  const { healthReports } = useHealthReports(selectedPet?.id);
 
   if (!selectedPet) {
     return (
@@ -43,6 +42,21 @@ const CareTab = () => {
       </div>
     );
   }
+
+  // Smart button text based on reports
+  const getHealthReportsButtonText = () => {
+    if (healthReports.length === 0) {
+      return "Upload First Health Report";
+    }
+    return `${selectedPet.name}'s Health Reports (${healthReports.length})`;
+  };
+
+  const getHealthReportsButtonIcon = () => {
+    if (healthReports.length === 0) {
+      return <Plus className="h-4 w-4 mr-2" />;
+    }
+    return <FileText className="h-4 w-4 mr-2" />;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -90,8 +104,30 @@ const CareTab = () => {
           </CardContent>
         </Card>
 
-        {/* Health Reports Section */}
-        <HealthReportsSection />
+        {/* Health Reports - Smart Button */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-green-500" />
+              Health Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              {healthReports.length === 0 
+                ? `Upload and analyze ${selectedPet.name}'s diagnostic reports with AI-powered insights.`
+                : `View, manage, and analyze ${selectedPet.name}'s health reports and trends.`
+              }
+            </p>
+            <Button 
+              className="w-full"
+              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
+            >
+              {getHealthReportsButtonIcon()}
+              {getHealthReportsButtonText()}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Health Conditions */}
         <CollapsibleConditionsSection 
@@ -104,7 +140,7 @@ const CareTab = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Heart className="h-5 w-5 text-red-500" />
-              Health Records & Reports
+              Health Management
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -115,14 +151,6 @@ const CareTab = () => {
             >
               <Stethoscope className="h-4 w-4 mr-2" />
               Report Symptoms
-            </Button>
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={() => setShowUpload(true)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Health Report
             </Button>
             <Button className="w-full" variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
@@ -137,11 +165,6 @@ const CareTab = () => {
       </div>
 
       <PetZoneNavigation />
-
-      <DirectHealthReportUpload
-        open={showUpload}
-        onOpenChange={setShowUpload}
-      />
     </div>
   );
 };

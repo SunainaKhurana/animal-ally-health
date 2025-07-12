@@ -133,9 +133,11 @@ export type Database = {
           key_findings: string | null
           manual_diagnosis: string | null
           notes: string | null
+          parent_report_id: string | null
           parsed_parameters_json: Json | null
           pet_id: string
           report_date: string
+          report_label: string | null
           report_origin: string | null
           report_type: string
           status: Database["public"]["Enums"]["report_status"] | null
@@ -143,6 +145,7 @@ export type Database = {
           trend_category: string | null
           updated_at: string | null
           user_id: string
+          vet_diagnosis: string | null
           vet_name: string | null
         }
         Insert: {
@@ -158,9 +161,11 @@ export type Database = {
           key_findings?: string | null
           manual_diagnosis?: string | null
           notes?: string | null
+          parent_report_id?: string | null
           parsed_parameters_json?: Json | null
           pet_id: string
           report_date: string
+          report_label?: string | null
           report_origin?: string | null
           report_type: string
           status?: Database["public"]["Enums"]["report_status"] | null
@@ -168,6 +173,7 @@ export type Database = {
           trend_category?: string | null
           updated_at?: string | null
           user_id: string
+          vet_diagnosis?: string | null
           vet_name?: string | null
         }
         Update: {
@@ -183,9 +189,11 @@ export type Database = {
           key_findings?: string | null
           manual_diagnosis?: string | null
           notes?: string | null
+          parent_report_id?: string | null
           parsed_parameters_json?: Json | null
           pet_id?: string
           report_date?: string
+          report_label?: string | null
           report_origin?: string | null
           report_type?: string
           status?: Database["public"]["Enums"]["report_status"] | null
@@ -193,9 +201,17 @@ export type Database = {
           trend_category?: string | null
           updated_at?: string | null
           user_id?: string
+          vet_diagnosis?: string | null
           vet_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "health_reports_parent_report_id_fkey"
+            columns: ["parent_report_id"]
+            isOneToOne: false
+            referencedRelation: "health_reports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "health_reports_pet_id_fkey"
             columns: ["pet_id"]
