@@ -43,20 +43,23 @@ const CareTab = () => {
     );
   }
 
-  // Smart button text based on reports
-  const getHealthReportsButtonText = () => {
+  // Smart button text and icon based on reports
+  const getHealthReportsButton = () => {
     if (healthReports.length === 0) {
-      return "Upload First Health Report";
+      return {
+        text: "Upload First Health Report",
+        icon: <Plus className="h-4 w-4 mr-2" />,
+        description: "Upload and analyze your first diagnostic report with AI-powered insights."
+      };
     }
-    return `${selectedPet.name}'s Health Reports (${healthReports.length})`;
+    return {
+      text: `View ${selectedPet.name}'s Health Reports (${healthReports.length})`,
+      icon: <FileText className="h-4 w-4 mr-2" />,
+      description: "View, manage, and track health trends from uploaded reports."
+    };
   };
 
-  const getHealthReportsButtonIcon = () => {
-    if (healthReports.length === 0) {
-      return <Plus className="h-4 w-4 mr-2" />;
-    }
-    return <FileText className="h-4 w-4 mr-2" />;
-  };
+  const healthReportsButton = getHealthReportsButton();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -82,11 +85,34 @@ const CareTab = () => {
           </CardContent>
         </Card>
 
+        {/* Health Reports Hub - Single Smart Button */}
+        <Card className="border-2 border-blue-100 bg-blue-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Health Reports Hub
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-700 mb-4">
+              {healthReportsButton.description}
+            </p>
+            <Button 
+              className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm"
+              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
+              size="lg"
+            >
+              {healthReportsButton.icon}
+              {healthReportsButton.text}
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* AI Health Assistant */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-blue-500" />
+              <MessageCircle className="h-5 w-5 text-green-500" />
               AI Health Assistant
             </CardTitle>
           </CardHeader>
@@ -96,35 +122,11 @@ const CareTab = () => {
             </p>
             <Button 
               className="w-full" 
+              variant="outline"
               onClick={() => navigate('/assistant')}
             >
               <MessageCircle className="h-4 w-4 mr-2" />
               Chat with AI Assistant
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Health Reports - Smart Button */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-green-500" />
-              Health Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              {healthReports.length === 0 
-                ? `Upload and analyze ${selectedPet.name}'s diagnostic reports with AI-powered insights.`
-                : `View, manage, and analyze ${selectedPet.name}'s health reports and trends.`
-              }
-            </p>
-            <Button 
-              className="w-full"
-              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
-            >
-              {getHealthReportsButtonIcon()}
-              {getHealthReportsButtonText()}
             </Button>
           </CardContent>
         </Card>
@@ -135,12 +137,12 @@ const CareTab = () => {
           petSpecies={selectedPet.type || 'dog'} 
         />
 
-        {/* Health Actions */}
+        {/* Quick Health Actions */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Heart className="h-5 w-5 text-red-500" />
-              Health Management
+              Quick Actions
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

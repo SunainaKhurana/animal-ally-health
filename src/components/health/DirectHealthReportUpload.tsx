@@ -1,157 +1,152 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Camera, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Upload, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { usePetContext } from '@/contexts/PetContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface DirectHealthReportUploadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUploadProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [reportType, setReportType] = useState('');
-  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
-  const { selectedPet } = usePetContext();
-  const { user } = useAuth();
+const REPORT_TYPES = [
+  'Blood Work',
+  'Urinalysis', 
+  'X-Ray',
+  'Ultrasound',
+  'CBC',
+  'Chemistry Panel',
+  'Thyroid Panel',
+  'Allergy Test',
+  'Fecal Exam',
+  'Heartworm Test',
+  'Other'
+];
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUploadProps) => {
+  const { selectedPet } = usePetContext();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [reportType, setReportType] = useState<string>('');
+  const [reportDate, setReportDate] = useState<Date>();
+  const [reportLabel, setReportLabel] = useState('');
+  const [vetDiagnosis, setVetDiagnosis] = useState('');
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      // Validate file type and size
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      const maxSize = 10 * 1024 * 1024; // 10MB
-
-      if (!validTypes.includes(selectedFile.type)) {
+      const fileType = selectedFile.type;
+      if (fileType.startsWith('image/') || fileType === 'application/pdf') {
+        setFile(selectedFile);
+      } else {
         toast({
-          title: "Invalid file type",
-          description: "Please select an image (JPG, PNG) or PDF file",
+          title: "Invalid File Type",
+          description: "Please select an image or PDF file.",
           variant: "destructive",
         });
-        return;
       }
-
-      if (selectedFile.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 10MB",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setFile(selectedFile);
     }
   };
 
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix to get just the base64 string
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
       reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data:image/jpeg;base64, or data:application/pdf;base64, prefix
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
     });
   };
 
-  const calculateAge = (dateOfBirth: Date) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  const handleSubmit = async () => {
-    if (!file || !reportType || !selectedPet || !user) {
+    if (!selectedPet || !file || !reportType || !reportDate) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields and select a file",
+        title: "Missing Information",
+        description: "Please fill in all required fields and select a file.",
         variant: "destructive",
       });
       return;
     }
 
+    if (isUploading) return;
+
     setIsUploading(true);
 
     try {
-      // Convert file to base64
       const base64Data = await convertFileToBase64(file);
-
-      // Calculate pet age from dateOfBirth
-      const petAge = calculateAge(selectedPet.dateOfBirth);
-
-      // Prepare webhook payload
-      const webhookPayload = {
+      
+      const payload = {
         pet_id: selectedPet.id,
-        user_id: user.id,
+        user_id: selectedPet.user_id,
         report_type: reportType,
-        report_date: reportDate,
+        report_date: format(reportDate, 'yyyy-MM-dd'),
+        report_label: reportLabel || null,
+        vet_diagnosis: vetDiagnosis || null,
         file_data: base64Data,
         file_name: file.name,
         file_type: file.type,
-        file_size: file.size,
-        pet_name: selectedPet.name,
-        pet_breed: selectedPet.breed,
-        pet_age: petAge,
-        timestamp: new Date().toISOString()
+        file_size: file.size
       };
 
       console.log('Sending health report to Make.com webhook:', {
-        pet_id: webhookPayload.pet_id,
-        report_type: webhookPayload.report_type,
-        file_name: webhookPayload.file_name,
-        file_size: webhookPayload.file_size
+        pet_id: payload.pet_id,
+        report_type: payload.report_type,
+        file_name: payload.file_name,
+        file_size: payload.file_size
       });
 
-      // Send to Make.com webhook
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(webhookPayload),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`Webhook failed with status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Success toast
       toast({
         title: "Report uploaded!",
-        description: "Your health report is being processed and will appear shortly.",
+        description: "Processing... You'll be notified when analysis is complete.",
       });
 
-      // Reset form and close dialog
+      // Reset form
       setFile(null);
       setReportType('');
-      setReportDate(new Date().toISOString().split('T')[0]);
+      setReportDate(undefined);
+      setReportLabel('');
+      setVetDiagnosis('');
+      
+      // Clear file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+
       onOpenChange(false);
 
     } catch (error) {
-      console.error('Error uploading health report:', error);
+      console.error('Upload error:', error);
       toast({
-        title: "Upload failed",
-        description: "Failed to upload health report. Please try again.",
+        title: "Upload Failed",
+        description: "There was an error uploading your report. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -163,107 +158,125 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Upload Health Report
-          </DialogTitle>
-          <DialogDescription>
-            Upload a health report for {selectedPet?.name}. The report will be processed and analyzed automatically.
-          </DialogDescription>
+          <DialogTitle>Upload New Health Report</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4">
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file-upload">Health Report File *</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <input
+            <Label htmlFor="file-upload">Report File *</Label>
+            <div className="flex items-center gap-2">
+              <Input
                 id="file-upload"
                 type="file"
                 accept="image/*,.pdf"
-                onChange={handleFileSelect}
-                className="hidden"
+                onChange={handleFileChange}
+                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium"
               />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center space-y-2"
-              >
-                {file ? (
-                  <div className="text-center">
-                    <FileText className="h-8 w-8 text-green-500 mx-auto" />
-                    <p className="text-sm font-medium text-green-600">{file.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <div className="flex justify-center space-x-4 mb-2">
-                      <Camera className="h-8 w-8 text-gray-400" />
-                      <Upload className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Click to upload image or PDF
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Max 10MB • JPG, PNG, PDF
-                    </p>
-                  </div>
-                )}
-              </label>
             </div>
+            {file && (
+              <p className="text-sm text-gray-600">
+                Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
           </div>
 
           {/* Report Type */}
           <div className="space-y-2">
-            <Label htmlFor="report-type">Report Type *</Label>
+            <Label>Report Type *</Label>
             <Select value={reportType} onValueChange={setReportType}>
               <SelectTrigger>
                 <SelectValue placeholder="Select report type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Blood Work">Blood Work</SelectItem>
-                <SelectItem value="Urine Test">Urine Test</SelectItem>
-                <SelectItem value="X-Ray">X-Ray</SelectItem>
-                <SelectItem value="Ultrasound">Ultrasound</SelectItem>
-                <SelectItem value="General Checkup">General Checkup</SelectItem>
-                <SelectItem value="Vaccination Record">Vaccination Record</SelectItem>
-                <SelectItem value="Specialist Report">Specialist Report</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                {REPORT_TYPES.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           {/* Report Date */}
           <div className="space-y-2">
-            <Label htmlFor="report-date">Report Date *</Label>
+            <Label>Report Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !reportDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {reportDate ? format(reportDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={reportDate}
+                  onSelect={setReportDate}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Report Label */}
+          <div className="space-y-2">
+            <Label htmlFor="report-label">Report Label (Optional)</Label>
             <Input
-              id="report-date"
-              type="date"
-              value={reportDate}
-              onChange={(e) => setReportDate(e.target.value)}
+              id="report-label"
+              placeholder="e.g., Annual Checkup, Pre-Surgery..."
+              value={reportLabel}
+              onChange={(e) => setReportLabel(e.target.value)}
+            />
+          </div>
+
+          {/* Vet Diagnosis */}
+          <div className="space-y-2">
+            <Label htmlFor="vet-diagnosis">Vet's Diagnosis (Optional)</Label>
+            <Textarea
+              id="vet-diagnosis"
+              placeholder="Enter your vet's diagnosis or notes..."
+              value={vetDiagnosis}
+              onChange={(e) => setVetDiagnosis(e.target.value)}
+              rows={3}
             />
           </div>
 
           {/* Submit Button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={!file || !reportType || isUploading}
-            className="w-full"
-          >
-            {isUploading ? (
-              <>
-                <Upload className="h-4 w-4 mr-2 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Report
-              </>
-            )}
-          </Button>
-        </div>
+          <div className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isUploading || !file || !reportType || !reportDate}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Report
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
