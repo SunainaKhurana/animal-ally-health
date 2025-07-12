@@ -47,15 +47,15 @@ const CareTab = () => {
   const getHealthReportsButton = () => {
     if (healthReports.length === 0) {
       return {
-        text: "Upload First Health Report",
+        text: "Upload First Report",
         icon: <Plus className="h-4 w-4 mr-2" />,
         description: "Upload and analyze your first diagnostic report with AI-powered insights."
       };
     }
     return {
-      text: `View ${selectedPet.name}'s Health Reports (${healthReports.length})`,
+      text: `All ${selectedPet.name}'s Health Reports`,
       icon: <FileText className="h-4 w-4 mr-2" />,
-      description: "View, manage, and track health trends from uploaded reports."
+      description: `View and manage ${selectedPet.name}'s ${healthReports.length} health reports.`
     };
   };
 
@@ -118,7 +118,7 @@ const CareTab = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Ask questions about {selectedPet.name}'s health and get personalized advice based on their history.
+              Chat with AI about {selectedPet.name}'s health and get personalized advice.
             </p>
             <Button 
               className="w-full" 

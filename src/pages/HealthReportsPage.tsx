@@ -4,13 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, TrendingUp, FileText, Calendar, Activity } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Calendar, Activity } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
 import ProcessingReportsSection from '@/components/health/ProcessingReportsSection';
-import DirectHealthReportUpload from '@/components/health/DirectHealthReportUpload';
-import HealthReportsTrends from '@/components/health/HealthReportsTrends';
+import HealthReportUploadDialog from '@/components/health/HealthReportUploadDialog';
 import HealthReportsFilters from '@/components/health/HealthReportsFilters';
 
 const HealthReportsPage = () => {
@@ -19,7 +18,6 @@ const HealthReportsPage = () => {
   const { pets } = usePetContext();
   const { healthReports, loading, refetch } = useHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
-  const [showTrends, setShowTrends] = useState(false);
   const [filters, setFilters] = useState({
     reportType: 'all',
     dateRange: 'all',
@@ -27,13 +25,6 @@ const HealthReportsPage = () => {
   });
 
   const pet = pets.find(p => p.id === petId);
-
-  // Cache the last 10 reports
-  const [cachedReports, setCachedReports] = useState(healthReports.slice(0, 10));
-  
-  useEffect(() => {
-    setCachedReports(healthReports.slice(0, 10));
-  }, [healthReports]);
 
   if (!pet) {
     return (
@@ -88,42 +79,22 @@ const HealthReportsPage = () => {
                   {pet.name}'s Health Reports
                 </h1>
                 <p className="text-sm text-gray-600">
-                  {healthReports.length} reports total
+                  {healthReports.length} reports uploaded
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {completedReports.length > 1 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowTrends(!showTrends)}
-                >
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  Trends
-                </Button>
-              )}
-              <Button
-                onClick={() => setShowUpload(true)}
-                className="sticky"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Upload New Report
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowUpload(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Upload Health Report
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Trends Section */}
-        {showTrends && completedReports.length > 1 && (
-          <HealthReportsTrends 
-            reports={completedReports} 
-            petName={pet.name}
-          />
-        )}
-
         {/* Filters */}
         <HealthReportsFilters 
           filters={filters}
@@ -171,7 +142,7 @@ const HealthReportsPage = () => {
           </Card>
         )}
 
-        {/* Report Summary Grid */}
+        {/* Completed Reports Grid */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -211,9 +182,11 @@ const HealthReportsPage = () => {
                 </Button>
               </div>
             ) : (
-              // Reports Grid
+              // Reports Grid in reverse chronological order
               <div className="space-y-4">
-                {completedReports.map((report) => (
+                {completedReports
+                  .sort((a, b) => new Date(b.actual_report_date || b.report_date).getTime() - new Date(a.actual_report_date || a.report_date).getTime())
+                  .map((report) => (
                   <div key={report.id} className="relative">
                     <HealthReportCard
                       report={report}
@@ -243,7 +216,7 @@ const HealthReportsPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {cachedReports.slice(0, 5).map((report) => (
+                {healthReports.slice(0, 5).map((report) => (
                   <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -270,10 +243,14 @@ const HealthReportsPage = () => {
         )}
       </div>
 
-      {/* Upload Modal */}
-      <DirectHealthReportUpload
+      {/* Upload Dialog */}
+      <HealthReportUploadDialog
         open={showUpload}
         onOpenChange={setShowUpload}
+        onUploadSuccess={() => {
+          refetch();
+          setShowUpload(false);
+        }}
       />
     </div>
   );
