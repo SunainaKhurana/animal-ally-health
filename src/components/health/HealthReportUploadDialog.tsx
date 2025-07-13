@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { usePetContext } from '@/contexts/PetContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HealthReportUploadDialogProps {
   open: boolean;
@@ -63,17 +64,32 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     }
   };
 
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64String = reader.result as string;
-        const base64Data = base64String.split(',')[1];
-        resolve(base64Data);
-      };
-      reader.onerror = error => reject(error);
-    });
+  const uploadFileToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `health_reports/${fileName}`;
+
+    console.log('Uploading file to Supabase Storage:', filePath);
+
+    const { data, error } = await supabase.storage
+      .from('health-reports')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('health-reports')
+      .getPublicUrl(filePath);
+
+    console.log('File uploaded successfully, public URL:', publicUrl);
+    return publicUrl;
   };
 
   const resetForm = () => {
@@ -117,7 +133,8 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     setIsUploading(true);
 
     try {
-      const base64Data = await convertFileToBase64(file);
+      // First upload file to Supabase Storage
+      const fileUrl = await uploadFileToSupabase(file);
       
       const payload = {
         pet_id: selectedPet.id,
@@ -126,10 +143,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
         report_date: format(reportDate, 'yyyy-MM-dd'),
         report_label: reportLabel || null,
         vet_diagnosis: vetDiagnosis || null,
-        file_data: base64Data,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
+        file_url: fileUrl,
         pet_name: selectedPet.name,
         pet_breed: selectedPet.breed,
         pet_age: calculateAge(selectedPet.dateOfBirth)
@@ -138,8 +152,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
       console.log('Sending health report to Make.com webhook:', {
         pet_id: payload.pet_id,
         report_type: payload.report_type,
-        file_name: payload.file_name,
-        file_size: payload.file_size
+        file_url: payload.file_url
       });
 
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
@@ -166,7 +179,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
       console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your report. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your report. Please try again.",
         variant: "destructive",
       });
     } finally {
