@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { usePetContext } from '@/contexts/PetContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DirectHealthReportUploadProps {
   open: boolean;
@@ -61,30 +62,45 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
     }
   };
 
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64String = reader.result as string;
-        // Remove the data:image/jpeg;base64, or data:application/pdf;base64, prefix
-        const base64Data = base64String.split(',')[1];
-        resolve(base64Data);
-      };
-      reader.onerror = error => reject(error);
-    });
+  const calculateAge = (dateOfBirth: Date): number => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
   };
 
-  const resetForm = () => {
-    setFile(null);
-    setReportType('');
-    setReportDate(undefined);
-    setReportLabel('');
-    setVetDiagnosis('');
-    
-    // Clear file input
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
+  const uploadFileToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `health_reports/${fileName}`;
+
+    console.log('Uploading file to Supabase Storage:', filePath);
+
+    const { data, error } = await supabase.storage
+      .from('health-reports')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('health-reports')
+      .getPublicUrl(filePath);
+
+    console.log('File uploaded successfully, public URL:', publicUrl);
+    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,7 +120,8 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
     setIsUploading(true);
 
     try {
-      const base64Data = await convertFileToBase64(file);
+      // First upload file to Supabase Storage
+      const fileUrl = await uploadFileToSupabase(file);
       
       const payload = {
         pet_id: selectedPet.id,
@@ -113,17 +130,16 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
         report_date: format(reportDate, 'yyyy-MM-dd'),
         report_label: reportLabel || null,
         vet_diagnosis: vetDiagnosis || null,
-        file_data: base64Data,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size
+        file_url: fileUrl,
+        pet_name: selectedPet.name,
+        pet_breed: selectedPet.breed,
+        pet_age: calculateAge(selectedPet.dateOfBirth)
       };
 
       console.log('Sending health report to Make.com webhook:', {
         pet_id: payload.pet_id,
         report_type: payload.report_type,
-        file_name: payload.file_name,
-        file_size: payload.file_size
+        file_url: payload.file_url
       });
 
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
@@ -138,23 +154,17 @@ const DirectHealthReportUpload = ({ open, onOpenChange }: DirectHealthReportUplo
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Show success toast
+      // Show success toast but don't reset form
       toast({
         title: "Report uploaded!",
         description: "Processing... You'll be notified when analysis is complete.",
       });
 
-      // Wait 2 seconds before resetting form for better UX
-      setTimeout(() => {
-        resetForm();
-        onOpenChange(false);
-      }, 2000);
-
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your report. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your report. Please try again.",
         variant: "destructive",
       });
     } finally {
