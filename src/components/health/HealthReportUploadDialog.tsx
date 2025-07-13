@@ -67,7 +67,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
   const uploadFileToSupabase = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `health_reports/${fileName}`;
+    const filePath = `${user.id}/${fileName}`;
 
     console.log('Uploading file to Supabase Storage:', filePath);
 
