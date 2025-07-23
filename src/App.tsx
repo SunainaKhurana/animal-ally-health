@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PetProvider } from "@/contexts/PetContext";
 import { ChatCacheProvider } from "@/contexts/ChatCacheContext";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import CareTab from "./pages/CareTab";
 import ActivityTab from "./pages/ActivityTab";
@@ -36,30 +37,32 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <PetProvider>
-              <ChatCacheProvider>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/care" element={<CareTab />} />
-                  <Route path="/activity" element={<ActivityTab />} />
-                  <Route path="/assistant" element={<AssistantTab />} />
-                  <Route path="/more" element={<MoreTab />} />
-                  <Route path="/pet/:petId" element={<PetProfile />} />
-                  <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
-                  <Route path="/report-symptoms" element={<ReportSymptoms />} />
-                  <Route path="/check-health" element={<CheckHealthStatus />} />
-                  <Route path="/activity-tracker" element={<ActivityTracker />} />
-                  <Route path="/walks" element={<WalksTracker />} />
-                  <Route path="/daily-tracker" element={<DailyTracker />} />
-                  <Route path="/prescriptions" element={<PrescriptionsTracker />} />
-                  <Route path="/weight-tracking" element={<WeightTracking />} />
-                  <Route path="/health-records" element={<HealthRecords />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/profile" element={<UserProfile />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </ChatCacheProvider>
-            </PetProvider>
+            <AuthGuard>
+              <PetProvider>
+                <ChatCacheProvider>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/care" element={<CareTab />} />
+                    <Route path="/activity" element={<ActivityTab />} />
+                    <Route path="/assistant" element={<AssistantTab />} />
+                    <Route path="/more" element={<MoreTab />} />
+                    <Route path="/pet/:petId" element={<PetProfile />} />
+                    <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
+                    <Route path="/report-symptoms" element={<ReportSymptoms />} />
+                    <Route path="/check-health" element={<CheckHealthStatus />} />
+                    <Route path="/activity-tracker" element={<ActivityTracker />} />
+                    <Route path="/walks" element={<WalksTracker />} />
+                    <Route path="/daily-tracker" element={<DailyTracker />} />
+                    <Route path="/prescriptions" element={<PrescriptionsTracker />} />
+                    <Route path="/weight-tracking" element={<WeightTracking />} />
+                    <Route path="/health-records" element={<HealthRecords />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/profile" element={<UserProfile />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </ChatCacheProvider>
+              </PetProvider>
+            </AuthGuard>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

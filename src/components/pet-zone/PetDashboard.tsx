@@ -16,6 +16,8 @@ import {
 import { usePetContext } from '@/contexts/PetContext';
 import { formatDate } from '@/lib/dateUtils';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '@/components/common/EmptyState';
+import emptyPets from '@/assets/empty-pets.png';
 
 const PetDashboard = () => {
   const { selectedPet } = usePetContext();
@@ -23,11 +25,15 @@ const PetDashboard = () => {
 
   if (!selectedPet) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">No pet selected</p>
-          <Button onClick={() => navigate('/more')}>Add Your First Pet</Button>
-        </div>
+      <div className="p-4">
+        <EmptyState
+          illustration={emptyPets}
+          title="Welcome to PetZone! 🐾"
+          description="Let's add your first furry friend to start tracking their health, activities, and happiness. Your pet's wellness journey begins here!"
+          actionLabel="Add My First Pet"
+          onAction={() => navigate('/more')}
+          className="mt-8"
+        />
       </div>
     );
   }
