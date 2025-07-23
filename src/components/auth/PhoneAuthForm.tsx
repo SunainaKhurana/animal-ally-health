@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import PhoneInput from 'react-phone-number-input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -9,11 +12,15 @@ import welcomePets from '@/assets/welcome-pets.png';
 import otpVerification from '@/assets/otp-verification.png';
 import 'react-phone-number-input/style.css';
 
+type AuthMode = 'login' | 'signup';
 type PhoneAuthStep = 'phone' | 'otp';
 
 export const PhoneAuthForm = () => {
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [step, setStep] = useState<PhoneAuthStep>('phone');
   const [phone, setPhone] = useState<string>('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -83,6 +90,53 @@ export const PhoneAuthForm = () => {
       toast({
         title: "Invalid code",
         description: "The code you entered is incorrect. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Fields required",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (authMode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
+        });
+        if (error) throw error;
+        toast({
+          title: "Account created! 🎉",
+          description: "Please check your email to verify your account.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast({
+          title: "Welcome back! 🐾",
+          description: "You're successfully logged in!",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -180,39 +234,93 @@ export const PhoneAuthForm = () => {
             Welcome to PetZone! 🐾
           </CardTitle>
           <CardDescription className="text-base">
-            Your pet's health journey starts here. Sign in with your phone number to get started.
+            Your pet's health journey starts here. Choose how you'd like to sign in.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <div className="phone-input-container">
-              <PhoneInput
-                international
-                countryCallingCodeEditable={false}
-                defaultCountry="US"
-                value={phone}
-                onChange={setPhone}
-                className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Enter your phone number"
-              />
-            </div>
-          </div>
-          
-          <Button 
-            onClick={handleSendOTP}
-            className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-lg"
-            disabled={loading || !phone}
-          >
-            {loading ? 'Sending...' : 'Send Verification Code 📱'}
-          </Button>
+        <CardContent>
+          <Tabs defaultValue="email" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="email">Email</TabsTrigger>
+              <TabsTrigger value="phone">Phone</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="email" className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="h-12"
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleEmailAuth}
+                className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-lg"
+                disabled={loading || !email || !password}
+              >
+                {loading ? 'Please wait...' : (authMode === 'login' ? 'Sign In 🚀' : 'Create Account 🎉')}
+              </Button>
 
-          <div className="text-center">
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                  className="text-orange-600 hover:text-orange-700 text-sm"
+                >
+                  {authMode === 'login' 
+                    ? "Don't have an account? Sign up" 
+                    : "Already have an account? Sign in"
+                  }
+                </button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="phone" className="space-y-6">
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <div className="phone-input-container">
+                  <PhoneInput
+                    international
+                    countryCallingCodeEditable={false}
+                    defaultCountry="US"
+                    value={phone}
+                    onChange={setPhone}
+                    className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleSendOTP}
+                className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-lg"
+                disabled={loading || !phone}
+              >
+                {loading ? 'Sending...' : 'Send Verification Code 📱'}
+              </Button>
+            </TabsContent>
+          </Tabs>
+
+          <div className="text-center mt-6">
             <p className="text-xs text-gray-500">
               By continuing, you agree to our Terms of Service and Privacy Policy.
-              We'll send you a verification code via SMS.
             </p>
           </div>
         </CardContent>

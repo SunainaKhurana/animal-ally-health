@@ -67,24 +67,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      // Clean up auth state first
       setSession(null);
       setUser(null);
       setError(null);
       
+      // Clear any localStorage auth data
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Attempt Supabase sign out
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error && error.message !== 'Unable to get user from token') {
+        console.warn('Sign out error (non-critical):', error);
+      }
+      
       toast({
-        title: "Signed out",
+        title: "See you later! 👋",
         description: "You have been signed out successfully.",
       });
+      
+      // Force a page refresh to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+      
     } catch (error: any) {
       console.error('Sign out error:', error);
+      // Even if sign out fails, clear local state and redirect
+      setSession(null);
+      setUser(null);
+      setError(null);
       toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
+        title: "Signed out",
+        description: "You have been signed out.",
       });
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     }
   };
 

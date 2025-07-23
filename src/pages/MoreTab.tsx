@@ -8,9 +8,11 @@ import {
   Phone, 
   Info,
   Edit,
-  Trash2
+  Trash2,
+  LogOut
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
+import { useAuth } from '@/contexts/AuthContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +22,7 @@ import EditPetDialog from '@/components/pets/EditPetDialog';
 
 const MoreTab = () => {
   const { pets, selectedPet, addPet, updatePet, deletePet } = usePetContext();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [showAddPet, setShowAddPet] = useState(false);
   const [editingPet, setEditingPet] = useState(null);
@@ -122,6 +125,14 @@ const MoreTab = () => {
             >
               <Settings className="h-4 w-4 mr-2" />
               App Settings
+            </Button>
+            <Button 
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" 
+              variant="outline"
+              onClick={signOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
             </Button>
           </CardContent>
         </Card>
