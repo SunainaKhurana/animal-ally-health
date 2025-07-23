@@ -38,27 +38,47 @@ export const UserOnboarding = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not found. Please try logging in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('Creating/updating profile for user:', user.id);
+
+      // Use upsert to handle existing profiles gracefully
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: fullName.trim(),
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
+
       // Update user metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { 
-          full_name: fullName,
+          full_name: fullName.trim(),
           onboarding_step: 'pet'
         }
       });
 
-      if (updateError) throw updateError;
-
-      // Create profile record
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user?.id,
-          full_name: fullName,
-        });
-
-      if (profileError) throw profileError;
+      if (updateError) {
+        console.error('User metadata update error:', updateError);
+        // Don't throw here - profile is created, metadata update is secondary
+        console.warn('Profile created but metadata update failed:', updateError.message);
+      }
 
       setStep('pet');
       toast({
@@ -66,9 +86,34 @@ export const UserOnboarding = () => {
         description: "Let's add your first furry friend.",
       });
     } catch (error: any) {
+      console.error('Profile creation failed:', error);
+      
+      // Handle specific error types
+      if (error.code === '23505') {
+        // Unique constraint violation - profile already exists
+        console.log('Profile already exists, attempting to update...');
+        try {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ full_name: fullName.trim() })
+            .eq('user_id', user.id);
+
+          if (updateError) throw updateError;
+
+          setStep('pet');
+          toast({
+            title: "Profile updated! ✨",
+            description: "Let's add your first furry friend.",
+          });
+          return;
+        } catch (updateError: any) {
+          console.error('Profile update also failed:', updateError);
+        }
+      }
+
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to save profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -86,8 +131,12 @@ export const UserOnboarding = () => {
   };
 
   const completeOnboarding = async () => {
+    if (!user) return;
+
     setLoading(true);
     try {
+      console.log('Completing onboarding for user:', user.id);
+
       const { error } = await supabase.auth.updateUser({
         data: { 
           onboarding_completed: true,
@@ -95,17 +144,27 @@ export const UserOnboarding = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Onboarding completion error:', error);
+        throw error;
+      }
 
       setStep('complete');
       toast({
         title: "Welcome to PetZone! 🎉",
         description: "You're all set to start your pet care journey.",
       });
+
+      // Force a page refresh to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+
     } catch (error: any) {
+      console.error('Onboarding completion failed:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to complete setup. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -242,7 +301,7 @@ export const UserOnboarding = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.href = '/'}
               className="w-full bg-orange-500 hover:bg-orange-600 h-12"
             >
               Enter PetZone 🏠

@@ -105,20 +105,35 @@ export const PhoneAuthForm = () => {
 
       console.log('OTP verification successful:', data);
       
+      // Validate that we have a proper session
+      if (!data.session || !data.user) {
+        throw new Error('Authentication succeeded but session is invalid');
+      }
+
       toast({
         title: "Welcome! 🎉",
         description: "You're successfully logged in!",
       });
 
-      // Force page reload to ensure clean state
+      // Short delay to allow session to fully establish
       setTimeout(() => {
         window.location.href = '/';
-      }, 500);
+      }, 1000);
+      
     } catch (error: any) {
       console.error('OTP verification error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = "The code you entered is incorrect. Please try again.";
+      if (error.message?.includes('expired')) {
+        errorMessage = "The verification code has expired. Please request a new one.";
+      } else if (error.message?.includes('session')) {
+        errorMessage = "Session error occurred. Please try logging in again.";
+      }
+      
       toast({
-        title: "Invalid code",
-        description: "The code you entered is incorrect. Please try again.",
+        title: "Verification failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -156,36 +171,68 @@ export const PhoneAuthForm = () => {
             emailRedirectTo: `${window.location.origin}/`
           }
         });
+        
         if (error) throw error;
         
         console.log('Sign up successful:', data);
-        toast({
-          title: "Account created! 🎉",
-          description: "Please check your email to verify your account.",
-        });
+        
+        if (data.user && !data.session) {
+          // Email confirmation required
+          toast({
+            title: "Check your email! 📧",
+            description: "Please check your email and click the confirmation link to complete your account setup.",
+          });
+        } else if (data.session) {
+          // Immediate sign in (email confirmation disabled)
+          toast({
+            title: "Account created! 🎉",
+            description: "Welcome to PetZone!",
+          });
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
         if (error) throw error;
         
         console.log('Sign in successful:', data);
+        
+        // Validate session
+        if (!data.session || !data.user) {
+          throw new Error('Authentication succeeded but session is invalid');
+        }
+        
         toast({
           title: "Welcome back! 🐾",
           description: "You're successfully logged in!",
         });
 
-        // Force page reload to ensure clean state
+        // Short delay to allow session to fully establish
         setTimeout(() => {
           window.location.href = '/';
-        }, 500);
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Email auth error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.message?.includes('User already registered')) {
+        errorMessage = "An account with this email already exists. Please sign in instead.";
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = "Please check your email and click the confirmation link before signing in.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Authentication failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

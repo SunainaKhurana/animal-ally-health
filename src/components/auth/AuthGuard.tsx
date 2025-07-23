@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneAuthForm } from './PhoneAuthForm';
 import { UserOnboarding } from './UserOnboarding';
+import { useProfileStatus } from '@/hooks/useProfileStatus';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -10,8 +11,9 @@ interface AuthGuardProps {
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, loading, error, retry } = useAuth();
+  const profileStatus = useProfileStatus();
 
-  if (loading) {
+  if (loading || profileStatus.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-blue-50">
         <div className="text-center">
@@ -44,10 +46,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     return <PhoneAuthForm />;
   }
 
-  // Check if user needs onboarding
-  const needsOnboarding = !user.user_metadata?.onboarding_completed;
-  
-  if (needsOnboarding) {
+  // Show onboarding if not completed
+  if (!profileStatus.onboardingCompleted) {
     return <UserOnboarding />;
   }
 
