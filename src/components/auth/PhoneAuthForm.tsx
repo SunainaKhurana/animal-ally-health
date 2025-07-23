@@ -15,6 +15,16 @@ import 'react-phone-number-input/style.css';
 type AuthMode = 'login' | 'signup';
 type PhoneAuthStep = 'phone' | 'otp';
 
+// Helper function to clean up auth state before new authentication
+const cleanupAuthState = () => {
+  console.log('Cleaning up auth state before new authentication...');
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
 export const PhoneAuthForm = () => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [step, setStep] = useState<PhoneAuthStep>('phone');
@@ -37,6 +47,16 @@ export const PhoneAuthForm = () => {
 
     setLoading(true);
     try {
+      // Clean up any existing auth state
+      cleanupAuthState();
+      
+      // Attempt to sign out any existing session
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('No existing session to sign out');
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: phone,
         options: {
@@ -52,6 +72,7 @@ export const PhoneAuthForm = () => {
         description: "Check your phone for the verification code.",
       });
     } catch (error: any) {
+      console.error('OTP send error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -74,7 +95,7 @@ export const PhoneAuthForm = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone: phone,
         token: otp,
         type: 'sms'
@@ -82,11 +103,19 @@ export const PhoneAuthForm = () => {
 
       if (error) throw error;
 
+      console.log('OTP verification successful:', data);
+      
       toast({
         title: "Welcome! 🎉",
         description: "You're successfully logged in!",
       });
+
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     } catch (error: any) {
+      console.error('OTP verification error:', error);
       toast({
         title: "Invalid code",
         description: "The code you entered is incorrect. Please try again.",
@@ -109,8 +138,18 @@ export const PhoneAuthForm = () => {
 
     setLoading(true);
     try {
+      // Clean up any existing auth state
+      cleanupAuthState();
+      
+      // Attempt to sign out any existing session
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('No existing session to sign out');
+      }
+
       if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -118,22 +157,32 @@ export const PhoneAuthForm = () => {
           }
         });
         if (error) throw error;
+        
+        console.log('Sign up successful:', data);
         toast({
           title: "Account created! 🎉",
           description: "Please check your email to verify your account.",
         });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        
+        console.log('Sign in successful:', data);
         toast({
           title: "Welcome back! 🐾",
           description: "You're successfully logged in!",
         });
+
+        // Force page reload to ensure clean state
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       }
     } catch (error: any) {
+      console.error('Email auth error:', error);
       toast({
         title: "Error",
         description: error.message,
