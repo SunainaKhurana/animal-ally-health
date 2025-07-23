@@ -52,19 +52,19 @@ export const PetProvider = ({ children }: PetProviderProps) => {
 
   // Auto-select first pet if none selected and pets are available
   useEffect(() => {
-    if (!selectedPet && pets.length > 0) {
+    if (user && !selectedPet && pets.length > 0) {
       console.log('Auto-selecting first pet:', pets[0].name);
       setSelectedPet(pets[0]);
     }
-  }, [pets, selectedPet]);
+  }, [pets, selectedPet, user]);
 
   // If selected pet is deleted or no longer exists, select first available pet
   useEffect(() => {
-    if (selectedPet && !pets.find(pet => pet.id === selectedPet.id)) {
+    if (user && selectedPet && !pets.find(pet => pet.id === selectedPet.id)) {
       console.log('Selected pet no longer exists, selecting new pet');
       setSelectedPet(pets.length > 0 ? pets[0] : null);
     }
-  }, [pets, selectedPet]);
+  }, [pets, selectedPet, user]);
 
   // Clear selected pet when user logs out
   useEffect(() => {

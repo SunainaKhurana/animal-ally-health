@@ -37,8 +37,8 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <AuthGuard>
-              <PetProvider>
+            <PetProvider>
+              <AuthGuard>
                 <ChatCacheProvider>
                   <Routes>
                     <Route path="/" element={<Index />} />
@@ -61,8 +61,8 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </ChatCacheProvider>
-              </PetProvider>
-            </AuthGuard>
+              </AuthGuard>
+            </PetProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
