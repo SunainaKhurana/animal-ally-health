@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { usePetContext } from "@/contexts/PetContext";
 import PhotoUpload from "./PhotoUpload";
 import PetTypeSelector from "./PetTypeSelector";
 import BreedSelector from "./BreedSelector";
@@ -17,10 +19,13 @@ import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 interface AddPetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddPet: (pet: any) => void;
+  onAddPet?: (pet: any) => void;
 }
 
 const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
+  const { addPet } = usePetContext();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -34,31 +39,65 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
     reproductiveStatus: "not_yet"
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.name || !formData.type || !formData.dateOfBirth || !formData.weight || !formData.gender) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
       return;
     }
 
-    onAddPet({
-      ...formData,
-      weight: parseFloat(formData.weight),
-      nextVaccination: "2024-08-15" // Mock next vaccination date
-    });
+    setLoading(true);
+    try {
+      const petData = {
+        ...formData,
+        weight: parseFloat(formData.weight),
+        nextVaccination: "2024-08-15" // Mock next vaccination date
+      };
 
-    // Reset form
-    setFormData({
-      name: "",
-      type: "",
-      breed: "",
-      dateOfBirth: undefined,
-      weight: "",
-      weightUnit: "lbs",
-      gender: "",
-      photo: "",
-      preExistingConditions: [],
-      reproductiveStatus: "not_yet"
-    });
+      const newPet = await addPet(petData);
+      
+      if (newPet) {
+        toast({
+          title: "Pet added successfully! 🎉",
+          description: `${formData.name} has been added to your pets.`,
+        });
+
+        // Reset form
+        setFormData({
+          name: "",
+          type: "",
+          breed: "",
+          dateOfBirth: undefined,
+          weight: "",
+          weightUnit: "lbs",
+          gender: "",
+          photo: "",
+          preExistingConditions: [],
+          reproductiveStatus: "not_yet"
+        });
+
+        // Call callback if provided (for onboarding)
+        if (onAddPet) {
+          onAddPet(newPet);
+        }
+
+        onOpenChange(false);
+      }
+    } catch (error: any) {
+      console.error('Error adding pet:', error);
+      toast({
+        title: "Error adding pet",
+        description: error.message || "Failed to add pet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,8 +118,9 @@ const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
             type="submit"
             form="add-pet-form"
             className="absolute right-0 top-0 bg-orange-500 hover:bg-orange-600"
+            disabled={loading}
           >
-            Save
+            {loading ? 'Saving...' : 'Save'}
           </Button>
         </SheetHeader>
 
