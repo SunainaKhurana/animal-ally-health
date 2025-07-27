@@ -129,7 +129,7 @@ const AddPetDialog = ({ open: controlledOpen, onOpenChange, onAddPet }: AddPetDi
             />
           </div>
 
-          <PetTypeSelector value={type} onChange={setType} />
+          <PetTypeSelector value={type} onChange={(value) => setType(value as "dog" | "cat")} />
 
           <BreedSelector 
             value={breed} 
@@ -149,7 +149,7 @@ const AddPetDialog = ({ open: controlledOpen, onOpenChange, onAddPet }: AddPetDi
             onUnitChange={setWeightUnit}
           />
 
-          <GenderSelector value={gender} onChange={setGender} />
+          <GenderSelector value={gender} onChange={(value) => setGender(value as "male" | "female")} />
 
           <PhotoUpload photo={photo} onPhotoChange={setPhoto} />
 
@@ -160,7 +160,7 @@ const AddPetDialog = ({ open: controlledOpen, onOpenChange, onAddPet }: AddPetDi
 
           <ReproductiveStatusSelector 
             value={reproductiveStatus}
-            onChange={setReproductiveStatus}
+            onChange={(value) => setReproductiveStatus(value as 'spayed' | 'neutered' | 'not_yet')}
           />
 
           <div className="flex gap-2 pt-4">

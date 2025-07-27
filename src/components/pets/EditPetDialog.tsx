@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -164,9 +165,9 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
             />
 
             <WeightInput
-              weight={formData.weight}
+              value={formData.weight}
               weightUnit={formData.weightUnit}
-              onWeightChange={(weight) => setFormData({ ...formData, weight })}
+              onChange={(weight) => setFormData({ ...formData, weight })}
               onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
             />
 
