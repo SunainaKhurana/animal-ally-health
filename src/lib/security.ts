@@ -10,19 +10,30 @@ export interface SecurityEvent {
 
 export const checkOTPRateLimit = async (phoneNumber: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc('check_otp_rate_limit', {
-      phone: phoneNumber
-    });
-
-    if (error) {
-      console.error('Rate limit check error:', error);
-      return false;
+    // For now, implement a basic client-side rate limiting
+    const rateLimitKey = `otp_rate_limit_${phoneNumber}`;
+    const stored = localStorage.getItem(rateLimitKey);
+    
+    if (stored) {
+      const { count, timestamp } = JSON.parse(stored);
+      const hourAgo = Date.now() - (60 * 60 * 1000);
+      
+      if (timestamp > hourAgo) {
+        if (count >= 5) {
+          return false; // Rate limit exceeded
+        }
+        localStorage.setItem(rateLimitKey, JSON.stringify({ count: count + 1, timestamp: Date.now() }));
+      } else {
+        localStorage.setItem(rateLimitKey, JSON.stringify({ count: 1, timestamp: Date.now() }));
+      }
+    } else {
+      localStorage.setItem(rateLimitKey, JSON.stringify({ count: 1, timestamp: Date.now() }));
     }
-
-    return data as boolean;
+    
+    return true;
   } catch (error) {
     console.error('Rate limit check failed:', error);
-    return false;
+    return true; // Allow on error to not block legitimate users
   }
 };
 
@@ -30,17 +41,15 @@ export const logSecurityEvent = async (event: SecurityEvent): Promise<void> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { error } = await supabase.rpc('log_security_event', {
-      p_user_id: user?.id || null,
-      p_event_type: event.event_type,
-      p_event_data: event.event_data ? JSON.stringify(event.event_data) : null,
-      p_ip_address: event.ip_address || null,
-      p_user_agent: event.user_agent || navigator.userAgent
+    // For now, just log to console until we have proper database support
+    console.log('Security Event:', {
+      user_id: user?.id || null,
+      event_type: event.event_type,
+      event_data: event.event_data,
+      ip_address: event.ip_address,
+      user_agent: event.user_agent || navigator.userAgent,
+      timestamp: new Date().toISOString()
     });
-
-    if (error) {
-      console.error('Security logging error:', error);
-    }
   } catch (error) {
     console.error('Security logging failed:', error);
   }
