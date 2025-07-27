@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logSecurityEvent } from '@/lib/security';
 
 interface AuthContextType {
   user: User | null;
@@ -94,6 +94,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       console.log('Signing out...');
       
+      // Log security event before signing out
+      if (user) {
+        await logSecurityEvent({
+          event_type: 'user_signout',
+          event_data: { user_id: user.id }
+        });
+      }
+      
       // Clean up auth state first
       setSession(null);
       setUser(null);
@@ -143,6 +151,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('Auth state changed:', event, newSession?.user?.id);
+        
+        // Log security events for auth state changes
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          await logSecurityEvent({
+            event_type: 'auth_state_signin',
+            event_data: { user_id: newSession.user.id }
+          });
+        } else if (event === 'SIGNED_OUT') {
+          await logSecurityEvent({
+            event_type: 'auth_state_signout',
+            event_data: { previous_user_id: user?.id }
+          });
+        }
         
         // Handle session changes
         if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {

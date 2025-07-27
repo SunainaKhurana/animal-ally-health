@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import PhoneInput from 'react-phone-number-input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { checkOTPRateLimit, logSecurityEvent, sanitizeInput, validatePhoneNumber, validateEmail } from '@/lib/security';
 import welcomePets from '@/assets/welcome-pets.png';
 import otpVerification from '@/assets/otp-verification.png';
 import 'react-phone-number-input/style.css';
@@ -36,10 +37,10 @@ export const PhoneAuthForm = () => {
   const { toast } = useToast();
 
   const handleSendOTP = async () => {
-    if (!phone) {
+    if (!phone || !validatePhoneNumber(phone)) {
       toast({
-        title: "Phone number required",
-        description: "Please enter your phone number to continue.",
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number to continue.",
         variant: "destructive",
       });
       return;
@@ -47,6 +48,23 @@ export const PhoneAuthForm = () => {
 
     setLoading(true);
     try {
+      // Check rate limit before sending OTP
+      const canSend = await checkOTPRateLimit(phone);
+      
+      if (!canSend) {
+        await logSecurityEvent({
+          event_type: 'otp_rate_limit_exceeded',
+          event_data: { phone_number: phone }
+        });
+        
+        toast({
+          title: "Rate limit exceeded",
+          description: "Too many OTP requests. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Clean up any existing auth state
       cleanupAuthState();
       
@@ -64,7 +82,18 @@ export const PhoneAuthForm = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        await logSecurityEvent({
+          event_type: 'otp_send_failed',
+          event_data: { phone_number: phone, error: error.message }
+        });
+        throw error;
+      }
+
+      await logSecurityEvent({
+        event_type: 'otp_sent',
+        event_data: { phone_number: phone }
+      });
 
       setStep('otp');
       toast({
@@ -101,7 +130,13 @@ export const PhoneAuthForm = () => {
         type: 'sms'
       });
 
-      if (error) throw error;
+      if (error) {
+        await logSecurityEvent({
+          event_type: 'otp_verification_failed',
+          event_data: { phone_number: phone, error: error.message }
+        });
+        throw error;
+      }
 
       console.log('OTP verification successful:', data);
       
@@ -109,6 +144,11 @@ export const PhoneAuthForm = () => {
       if (!data.session || !data.user) {
         throw new Error('Authentication succeeded but session is invalid');
       }
+
+      await logSecurityEvent({
+        event_type: 'otp_verification_success',
+        event_data: { phone_number: phone, user_id: data.user.id }
+      });
 
       toast({
         title: "Welcome! 🎉",
@@ -142,10 +182,21 @@ export const PhoneAuthForm = () => {
   };
 
   const handleEmailAuth = async () => {
-    if (!email || !password) {
+    const sanitizedEmail = sanitizeInput(email);
+    
+    if (!sanitizedEmail || !validateEmail(sanitizedEmail) || !password) {
       toast({
-        title: "Fields required",
-        description: "Please enter both email and password.",
+        title: "Invalid input",
+        description: "Please enter a valid email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long.",
         variant: "destructive",
       });
       return;
@@ -165,16 +216,27 @@ export const PhoneAuthForm = () => {
 
       if (authMode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: sanitizedEmail,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          await logSecurityEvent({
+            event_type: 'email_signup_failed',
+            event_data: { email: sanitizedEmail, error: error.message }
+          });
+          throw error;
+        }
         
         console.log('Sign up successful:', data);
+        
+        await logSecurityEvent({
+          event_type: 'email_signup_success',
+          event_data: { email: sanitizedEmail, user_id: data.user?.id }
+        });
         
         if (data.user && !data.session) {
           // Email confirmation required
@@ -194,11 +256,17 @@ export const PhoneAuthForm = () => {
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: sanitizedEmail,
           password,
         });
         
-        if (error) throw error;
+        if (error) {
+          await logSecurityEvent({
+            event_type: 'email_signin_failed',
+            event_data: { email: sanitizedEmail, error: error.message }
+          });
+          throw error;
+        }
         
         console.log('Sign in successful:', data);
         
@@ -206,6 +274,11 @@ export const PhoneAuthForm = () => {
         if (!data.session || !data.user) {
           throw new Error('Authentication succeeded but session is invalid');
         }
+        
+        await logSecurityEvent({
+          event_type: 'email_signin_success',
+          event_data: { email: sanitizedEmail, user_id: data.user.id }
+        });
         
         toast({
           title: "Welcome back! 🐾",
