@@ -6,18 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, Shield, User, Clock, Database, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import { Database } from '@/integrations/supabase/types';
 
-interface SecurityEvent {
-  id: string;
-  user_id: string | null;
-  event_type: string;
-  event_data: any;
-  ip_address: string | null;
-  user_agent: string | null;
-  timestamp: string;
-  severity: string;
-  created_at: string;
-}
+type SecurityEvent = Database['public']['Tables']['security_logs']['Row'];
 
 const SecurityMonitor = () => {
   const [events, setEvents] = useState<SecurityEvent[]>([]);
@@ -33,7 +24,7 @@ const SecurityMonitor = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch security logs from the new security_logs table
+      // Fetch security logs from the security_logs table
       const { data, error } = await supabase
         .from('security_logs')
         .select('*')
@@ -56,7 +47,7 @@ const SecurityMonitor = () => {
     }
   };
 
-  const getEventIcon = (eventType: string, severity: string) => {
+  const getEventIcon = (eventType: string, severity: string | null) => {
     if (severity === 'high' || severity === 'critical') {
       return <AlertTriangle className="h-4 w-4 text-red-500" />;
     }
@@ -72,7 +63,7 @@ const SecurityMonitor = () => {
     return <Database className="h-4 w-4 text-gray-500" />;
   };
 
-  const getEventBadgeColor = (severity: string) => {
+  const getEventBadgeColor = (severity: string | null) => {
     switch (severity) {
       case 'critical':
         return 'destructive';
@@ -89,7 +80,7 @@ const SecurityMonitor = () => {
 
   const formatEventDescription = (event: SecurityEvent) => {
     const eventType = event.event_type;
-    const eventData = event.event_data;
+    const eventData = event.event_data as any;
     
     switch (eventType) {
       case 'otp_sent':
@@ -171,12 +162,12 @@ const SecurityMonitor = () => {
                   <div className="flex items-center gap-2">
                     {getEventIcon(event.event_type, event.severity)}
                     <Badge variant={getEventBadgeColor(event.severity)}>
-                      {event.severity.toUpperCase()}
+                      {(event.severity || 'low').toUpperCase()}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-gray-500">
                     <Clock className="h-3 w-3" />
-                    {format(new Date(event.timestamp), 'MMM d, HH:mm')}
+                    {format(new Date(event.timestamp || event.created_at || ''), 'MMM d, HH:mm')}
                   </div>
                 </div>
                 

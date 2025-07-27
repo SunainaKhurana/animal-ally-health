@@ -76,7 +76,7 @@ export const logSecurityEvent = async (event: SecurityEvent): Promise<void> => {
       event_data_param: event.event_data ? JSON.stringify(event.event_data) : null,
       ip_address_param: event.ip_address || null,
       user_agent_param: event.user_agent || navigator.userAgent,
-      severity_param: event.severity || 'info'
+      severity_param: event.severity || 'low'
     });
 
     if (error) {
@@ -88,7 +88,7 @@ export const logSecurityEvent = async (event: SecurityEvent): Promise<void> => {
         event_data: event.event_data,
         ip_address: event.ip_address,
         user_agent: event.user_agent || navigator.userAgent,
-        severity: event.severity || 'info',
+        severity: event.severity || 'low',
         timestamp: new Date().toISOString()
       });
     }
@@ -125,7 +125,7 @@ export const validateEmail = (email: string): boolean => {
 };
 
 // Enhanced security monitoring
-export const monitorSecurityEvent = async (eventType: string, eventData?: any, severity: 'low' | 'medium' | 'high' | 'critical' = 'info') => {
+export const monitorSecurityEvent = async (eventType: string, eventData?: any, severity: 'low' | 'medium' | 'high' | 'critical' = 'low') => {
   await logSecurityEvent({
     event_type: eventType,
     event_data: eventData,
