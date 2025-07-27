@@ -3,22 +3,18 @@ import { ArrowLeft, LogOut, Bell, Shield, HelpCircle, Users, User } from "lucide
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import SecurityMonitor from "@/components/security/SecurityMonitor";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
-      navigate('/');
+      await signOut();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -74,35 +70,44 @@ const Settings = () => {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-4">
-        {settingsItems.map((item, index) => {
-          const Icon = item.icon;
-          return (
-            <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow" onClick={item.action}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Icon className="h-5 w-5 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.description}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="max-w-4xl mx-auto p-4 space-y-6">
+        {/* Settings Items */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {settingsItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow" onClick={item.action}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleSignOut}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <LogOut className="h-5 w-5 text-red-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Sign Out</h3>
-              <p className="text-sm text-gray-600">Sign out of your account</p>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Sign Out */}
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={handleSignOut}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <LogOut className="h-5 w-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">Sign Out</h3>
+                <p className="text-sm text-gray-600">Sign out of your account</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Security Monitor */}
+        <div className="col-span-full">
+          <SecurityMonitor />
+        </div>
       </div>
     </div>
   );

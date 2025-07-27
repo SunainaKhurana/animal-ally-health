@@ -38,6 +38,12 @@ export const PhoneAuthForm = () => {
 
   const handleSendOTP = async () => {
     if (!phone || !validatePhoneNumber(phone)) {
+      await logSecurityEvent({
+        event_type: 'otp_send_invalid_phone',
+        event_data: { phone_number: phone },
+        severity: 'low'
+      });
+      
       toast({
         title: "Invalid phone number",
         description: "Please enter a valid phone number to continue.",
@@ -48,18 +54,27 @@ export const PhoneAuthForm = () => {
 
     setLoading(true);
     try {
-      // Check rate limit before sending OTP
-      const canSend = await checkOTPRateLimit(phone);
+      // Check server-side rate limit
+      const rateLimitResult = await checkOTPRateLimit(phone);
       
-      if (!canSend) {
+      if (!rateLimitResult.allowed) {
         await logSecurityEvent({
           event_type: 'otp_rate_limit_exceeded',
-          event_data: { phone_number: phone }
+          event_data: { 
+            phone_number: phone,
+            reason: rateLimitResult.reason,
+            retry_after: rateLimitResult.retry_after
+          },
+          severity: 'medium'
         });
+        
+        const retryMessage = rateLimitResult.retry_after 
+          ? `Please try again after ${new Date(rateLimitResult.retry_after).toLocaleTimeString()}`
+          : 'Please try again later';
         
         toast({
           title: "Rate limit exceeded",
-          description: "Too many OTP requests. Please try again later.",
+          description: `Too many OTP requests. ${retryMessage}`,
           variant: "destructive",
         });
         return;
@@ -85,23 +100,36 @@ export const PhoneAuthForm = () => {
       if (error) {
         await logSecurityEvent({
           event_type: 'otp_send_failed',
-          event_data: { phone_number: phone, error: error.message }
+          event_data: { phone_number: phone, error: error.message },
+          severity: 'medium'
         });
         throw error;
       }
 
       await logSecurityEvent({
         event_type: 'otp_sent',
-        event_data: { phone_number: phone }
+        event_data: { phone_number: phone },
+        severity: 'low'
       });
 
       setStep('otp');
+      
+      const remainingAttempts = rateLimitResult.attempts_remaining;
+      const attemptsMessage = remainingAttempts ? ` (${remainingAttempts} attempts remaining)` : '';
+      
       toast({
         title: "OTP sent! 📱",
-        description: "Check your phone for the verification code.",
+        description: `Check your phone for the verification code${attemptsMessage}`,
       });
     } catch (error: any) {
       console.error('OTP send error:', error);
+      
+      await logSecurityEvent({
+        event_type: 'otp_send_error',
+        event_data: { phone_number: phone, error: error.message },
+        severity: 'high'
+      });
+      
       toast({
         title: "Error",
         description: error.message,
@@ -114,6 +142,12 @@ export const PhoneAuthForm = () => {
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
+      await logSecurityEvent({
+        event_type: 'otp_verification_invalid_code',
+        event_data: { phone_number: phone, otp_length: otp.length },
+        severity: 'low'
+      });
+      
       toast({
         title: "Invalid OTP",
         description: "Please enter the 6-digit code sent to your phone.",
@@ -133,7 +167,8 @@ export const PhoneAuthForm = () => {
       if (error) {
         await logSecurityEvent({
           event_type: 'otp_verification_failed',
-          event_data: { phone_number: phone, error: error.message }
+          event_data: { phone_number: phone, error: error.message },
+          severity: 'medium'
         });
         throw error;
       }
@@ -147,7 +182,8 @@ export const PhoneAuthForm = () => {
 
       await logSecurityEvent({
         event_type: 'otp_verification_success',
-        event_data: { phone_number: phone, user_id: data.user.id }
+        event_data: { phone_number: phone, user_id: data.user.id },
+        severity: 'low'
       });
 
       toast({
@@ -162,6 +198,12 @@ export const PhoneAuthForm = () => {
       
     } catch (error: any) {
       console.error('OTP verification error:', error);
+      
+      await logSecurityEvent({
+        event_type: 'otp_verification_error',
+        event_data: { phone_number: phone, error: error.message },
+        severity: 'high'
+      });
       
       // Provide more specific error messages
       let errorMessage = "The code you entered is incorrect. Please try again.";
@@ -185,6 +227,12 @@ export const PhoneAuthForm = () => {
     const sanitizedEmail = sanitizeInput(email);
     
     if (!sanitizedEmail || !validateEmail(sanitizedEmail) || !password) {
+      await logSecurityEvent({
+        event_type: 'email_auth_invalid_input',
+        event_data: { email: sanitizedEmail, has_password: !!password },
+        severity: 'low'
+      });
+      
       toast({
         title: "Invalid input",
         description: "Please enter a valid email and password.",
@@ -194,6 +242,12 @@ export const PhoneAuthForm = () => {
     }
 
     if (password.length < 8) {
+      await logSecurityEvent({
+        event_type: 'email_auth_weak_password',
+        event_data: { email: sanitizedEmail, password_length: password.length },
+        severity: 'low'
+      });
+      
       toast({
         title: "Password too short",
         description: "Password must be at least 8 characters long.",
@@ -226,7 +280,8 @@ export const PhoneAuthForm = () => {
         if (error) {
           await logSecurityEvent({
             event_type: 'email_signup_failed',
-            event_data: { email: sanitizedEmail, error: error.message }
+            event_data: { email: sanitizedEmail, error: error.message },
+            severity: 'medium'
           });
           throw error;
         }
@@ -235,7 +290,8 @@ export const PhoneAuthForm = () => {
         
         await logSecurityEvent({
           event_type: 'email_signup_success',
-          event_data: { email: sanitizedEmail, user_id: data.user?.id }
+          event_data: { email: sanitizedEmail, user_id: data.user?.id },
+          severity: 'low'
         });
         
         if (data.user && !data.session) {
@@ -263,7 +319,8 @@ export const PhoneAuthForm = () => {
         if (error) {
           await logSecurityEvent({
             event_type: 'email_signin_failed',
-            event_data: { email: sanitizedEmail, error: error.message }
+            event_data: { email: sanitizedEmail, error: error.message },
+            severity: 'medium'
           });
           throw error;
         }
@@ -277,7 +334,8 @@ export const PhoneAuthForm = () => {
         
         await logSecurityEvent({
           event_type: 'email_signin_success',
-          event_data: { email: sanitizedEmail, user_id: data.user.id }
+          event_data: { email: sanitizedEmail, user_id: data.user.id },
+          severity: 'low'
         });
         
         toast({
@@ -292,6 +350,12 @@ export const PhoneAuthForm = () => {
       }
     } catch (error: any) {
       console.error('Email auth error:', error);
+      
+      await logSecurityEvent({
+        event_type: 'email_auth_error',
+        event_data: { email: sanitizedEmail, error: error.message },
+        severity: 'high'
+      });
       
       // Provide more specific error messages
       let errorMessage = error.message;

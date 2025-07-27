@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { logSecurityEvent } from '@/lib/security';
+import { logSecurityEvent, initSecurity } from '@/lib/security';
 
 interface AuthContextType {
   user: User | null;
@@ -51,11 +52,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
       
+      // Initialize security monitoring
+      initSecurity();
+      
       // Get current session
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
+        
+        await logSecurityEvent({
+          event_type: 'auth_session_error',
+          event_data: { error: sessionError.message },
+          severity: 'medium'
+        });
+        
         // If session is invalid, clean up and continue
         if (sessionError.message?.includes('Invalid session') || 
             sessionError.message?.includes('session_not_found')) {
@@ -71,10 +82,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('Current session:', currentSession ? 'Found' : 'None');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          await logSecurityEvent({
+            event_type: 'auth_session_restored',
+            event_data: { user_id: currentSession.user.id },
+            severity: 'low'
+          });
+        }
       }
       
     } catch (error: any) {
       console.error('Auth initialization failed:', error);
+      
+      await logSecurityEvent({
+        event_type: 'auth_initialization_failed',
+        event_data: { error: error.message },
+        severity: 'high'
+      });
+      
       setError(error.message || 'Failed to initialize authentication');
       setSession(null);
       setUser(null);
@@ -98,7 +124,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (user) {
         await logSecurityEvent({
           event_type: 'user_signout',
-          event_data: { user_id: user.id }
+          event_data: { user_id: user.id },
+          severity: 'low'
         });
       }
       
@@ -115,6 +142,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error && !error.message.includes('Unable to get user from token') && 
           !error.message.includes('session_not_found')) {
         console.warn('Sign out error (non-critical):', error);
+        
+        await logSecurityEvent({
+          event_type: 'signout_error',
+          event_data: { error: error.message },
+          severity: 'medium'
+        });
       }
       
       toast({
@@ -129,6 +162,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
     } catch (error: any) {
       console.error('Sign out error:', error);
+      
+      await logSecurityEvent({
+        event_type: 'signout_critical_error',
+        event_data: { error: error.message },
+        severity: 'high'
+      });
+      
       // Even if sign out fails, clear local state and redirect
       setSession(null);
       setUser(null);
@@ -156,12 +196,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_IN' && newSession?.user) {
           await logSecurityEvent({
             event_type: 'auth_state_signin',
-            event_data: { user_id: newSession.user.id }
+            event_data: { user_id: newSession.user.id },
+            severity: 'low'
           });
         } else if (event === 'SIGNED_OUT') {
           await logSecurityEvent({
             event_type: 'auth_state_signout',
-            event_data: { previous_user_id: user?.id }
+            event_data: { previous_user_id: user?.id },
+            severity: 'low'
+          });
+        } else if (event === 'TOKEN_REFRESHED') {
+          await logSecurityEvent({
+            event_type: 'auth_token_refreshed',
+            event_data: { user_id: newSession?.user?.id },
+            severity: 'low'
           });
         }
         
