@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { usePetContext } from "@/contexts/PetContext";
 import { useToast } from "@/hooks/use-toast";
@@ -17,20 +16,43 @@ import PhotoUpload from "./PhotoUpload";
 import PreExistingConditionsSelector from "./PreExistingConditionsSelector";
 import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 
-const AddPetDialog = () => {
+interface AddPetDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onAddPet?: (pet: any) => Promise<void>;
+}
+
+const AddPetDialog = ({ open: controlledOpen, onOpenChange, onAddPet }: AddPetDialogProps) => {
   const { addPet } = usePetContext();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<"dog" | "cat">("dog");
   const [breed, setBreed] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState<Date>();
-  const [weight, setWeight] = useState(0);
+  const [weight, setWeight] = useState("0");
   const [weightUnit, setWeightUnit] = useState("kg");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [photo, setPhoto] = useState("");
   const [preExistingConditions, setPreExistingConditions] = useState<string[]>([]);
   const [reproductiveStatus, setReproductiveStatus] = useState<'spayed' | 'neutered' | 'not_yet'>('not_yet');
+
+  // Use controlled open state if provided, otherwise use internal state
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
+
+  const resetForm = () => {
+    setName("");
+    setType("dog");
+    setBreed("");
+    setDateOfBirth(undefined);
+    setWeight("0");
+    setWeightUnit("kg");
+    setGender("male");
+    setPhoto("");
+    setPreExistingConditions([]);
+    setReproductiveStatus('not_yet');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,32 +67,28 @@ const AddPetDialog = () => {
     }
 
     try {
-      await addPet({
+      const petData = {
         name,
         type,
         breed,
         dateOfBirth,
-        weight,
+        weight: parseFloat(weight),
         weightUnit,
         gender,
         photo,
         preExistingConditions,
         reproductiveStatus,
         nextVaccination: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      });
+      };
 
-      // Reset form
-      setName("");
-      setType("dog");
-      setBreed("");
-      setDateOfBirth(undefined);
-      setWeight(0);
-      setWeightUnit("kg");
-      setGender("male");
-      setPhoto("");
-      setPreExistingConditions([]);
-      setReproductiveStatus('not_yet');
-      setOpen(false);
+      if (onAddPet) {
+        await onAddPet(petData);
+      } else {
+        await addPet(petData);
+      }
+
+      resetForm();
+      setIsOpen(false);
 
       toast({
         title: "Success",
@@ -87,13 +105,15 @@ const AddPetDialog = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Pet
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!onOpenChange && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Pet
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Pet</DialogTitle>
@@ -109,42 +129,42 @@ const AddPetDialog = () => {
             />
           </div>
 
-          <PetTypeSelector type={type} onTypeChange={setType} />
+          <PetTypeSelector value={type} onChange={setType} />
 
           <BreedSelector 
-            type={type} 
-            breed={breed} 
-            onBreedChange={setBreed} 
+            value={breed} 
+            onChange={setBreed}
+            petType={type}
           />
 
           <DateOfBirthSelector 
-            dateOfBirth={dateOfBirth} 
-            onDateChange={setDateOfBirth} 
+            value={dateOfBirth} 
+            onChange={setDateOfBirth} 
           />
 
           <WeightInput 
-            weight={weight} 
+            value={weight} 
             weightUnit={weightUnit}
-            onWeightChange={setWeight}
-            onWeightUnitChange={setWeightUnit}
+            onChange={setWeight}
+            onUnitChange={setWeightUnit}
           />
 
-          <GenderSelector gender={gender} onGenderChange={setGender} />
+          <GenderSelector value={gender} onChange={setGender} />
 
           <PhotoUpload photo={photo} onPhotoChange={setPhoto} />
 
           <PreExistingConditionsSelector 
-            conditions={preExistingConditions}
-            onConditionsChange={setPreExistingConditions}
+            value={preExistingConditions}
+            onChange={setPreExistingConditions}
           />
 
           <ReproductiveStatusSelector 
-            status={reproductiveStatus}
-            onStatusChange={setReproductiveStatus}
+            value={reproductiveStatus}
+            onChange={setReproductiveStatus}
           />
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
               Cancel
             </Button>
             <Button type="submit" className="flex-1">

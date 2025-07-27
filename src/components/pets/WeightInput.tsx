@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface WeightInputProps {
-  weight: string;
+  value: string;
   weightUnit: string;
-  onWeightChange: (weight: string) => void;
+  onChange: (weight: string) => void;
   onUnitChange: (unit: string) => void;
 }
 
-const WeightInput = ({ weight, weightUnit, onWeightChange, onUnitChange }: WeightInputProps) => {
+const WeightInput = ({ value, weightUnit, onChange, onUnitChange }: WeightInputProps) => {
   return (
     <div>
       <Label htmlFor="weight">Weight *</Label>
@@ -19,8 +19,8 @@ const WeightInput = ({ weight, weightUnit, onWeightChange, onUnitChange }: Weigh
           id="weight"
           type="number"
           step="0.1"
-          value={weight}
-          onChange={(e) => onWeightChange(e.target.value)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="Weight"
           className="flex-1"
         />

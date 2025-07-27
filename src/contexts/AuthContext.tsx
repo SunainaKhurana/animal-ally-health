@@ -7,7 +7,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  error: string | null;
   signOut: () => Promise<void>;
+  retry: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,14 +30,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+  const initAuth = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get initial session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        throw sessionError;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
+    } catch (error: any) {
+      console.error('Auth initialization error:', error);
+      setError(error.message || 'Authentication failed');
+    } finally {
       setLoading(false);
-    });
+    }
+  };
+
+  useEffect(() => {
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -43,6 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      setError(null);
     });
 
     return () => subscription.unsubscribe();
@@ -55,17 +76,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(null);
       setSession(null);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error signing out:', error);
+      setError(error.message || 'Sign out failed');
       throw error;
     }
+  };
+
+  const retry = () => {
+    console.log('Retrying authentication...');
+    initAuth();
   };
 
   const value: AuthContextType = {
     user,
     session,
     loading,
+    error,
     signOut,
+    retry,
   };
 
   return (

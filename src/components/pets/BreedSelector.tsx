@@ -4,12 +4,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { dogBreeds, catBreeds } from "@/lib/petData";
 
 interface BreedSelectorProps {
-  petType: string;
   value: string;
   onChange: (value: string) => void;
+  petType: string;
 }
 
-const BreedSelector = ({ petType, value, onChange }: BreedSelectorProps) => {
+const BreedSelector = ({ value, onChange, petType }: BreedSelectorProps) => {
   if (!petType) return null;
 
   const availableBreeds = petType === "dog" ? dogBreeds : catBreeds;
