@@ -1,190 +1,159 @@
 
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus } from "lucide-react";
 import { usePetContext } from "@/contexts/PetContext";
-import PhotoUpload from "./PhotoUpload";
+import { useToast } from "@/hooks/use-toast";
 import PetTypeSelector from "./PetTypeSelector";
 import BreedSelector from "./BreedSelector";
-import GenderSelector from "./GenderSelector";
 import DateOfBirthSelector from "./DateOfBirthSelector";
+import GenderSelector from "./GenderSelector";
 import WeightInput from "./WeightInput";
+import PhotoUpload from "./PhotoUpload";
 import PreExistingConditionsSelector from "./PreExistingConditionsSelector";
 import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 
-interface AddPetDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddPet?: (pet: any) => void;
-}
-
-const AddPetDialog = ({ open, onOpenChange, onAddPet }: AddPetDialogProps) => {
+const AddPetDialog = () => {
   const { addPet } = usePetContext();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "",
-    breed: "",
-    dateOfBirth: undefined as Date | undefined,
-    weight: "",
-    weightUnit: "lbs",
-    gender: "",
-    photo: "",
-    preExistingConditions: [] as string[],
-    reproductiveStatus: "not_yet"
-  });
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"dog" | "cat">("dog");
+  const [breed, setBreed] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState<Date>();
+  const [weight, setWeight] = useState(0);
+  const [weightUnit, setWeightUnit] = useState("kg");
+  const [gender, setGender] = useState<"male" | "female">("male");
+  const [photo, setPhoto] = useState("");
+  const [preExistingConditions, setPreExistingConditions] = useState<string[]>([]);
+  const [reproductiveStatus, setReproductiveStatus] = useState<'spayed' | 'neutered' | 'not_yet'>('not_yet');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.type || !formData.dateOfBirth || !formData.weight || !formData.gender) {
+    if (!name || !breed || !dateOfBirth) {
       toast({
-        title: "Missing required fields",
+        title: "Missing Information",
         description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
     try {
-      const petData = {
-        ...formData,
-        weight: parseFloat(formData.weight),
-        nextVaccination: "2024-08-15" // Mock next vaccination date
-      };
+      await addPet({
+        name,
+        type,
+        breed,
+        dateOfBirth,
+        weight,
+        weightUnit,
+        gender,
+        photo,
+        preExistingConditions,
+        reproductiveStatus,
+        nextVaccination: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      });
 
-      const newPet = await addPet(petData);
-      
-      if (newPet) {
-        toast({
-          title: "Pet added successfully! 🎉",
-          description: `${formData.name} has been added to your pets.`,
-        });
+      // Reset form
+      setName("");
+      setType("dog");
+      setBreed("");
+      setDateOfBirth(undefined);
+      setWeight(0);
+      setWeightUnit("kg");
+      setGender("male");
+      setPhoto("");
+      setPreExistingConditions([]);
+      setReproductiveStatus('not_yet');
+      setOpen(false);
 
-        // Reset form
-        setFormData({
-          name: "",
-          type: "",
-          breed: "",
-          dateOfBirth: undefined,
-          weight: "",
-          weightUnit: "lbs",
-          gender: "",
-          photo: "",
-          preExistingConditions: [],
-          reproductiveStatus: "not_yet"
-        });
-
-        // Call callback if provided (for onboarding)
-        if (onAddPet) {
-          onAddPet(newPet);
-        }
-
-        onOpenChange(false);
-      }
-    } catch (error: any) {
-      console.error('Error adding pet:', error);
       toast({
-        title: "Error adding pet",
-        description: error.message || "Failed to add pet. Please try again.",
+        title: "Success",
+        description: "Pet added successfully!",
+      });
+    } catch (error) {
+      console.error("Error adding pet:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add pet. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-full">
-        <SheetHeader className="relative">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => onOpenChange(false)}
-            className="absolute left-0 top-0 h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <SheetTitle className="text-center">Add New Pet</SheetTitle>
-          <Button
-            type="submit"
-            form="add-pet-form"
-            className="absolute right-0 top-0 bg-orange-500 hover:bg-orange-600"
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Save'}
-          </Button>
-        </SheetHeader>
-
-        <div className="mt-6 h-full overflow-y-auto pb-20">
-          <form id="add-pet-form" onSubmit={handleSubmit} className="space-y-4">
-            <PhotoUpload 
-              photo={formData.photo}
-              onPhotoChange={(photo) => setFormData({ ...formData, photo })}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Pet
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Add New Pet</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Pet Name *</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
             />
+          </div>
 
-            <div>
-              <Label htmlFor="name">Pet Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter your pet's name"
-                className="mt-1"
-              />
-            </div>
+          <PetTypeSelector type={type} onTypeChange={setType} />
 
-            <PetTypeSelector
-              value={formData.type}
-              onChange={(value) => setFormData({ ...formData, type: value, breed: "" })}
-            />
+          <BreedSelector 
+            type={type} 
+            breed={breed} 
+            onBreedChange={setBreed} 
+          />
 
-            <BreedSelector
-              petType={formData.type}
-              value={formData.breed}
-              onChange={(value) => setFormData({ ...formData, breed: value })}
-            />
+          <DateOfBirthSelector 
+            dateOfBirth={dateOfBirth} 
+            onDateChange={setDateOfBirth} 
+          />
 
-            <GenderSelector
-              value={formData.gender}
-              onChange={(value) => setFormData({ ...formData, gender: value })}
-            />
+          <WeightInput 
+            weight={weight} 
+            weightUnit={weightUnit}
+            onWeightChange={setWeight}
+            onWeightUnitChange={setWeightUnit}
+          />
 
-            <DateOfBirthSelector
-              value={formData.dateOfBirth}
-              onChange={(date) => setFormData({ ...formData, dateOfBirth: date })}
-            />
+          <GenderSelector gender={gender} onGenderChange={setGender} />
 
-            <WeightInput
-              weight={formData.weight}
-              weightUnit={formData.weightUnit}
-              onWeightChange={(weight) => setFormData({ ...formData, weight })}
-              onUnitChange={(unit) => setFormData({ ...formData, weightUnit: unit })}
-            />
+          <PhotoUpload photo={photo} onPhotoChange={setPhoto} />
 
-            <PreExistingConditionsSelector
-              value={formData.preExistingConditions}
-              onChange={(conditions) => setFormData({ ...formData, preExistingConditions: conditions })}
-            />
+          <PreExistingConditionsSelector 
+            conditions={preExistingConditions}
+            onConditionsChange={setPreExistingConditions}
+          />
 
-            <div className="pb-4">
-              <ReproductiveStatusSelector
-                value={formData.reproductiveStatus}
-                onChange={(status) => setFormData({ ...formData, reproductiveStatus: status })}
-              />
-            </div>
-          </form>
-        </div>
-      </SheetContent>
-    </Sheet>
+          <ReproductiveStatusSelector 
+            status={reproductiveStatus}
+            onStatusChange={setReproductiveStatus}
+          />
+
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              Add Pet
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
