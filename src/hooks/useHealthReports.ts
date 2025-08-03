@@ -30,83 +30,35 @@ export const useHealthReports = (petId?: string) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchReports();
-    
-    // Set up real-time subscription for new reports from Make.com
     if (petId) {
-      const channel = supabase
-        .channel('health-reports-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'health_reports',
-            filter: `pet_id=eq.${petId}`
-          },
-          (payload) => {
-            console.log('Real-time health report update:', payload);
-            
-            if (payload.eventType === 'INSERT') {
-              const newReport = payload.new as HealthReport;
-              setHealthReports(prev => [newReport, ...prev]);
-              
-              // Show toast for new completed reports
-              if (newReport.status === 'completed') {
-                toast({
-                  title: "Report Analysis Complete",
-                  description: `${newReport.title} has been analyzed and is ready to view.`,
-                });
-              }
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedReport = payload.new as HealthReport;
-              setHealthReports(prev => 
-                prev.map(report => 
-                  report.id === updatedReport.id ? updatedReport : report
-                )
-              );
-              
-              // Show toast when processing completes
-              if (updatedReport.status === 'completed' && payload.old?.status === 'processing') {
-                toast({
-                  title: "Report Analysis Complete",
-                  description: `${updatedReport.title} analysis is ready to view.`,
-                });
-              }
-            } else if (payload.eventType === 'DELETE') {
-              setHealthReports(prev => 
-                prev.filter(report => report.id !== payload.old.id)
-              );
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      fetchReports();
+      setupRealtimeSubscription();
     }
+    
+    return () => {
+      // Cleanup will be handled by the subscription
+    };
   }, [petId, toast]);
 
   const fetchReports = async () => {
+    if (!petId) return;
+    
     try {
       setLoading(true);
       
-      // Try to load from cache first
-      if (petId) {
-        const cachedReports = healthReportCache.get(petId);
-        if (cachedReports) {
-          console.log('Loading health reports from cache');
-          setHealthReports(cachedReports);
-          setLoading(false);
-          
-          // Still fetch fresh data in background
-          fetchFreshReports();
-          return;
-        }
+      // First, try to load from cache for instant display
+      const cachedReports = healthReportCache.get(petId);
+      if (cachedReports && cachedReports.length > 0) {
+        console.log('Loading health reports from cache');
+        setHealthReports(cachedReports);
+        setLoading(false);
+        
+        // Still fetch fresh data in background
+        fetchFreshReports();
+        return;
       }
 
-      // Fallback to Supabase fetch
+      // If no cache, fetch from Supabase
       await fetchFreshReports();
     } catch (error) {
       console.error('Error fetching health reports:', error);
@@ -121,17 +73,14 @@ export const useHealthReports = (petId?: string) => {
   };
 
   const fetchFreshReports = async () => {
-    let query = supabase
+    if (!petId) return;
+
+    const { data, error } = await supabase
       .from('health_reports')
       .select('*')
+      .eq('pet_id', petId)
       .order('actual_report_date', { ascending: false, nullsFirst: false })
       .order('report_date', { ascending: false });
-
-    if (petId) {
-      query = query.eq('pet_id', petId);
-    }
-
-    const { data, error } = await query;
 
     if (error) throw error;
     
@@ -139,9 +88,76 @@ export const useHealthReports = (petId?: string) => {
     setHealthReports(reports);
     
     // Cache the fresh data
-    if (petId && reports.length > 0) {
+    if (reports.length > 0) {
       healthReportCache.set(petId, reports);
+      
+      // Also update individual report previews
+      reports.forEach(report => {
+        healthReportCache.cacheReportPreview(petId, report);
+      });
     }
+  };
+
+  const setupRealtimeSubscription = () => {
+    if (!petId) return null;
+
+    const channel = supabase
+      .channel('health-reports-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'health_reports',
+          filter: `pet_id=eq.${petId}`
+        },
+        (payload) => {
+          console.log('Real-time health report update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newReport = payload.new as HealthReport;
+            setHealthReports(prev => [newReport, ...prev]);
+            
+            // Cache the new report preview
+            healthReportCache.cacheReportPreview(petId, newReport);
+            
+            if (newReport.status === 'completed') {
+              toast({
+                title: "Report Analysis Complete",
+                description: `${newReport.title} has been analyzed and is ready to view.`,
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedReport = payload.new as HealthReport;
+            setHealthReports(prev => 
+              prev.map(report => 
+                report.id === updatedReport.id ? updatedReport : report
+              )
+            );
+            
+            // Update cached preview
+            healthReportCache.cacheReportPreview(petId, updatedReport);
+            
+            // Show toast when AI analysis completes
+            if (updatedReport.status === 'completed' && updatedReport.ai_analysis && payload.old?.status === 'processing') {
+              healthReportCache.updatePreviewWithDiagnosis(petId, updatedReport.id, updatedReport.ai_analysis);
+              toast({
+                title: "AI Analysis Complete! 🎉",
+                description: `${updatedReport.title} analysis is ready to view.`,
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setHealthReports(prev => 
+              prev.filter(report => report.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   };
 
   const deleteReport = async (reportId: string) => {
@@ -171,6 +187,12 @@ export const useHealthReports = (petId?: string) => {
 
       if (error) throw error;
 
+      // Clear from cache
+      if (petId) {
+        const key = `health_reports_preview_${petId}_${reportId}`;
+        localStorage.removeItem(key);
+      }
+
       toast({
         title: "Success",
         description: "Health report deleted successfully",
@@ -195,6 +217,11 @@ export const useHealthReports = (petId?: string) => {
         .eq('id', reportId);
 
       if (error) throw error;
+
+      // Update cache
+      if (petId) {
+        healthReportCache.cacheReportPreview(petId, { id: reportId, ...updates });
+      }
 
       toast({
         title: "Success",
