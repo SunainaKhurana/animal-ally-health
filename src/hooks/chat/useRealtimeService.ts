@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SymptomReport } from '@/hooks/useSymptomReports';
 
@@ -10,6 +10,8 @@ export const useRealtimeService = (
   startPolling: () => void,
   pendingReportsCount: number
 ) => {
+  const channelRefs = useRef<any[]>([]);
+
   const handleRealtimeUpdate = useCallback((payload: any) => {
     console.log('Real-time UPDATE received:', payload.new?.id);
     
@@ -68,11 +70,18 @@ export const useRealtimeService = (
       return;
     }
 
+    // Clean up existing channels
+    channelRefs.current.forEach(channel => {
+      console.log('Cleaning up existing symptom channel');
+      supabase.removeChannel(channel);
+    });
+    channelRefs.current = [];
+
     console.log('Setting up real-time channels for pet:', petId);
 
     // Primary channel for updates
     const updateChannel = supabase
-      .channel(`symptom-reports-updates-${petId}`)
+      .channel(`symptom-reports-updates-${petId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -108,7 +117,7 @@ export const useRealtimeService = (
 
     // Secondary backup channel for redundancy
     const backupChannel = supabase
-      .channel(`symptom-backup-${petId}`)
+      .channel(`symptom-backup-${petId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -123,10 +132,15 @@ export const useRealtimeService = (
         console.log('Backup real-time channel status:', status);
       });
 
+    // Store channel references for cleanup
+    channelRefs.current = [updateChannel, backupChannel];
+
     return () => {
       console.log('Cleaning up real-time channels for pet:', petId);
-      supabase.removeChannel(updateChannel);
-      supabase.removeChannel(backupChannel);
+      channelRefs.current.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+      channelRefs.current = [];
     };
   }, [petId, handleRealtimeUpdate, handleRealtimeInsert, handleBackupUpdate, startPolling, pendingReportsCount]);
 };

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { healthReportCache } from '@/lib/healthReportCache';
@@ -28,6 +28,7 @@ export const useHealthReports = (petId?: string) => {
   const [healthReports, setHealthReports] = useState<HealthReport[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     if (petId) {
@@ -36,9 +37,14 @@ export const useHealthReports = (petId?: string) => {
     }
     
     return () => {
-      // Cleanup will be handled by the subscription
+      // Cleanup subscription on unmount or petId change
+      if (channelRef.current) {
+        console.log('Cleaning up health reports subscription');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [petId, toast]);
+  }, [petId]);
 
   const fetchReports = async () => {
     if (!petId) return;
@@ -99,10 +105,19 @@ export const useHealthReports = (petId?: string) => {
   };
 
   const setupRealtimeSubscription = () => {
-    if (!petId) return null;
+    if (!petId) return;
+
+    // Clean up existing subscription first
+    if (channelRef.current) {
+      console.log('Removing existing health reports channel');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    console.log('Setting up health reports realtime subscription for pet:', petId);
 
     const channel = supabase
-      .channel('health-reports-changes')
+      .channel(`health-reports-${petId}`)
       .on(
         'postgres_changes',
         {
@@ -153,11 +168,12 @@ export const useHealthReports = (petId?: string) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Health reports subscription status:', status);
+      });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Store the channel reference for cleanup
+    channelRef.current = channel;
   };
 
   const deleteReport = async (reportId: string) => {
