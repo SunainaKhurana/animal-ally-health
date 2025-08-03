@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { healthReportCache } from '@/lib/healthReportCache';
 
 export interface HealthReport {
   id: string;
@@ -90,21 +91,23 @@ export const useHealthReports = (petId?: string) => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      let query = supabase
-        .from('health_reports')
-        .select('*')
-        .order('actual_report_date', { ascending: false, nullsFirst: false })
-        .order('report_date', { ascending: false });
-
+      
+      // Try to load from cache first
       if (petId) {
-        query = query.eq('pet_id', petId);
+        const cachedReports = healthReportCache.get(petId);
+        if (cachedReports) {
+          console.log('Loading health reports from cache');
+          setHealthReports(cachedReports);
+          setLoading(false);
+          
+          // Still fetch fresh data in background
+          fetchFreshReports();
+          return;
+        }
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      
-      setHealthReports((data || []) as HealthReport[]);
+      // Fallback to Supabase fetch
+      await fetchFreshReports();
     } catch (error) {
       console.error('Error fetching health reports:', error);
       toast({
@@ -114,6 +117,30 @@ export const useHealthReports = (petId?: string) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFreshReports = async () => {
+    let query = supabase
+      .from('health_reports')
+      .select('*')
+      .order('actual_report_date', { ascending: false, nullsFirst: false })
+      .order('report_date', { ascending: false });
+
+    if (petId) {
+      query = query.eq('pet_id', petId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    
+    const reports = (data || []) as HealthReport[];
+    setHealthReports(reports);
+    
+    // Cache the fresh data
+    if (petId && reports.length > 0) {
+      healthReportCache.set(petId, reports);
     }
   };
 
