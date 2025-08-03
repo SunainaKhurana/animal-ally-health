@@ -42,6 +42,7 @@ export const usePets = () => {
       const { data, error: fetchError } = await supabase
         .from('pets')
         .select('*')
+        .eq('user_id', user.id)  // RESTORED: This was missing and caused the pets to not show
         .order('created_at', { ascending: false });
 
       if (fetchError) {
