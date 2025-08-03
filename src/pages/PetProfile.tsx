@@ -99,7 +99,7 @@ const PetProfile = () => {
           </TabsContent>
           
           <TabsContent value="trends" className="mt-6">
-            <PetWeightTrendsTab pet={pet} />
+            <PetWeightTrendsTab petId={pet.id} />
           </TabsContent>
         </Tabs>
       </div>
