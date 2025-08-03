@@ -27,6 +27,7 @@ export const usePets = () => {
 
   const fetchPets = async (retryCount = 0) => {
     if (!user || !session) {
+      console.log('🐾 No user or session, clearing pets');
       setPets([]);
       setLoading(false);
       setError(null);
@@ -37,45 +38,47 @@ export const usePets = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching pets for user:', user.id);
+      console.log('🐾 Fetching pets for user:', user.id);
+      console.log('📊 Session valid:', !!session?.access_token);
       
       const { data, error: fetchError } = await supabase
         .from('pets')
         .select('*')
-        .eq('user_id', user.id)  // RESTORED: This was missing and caused the pets to not show
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('Fetch error:', fetchError);
+        console.error('❌ Pets fetch error:', fetchError);
+        
+        // If it's an auth error, don't retry
+        if (fetchError.message?.includes('JWT') || fetchError.message?.includes('Authentication')) {
+          console.log('🔐 Auth error detected, not retrying pets fetch');
+          throw new Error('Authentication expired. Please refresh the page.');
+        }
+        
         throw fetchError;
       }
 
-      console.log('Fetched pets:', data?.length || 0);
+      console.log('✅ Fetched pets:', data?.length || 0);
 
       // Transform data to match frontend interface
       const transformedPets = data?.map(pet => {
-        // Calculate date of birth from stored age information
         const currentDate = new Date();
         
-        // Use age_years and age_months if available, otherwise fall back to age
         const years = pet.age_years || pet.age || 0;
         const months = pet.age_months || 0;
         
-        // Calculate birth date more accurately
         const birthDate = new Date(currentDate);
         birthDate.setFullYear(currentDate.getFullYear() - years);
         birthDate.setMonth(currentDate.getMonth() - months);
         
-        // Determine weight unit based on stored weight_kg
         let displayWeight = pet.weight;
         let weightUnit = 'lbs';
         
-        // If we have weight_kg and it's different from weight, assume weight is in lbs
         if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) > 0.1) {
-          displayWeight = pet.weight; // Keep original weight value
+          displayWeight = pet.weight;
           weightUnit = 'lbs';
         } else if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) < 0.1) {
-          // If weight and weight_kg are similar, it's probably stored in kg
           displayWeight = pet.weight;
           weightUnit = 'kg';
         }
@@ -90,7 +93,7 @@ export const usePets = () => {
           weightUnit: weightUnit,
           gender: pet.gender as 'male' | 'female',
           photo: pet.photo_url,
-          nextVaccination: undefined, // Will be handled later
+          nextVaccination: undefined,
           preExistingConditions: pet.pre_existing_conditions || [],
           reproductiveStatus: pet.reproductive_status as 'spayed' | 'neutered' | 'not_yet' || 'not_yet'
         };
@@ -99,11 +102,11 @@ export const usePets = () => {
       setPets(transformedPets);
       setError(null);
     } catch (error: any) {
-      console.error('Error fetching pets:', error);
+      console.error('❌ Error fetching pets:', error);
       
       // Retry logic for transient errors
       if (retryCount < 2 && (error.message?.includes('network') || error.code === 'PGRST301')) {
-        console.log(`Retrying pets fetch (attempt ${retryCount + 1})...`);
+        console.log(`🔄 Retrying pets fetch (attempt ${retryCount + 1})...`);
         setTimeout(() => fetchPets(retryCount + 1), 1000 * (retryCount + 1));
         return;
       }
@@ -125,7 +128,7 @@ export const usePets = () => {
 
   // Fetch pets when user or session changes
   useEffect(() => {
-    console.log('User/session changed, fetching pets...');
+    console.log('👥 User/session changed, fetching pets...');
     fetchPets();
   }, [user, session]);
 
@@ -142,20 +145,17 @@ export const usePets = () => {
     try {
       console.log('Adding pet with data:', petData);
       
-      // Calculate age from date of birth more precisely
       const now = new Date();
       const birthDate = new Date(petData.dateOfBirth);
       
       let ageInYears = now.getFullYear() - birthDate.getFullYear();
       let ageInMonths = now.getMonth() - birthDate.getMonth();
       
-      // Adjust for cases where birthday hasn't occurred this year
       if (ageInMonths < 0 || (ageInMonths === 0 && now.getDate() < birthDate.getDate())) {
         ageInYears--;
         ageInMonths += 12;
       }
       
-      // Adjust for day of month
       if (now.getDate() < birthDate.getDate()) {
         ageInMonths--;
         if (ageInMonths < 0) {
@@ -164,19 +164,18 @@ export const usePets = () => {
         }
       }
 
-      // Convert weight to kg if needed for storage
       const weightInKg = petData.weightUnit === 'kg' ? petData.weight : petData.weight * 0.453592;
 
       const insertData = {
         name: petData.name,
         type: petData.type,
         breed: petData.breed || '',
-        species: petData.type, // Map type to species
+        species: petData.type,
         age: ageInYears,
         age_years: ageInYears,
         age_months: ageInMonths,
-        weight: petData.weight, // Store original weight
-        weight_kg: weightInKg, // Store converted weight in kg
+        weight: petData.weight,
+        weight_kg: weightInKg,
         gender: petData.gender,
         photo_url: petData.photo || null,
         user_id: user.id,
@@ -200,14 +199,13 @@ export const usePets = () => {
 
       console.log('Pet added successfully:', data);
 
-      // Add to local state
       const newPet: Pet = {
         id: data.id,
         name: data.name,
         type: data.type as 'dog' | 'cat',
         breed: data.breed,
         dateOfBirth: petData.dateOfBirth,
-        weight: petData.weight, // Keep original weight and unit
+        weight: petData.weight,
         weightUnit: petData.weightUnit,
         gender: data.gender as 'male' | 'female',
         photo: data.photo_url,
@@ -243,20 +241,17 @@ export const usePets = () => {
     try {
       console.log('Updating pet with data:', updatedPet);
       
-      // Calculate age from date of birth more precisely
       const now = new Date();
       const birthDate = new Date(updatedPet.dateOfBirth);
       
       let ageInYears = now.getFullYear() - birthDate.getFullYear();
       let ageInMonths = now.getMonth() - birthDate.getMonth();
       
-      // Adjust for cases where birthday hasn't occurred this year
       if (ageInMonths < 0 || (ageInMonths === 0 && now.getDate() < birthDate.getDate())) {
         ageInYears--;
         ageInMonths += 12;
       }
       
-      // Adjust for day of month
       if (now.getDate() < birthDate.getDate()) {
         ageInMonths--;
         if (ageInMonths < 0) {
@@ -265,19 +260,18 @@ export const usePets = () => {
         }
       }
 
-      // Convert weight to kg if needed for storage
       const weightInKg = updatedPet.weightUnit === 'kg' ? updatedPet.weight : updatedPet.weight * 0.453592;
 
       const updateData = {
         name: updatedPet.name,
         type: updatedPet.type,
         breed: updatedPet.breed || '',
-        species: updatedPet.type, // Map type to species
+        species: updatedPet.type,
         age: ageInYears,
         age_years: ageInYears,
         age_months: ageInMonths,
-        weight: updatedPet.weight, // Store original weight
-        weight_kg: weightInKg, // Store converted weight in kg
+        weight: updatedPet.weight,
+        weight_kg: weightInKg,
         gender: updatedPet.gender,
         photo_url: updatedPet.photo || null,
         pre_existing_conditions: updatedPet.preExistingConditions || [],
@@ -290,7 +284,7 @@ export const usePets = () => {
         .from('pets')
         .update(updateData)
         .eq('id', updatedPet.id)
-        .eq('user_id', user.id) // Ensure user can only update their own pets
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -301,7 +295,6 @@ export const usePets = () => {
 
       console.log('Pet updated successfully in database:', data);
 
-      // Update local state
       setPets(prev => prev.map(pet => pet.id === updatedPet.id ? updatedPet : pet));
 
       toast({
