@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, FileText, Sparkles, Calendar, Eye } from 'lucide-react';
+import { Plus, FileText, Sparkles, Calendar, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { useHealthReports, HealthReport } from '@/hooks/useHealthReports';
 import { healthReportCache } from '@/lib/healthReportCache';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import HealthReportUpload from './HealthReportUpload';
 import HealthReportDisplay from './HealthReportDisplay';
 
@@ -26,8 +27,9 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState<HealthReport | null>(null);
   const [processingDiagnosis, setProcessingDiagnosis] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   
-  const { healthReports, refetch } = useHealthReports(petId);
+  const { healthReports, loading: dbLoading, refetch } = useHealthReports(petId);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -35,16 +37,21 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
   }, [petId]);
 
   const loadReports = async () => {
+    console.log('🔄 Loading reports for pet:', petId);
     setLoading(true);
+    setLoadingError(null);
+    
     try {
-      // First, load from cache for instant display
+      // Step 1: Try to load from cache first for instant display
       const cachedPreviews = healthReportCache.getCachedPreviews(petId);
+      console.log('📦 Found cached reports:', cachedPreviews.length);
+      
       if (cachedPreviews.length > 0) {
-        console.log('Loading reports from cache previews');
+        console.log('✅ Loading reports from cache previews');
         const cachedReports = cachedPreviews.map(preview => ({
           ...preview,
           user_id: '',
-          actual_report_date: null,
+          actual_report_date: preview.report_date,
           extracted_text: '',
           key_findings: '',
           created_at: new Date().toISOString(),
@@ -54,10 +61,13 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         setLoading(false);
       }
 
-      // Then load fresh data from Supabase in background
+      // Step 2: Always try to fetch fresh data from Supabase in background
+      console.log('🔄 Fetching fresh data from database...');
       await refetch();
+      
     } catch (error) {
-      console.error('Error loading reports:', error);
+      console.error('❌ Error loading reports:', error);
+      setLoadingError(error instanceof Error ? error.message : 'Failed to load reports');
     } finally {
       setLoading(false);
     }
@@ -66,25 +76,40 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
   // Update reports when Supabase data changes
   useEffect(() => {
     if (healthReports.length > 0) {
+      console.log('✅ Database reports loaded:', healthReports.length);
       setReports(healthReports);
+    } else if (!dbLoading && healthReports.length === 0) {
+      // If database load is complete and no reports found, check cache one more time
+      const cachedPreviews = healthReportCache.getCachedPreviews(petId);
+      if (cachedPreviews.length === 0) {
+        console.log('📭 No reports found in database or cache');
+        setReports([]);
+      }
     }
-  }, [healthReports]);
+  }, [healthReports, dbLoading, petId]);
 
   const handleUploadComplete = (reportId: string) => {
+    console.log('✅ Upload completed for report:', reportId);
     setShowUpload(false);
+    
+    // Immediately refresh the reports list
     loadReports();
+    
     toast({
-      title: "Report Uploaded",
-      description: "Your health report has been uploaded successfully.",
+      title: "Report Uploaded Successfully! 🎉",
+      description: "Your health report has been saved and is ready for analysis.",
     });
   };
 
   const handleGetAIAnalysis = async (reportId: string) => {
+    console.log('🤖 Starting AI analysis for report:', reportId);
     setProcessingDiagnosis(reportId);
     
     try {
       const report = reports.find(r => r.id === reportId);
-      if (!report) return;
+      if (!report) {
+        throw new Error('Report not found');
+      }
 
       // Trigger Make.com webhook for AI analysis
       const payload = {
@@ -99,6 +124,8 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         report_date: report.report_date
       };
 
+      console.log('📤 Sending AI analysis request:', payload);
+
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
         method: 'POST',
         headers: {
@@ -111,9 +138,11 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      console.log('✅ AI analysis request sent successfully');
+
       toast({
-        title: "Analysis Started",
-        description: "AI analysis has been requested. You'll be notified when it's complete.",
+        title: "AI Analysis Started! 🧠",
+        description: "Analysis has been requested. You'll be notified when it's complete.",
       });
 
       // Update report status to processing
@@ -121,8 +150,14 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         r.id === reportId ? { ...r, status: 'processing' as const } : r
       ));
 
+      // Update cache
+      healthReportCache.cacheReportPreview(petId, {
+        id: reportId,
+        status: 'processing'
+      });
+
     } catch (error) {
-      console.error('Error requesting AI analysis:', error);
+      console.error('❌ Error requesting AI analysis:', error);
       toast({
         title: "Analysis Failed",
         description: "Failed to request AI analysis. Please try again.",
@@ -145,7 +180,7 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
     return (
       <div className="space-y-4">
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <Loader2 className="h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4 animate-spin" />
           <p className="text-gray-600">Loading health reports...</p>
         </div>
       </div>
@@ -181,6 +216,24 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Loading Error */}
+      {loadingError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Error loading reports:</strong> {loadingError}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={loadReports}
+              className="ml-2"
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Reports List */}
       {reports.length === 0 ? (
@@ -244,6 +297,7 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
                         </div>
                       ) : report.status === 'processing' ? (
                         <Badge className="bg-yellow-100 text-yellow-800">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                           Processing...
                         </Badge>
                       ) : (
@@ -294,6 +348,10 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
                       src={report.image_url}
                       alt={report.title || 'Health Report'}
                       className="w-full h-32 object-cover rounded-md border"
+                      onError={(e) => {
+                        console.error('Error loading report image:', report.image_url);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 )}

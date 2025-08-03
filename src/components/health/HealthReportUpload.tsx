@@ -7,13 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, Loader2 } from 'lucide-react';
+import { CalendarIcon, Upload, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { healthReportCache } from '@/lib/healthReportCache';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface HealthReportUploadProps {
   petId: string;
@@ -48,9 +49,14 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
   const [reportDate, setReportDate] = useState<Date>();
   const [reportLabel, setReportLabel] = useState('');
   const [vetDiagnosis, setVetDiagnosis] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadStep, setUploadStep] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadFileToSupabase = async (file: File): Promise<string> => {
+    setUploadStep('Uploading file to storage...');
+    console.log('Starting file upload to Supabase Storage');
+    
     const fileExt = file.name.split('.').pop();
     const timestamp = Date.now();
     const fileName = `${petInfo.name.toLowerCase()}_report_${timestamp}.${fileExt}`;
@@ -67,7 +73,7 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
 
     if (error) {
       console.error('Supabase upload error:', error);
-      throw new Error(`Upload failed: ${error.message}`);
+      throw new Error(`Storage upload failed: ${error.message}`);
     }
 
     // Get public URL
@@ -94,6 +100,7 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
     }
 
     setFile(selectedFile);
+    setUploadError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,61 +116,81 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
     }
 
     setIsUploading(true);
+    setUploadError(null);
+    setUploadStep('Starting upload...');
 
     try {
-      // Upload file to Supabase Storage
+      // Step 1: Upload file to Supabase Storage
       const fileUrl = await uploadFileToSupabase(file);
+      console.log('✅ File upload completed, URL:', fileUrl);
       
-      // Get pet data for additional context
-      const { data: petData } = await supabase
+      // Step 2: Get pet data for additional context
+      setUploadStep('Getting pet information...');
+      const { data: petData, error: petError } = await supabase
         .from('pets')
         .select('age, weight, gender')
         .eq('id', petId)
         .single();
 
-      // Generate temporary report ID for immediate caching
-      const tempReportId = crypto.randomUUID();
+      if (petError) {
+        console.error('Error fetching pet data:', petError);
+        // Continue without pet data
+      }
 
-      // Create report record in Supabase
-      const { data: reportData, error } = await supabase
+      // Step 3: Create report record in Supabase
+      setUploadStep('Saving report to database...');
+      const reportId = crypto.randomUUID();
+      
+      const reportData = {
+        id: reportId,
+        pet_id: petId,
+        user_id: user.id,
+        title: reportLabel || `${reportType} - ${format(reportDate, 'MMM dd, yyyy')}`,
+        report_type: reportType,
+        report_date: format(reportDate, 'yyyy-MM-dd'),
+        actual_report_date: format(reportDate, 'yyyy-MM-dd'),
+        report_label: reportLabel || null,
+        vet_diagnosis: vetDiagnosis || null,
+        image_url: fileUrl,
+        status: 'processing' as const
+      };
+
+      console.log('Inserting report data:', reportData);
+
+      const { data: insertedReport, error: insertError } = await supabase
         .from('health_reports')
-        .insert({
-          id: tempReportId,
-          pet_id: petId,
-          user_id: user.id,
-          title: reportLabel || `${reportType} - ${format(reportDate, 'MMM dd, yyyy')}`,
-          report_type: reportType,
-          report_date: format(reportDate, 'yyyy-MM-dd'),
-          actual_report_date: format(reportDate, 'yyyy-MM-dd'),
-          report_label: reportLabel || null,
-          vet_diagnosis: vetDiagnosis || null,
-          image_url: fileUrl,
-          status: 'processing'
-        })
+        .insert(reportData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('❌ Database insertion error:', insertError);
+        throw new Error(`Database insert failed: ${insertError.message}`);
+      }
 
-      const newReport = reportData;
+      console.log('✅ Report successfully inserted into database:', insertedReport);
 
-      // Cache the report preview immediately for instant display
+      // Step 4: Cache the report immediately for instant display
+      setUploadStep('Caching report locally...');
       healthReportCache.cacheReportPreview(petId, {
-        id: newReport.id,
-        title: newReport.title,
-        report_type: newReport.report_type,
-        report_date: newReport.report_date,
-        report_label: newReport.report_label,
-        vet_diagnosis: newReport.vet_diagnosis,
-        image_url: newReport.image_url,
+        id: insertedReport.id,
+        title: insertedReport.title,
+        report_type: insertedReport.report_type,
+        report_date: insertedReport.report_date,
+        report_label: insertedReport.report_label,
+        vet_diagnosis: insertedReport.vet_diagnosis,
+        image_url: insertedReport.image_url,
         status: 'processing'
       });
 
-      // Prepare webhook payload for future AI analysis
+      console.log('✅ Report cached locally');
+
+      // Step 5: Prepare webhook payload for future AI analysis
+      setUploadStep('Preparing AI analysis...');
       const webhookPayload = {
         pet_id: petId,
         user_id: user.id,
-        report_id: newReport.id,
+        report_id: insertedReport.id,
         report_type: reportType,
         report_date: format(reportDate, 'yyyy-MM-dd'),
         report_label: reportLabel || null,
@@ -176,8 +203,7 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
         pet_weight: petData?.weight || 0
       };
 
-      console.log('Report created successfully:', newReport);
-      console.log('Webhook payload prepared:', webhookPayload);
+      console.log('✅ Webhook payload prepared:', webhookPayload);
 
       toast({
         title: "Report uploaded successfully!",
@@ -195,18 +221,22 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
       }
 
       if (onUploadComplete) {
-        onUploadComplete(newReport.id);
+        onUploadComplete(insertedReport.id);
       }
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload process failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      setUploadError(errorMessage);
+      
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "There was an error uploading your report. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
+      setUploadStep('');
     }
   };
 
@@ -216,6 +246,26 @@ const HealthReportUpload = ({ petId, petInfo, onUploadComplete }: HealthReportUp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Error Display */}
+      {uploadError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Upload Failed:</strong> {uploadError}
+            <br />
+            <small>Last step: {uploadStep}</small>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Upload Step Display */}
+      {isUploading && uploadStep && (
+        <Alert>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertDescription>{uploadStep}</AlertDescription>
+        </Alert>
+      )}
+
       {/* File Upload */}
       <div className="space-y-2">
         <Label htmlFor="file-upload">Report File *</Label>

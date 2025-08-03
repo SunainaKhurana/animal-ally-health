@@ -27,6 +27,7 @@ export interface HealthReport {
 export const useHealthReports = (petId?: string) => {
   const [healthReports, setHealthReports] = useState<HealthReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
 
@@ -47,15 +48,20 @@ export const useHealthReports = (petId?: string) => {
   }, [petId]);
 
   const fetchReports = async () => {
-    if (!petId) return;
+    if (!petId) {
+      setLoading(false);
+      return;
+    }
     
     try {
+      console.log('🔄 Fetching health reports for pet:', petId);
       setLoading(true);
+      setError(null);
       
       // First, try to load from cache for instant display
       const cachedReports = healthReportCache.get(petId);
       if (cachedReports && cachedReports.length > 0) {
-        console.log('Loading health reports from cache');
+        console.log('📦 Loading health reports from cache:', cachedReports.length);
         setHealthReports(cachedReports);
         setLoading(false);
         
@@ -65,12 +71,16 @@ export const useHealthReports = (petId?: string) => {
       }
 
       // If no cache, fetch from Supabase
+      console.log('🔍 No cached reports found, fetching from database...');
       await fetchFreshReports();
     } catch (error) {
-      console.error('Error fetching health reports:', error);
+      console.error('❌ Error fetching health reports:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load health reports';
+      setError(errorMessage);
+      
       toast({
         title: "Error",
-        description: "Failed to load health reports",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -81,17 +91,25 @@ export const useHealthReports = (petId?: string) => {
   const fetchFreshReports = async () => {
     if (!petId) return;
 
-    const { data, error } = await supabase
+    console.log('📡 Fetching fresh health reports from database...');
+
+    const { data, error: fetchError } = await supabase
       .from('health_reports')
       .select('*')
       .eq('pet_id', petId)
       .order('actual_report_date', { ascending: false, nullsFirst: false })
       .order('report_date', { ascending: false });
 
-    if (error) throw error;
+    if (fetchError) {
+      console.error('❌ Database fetch error:', fetchError);
+      throw new Error(`Database fetch failed: ${fetchError.message}`);
+    }
     
     const reports = (data || []) as HealthReport[];
+    console.log('✅ Fresh reports fetched from database:', reports.length);
+    
     setHealthReports(reports);
+    setError(null);
     
     // Cache the fresh data
     if (reports.length > 0) {
@@ -101,6 +119,10 @@ export const useHealthReports = (petId?: string) => {
       reports.forEach(report => {
         healthReportCache.cacheReportPreview(petId, report);
       });
+      
+      console.log('💾 Reports cached locally');
+    } else {
+      console.log('📭 No reports found in database');
     }
   };
 
@@ -109,12 +131,12 @@ export const useHealthReports = (petId?: string) => {
 
     // Clean up existing subscription first
     if (channelRef.current) {
-      console.log('Removing existing health reports channel');
+      console.log('🧹 Removing existing health reports channel');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    console.log('Setting up health reports realtime subscription for pet:', petId);
+    console.log('🔗 Setting up health reports realtime subscription for pet:', petId);
 
     const channel = supabase
       .channel(`health-reports-${petId}`)
@@ -127,28 +149,40 @@ export const useHealthReports = (petId?: string) => {
           filter: `pet_id=eq.${petId}`
         },
         (payload) => {
-          console.log('Real-time health report update:', payload);
+          console.log('🔄 Real-time health report update:', payload);
           
           if (payload.eventType === 'INSERT') {
             const newReport = payload.new as HealthReport;
-            setHealthReports(prev => [newReport, ...prev]);
+            console.log('➕ New report inserted:', newReport.id);
+            
+            setHealthReports(prev => {
+              const updated = [newReport, ...prev];
+              // Update cache
+              healthReportCache.set(petId, updated);
+              return updated;
+            });
             
             // Cache the new report preview
             healthReportCache.cacheReportPreview(petId, newReport);
             
             if (newReport.status === 'completed') {
               toast({
-                title: "Report Analysis Complete",
+                title: "Report Analysis Complete! 🎉",
                 description: `${newReport.title} has been analyzed and is ready to view.`,
               });
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedReport = payload.new as HealthReport;
-            setHealthReports(prev => 
-              prev.map(report => 
+            console.log('📝 Report updated:', updatedReport.id, 'Status:', updatedReport.status);
+            
+            setHealthReports(prev => {
+              const updated = prev.map(report => 
                 report.id === updatedReport.id ? updatedReport : report
-              )
-            );
+              );
+              // Update cache
+              healthReportCache.set(petId, updated);
+              return updated;
+            });
             
             // Update cached preview
             healthReportCache.cacheReportPreview(petId, updatedReport);
@@ -162,14 +196,19 @@ export const useHealthReports = (petId?: string) => {
               });
             }
           } else if (payload.eventType === 'DELETE') {
-            setHealthReports(prev => 
-              prev.filter(report => report.id !== payload.old.id)
-            );
+            console.log('🗑️ Report deleted:', payload.old.id);
+            
+            setHealthReports(prev => {
+              const updated = prev.filter(report => report.id !== payload.old.id);
+              // Update cache
+              healthReportCache.set(petId, updated);
+              return updated;
+            });
           }
         }
       )
       .subscribe((status) => {
-        console.log('Health reports subscription status:', status);
+        console.log('📡 Health reports subscription status:', status);
       });
 
     // Store the channel reference for cleanup
@@ -178,6 +217,8 @@ export const useHealthReports = (petId?: string) => {
 
   const deleteReport = async (reportId: string) => {
     try {
+      console.log('🗑️ Deleting health report:', reportId);
+      
       // Get the report to find the image URL
       const { data: report } = await supabase
         .from('health_reports')
@@ -209,6 +250,8 @@ export const useHealthReports = (petId?: string) => {
         localStorage.removeItem(key);
       }
 
+      console.log('✅ Health report deleted successfully');
+
       toast({
         title: "Success",
         description: "Health report deleted successfully",
@@ -216,7 +259,7 @@ export const useHealthReports = (petId?: string) => {
 
       fetchReports();
     } catch (error) {
-      console.error('Error deleting health report:', error);
+      console.error('❌ Error deleting health report:', error);
       toast({
         title: "Error",
         description: "Failed to delete health report",
@@ -227,6 +270,8 @@ export const useHealthReports = (petId?: string) => {
 
   const updateReport = async (reportId: string, updates: Partial<HealthReport>) => {
     try {
+      console.log('📝 Updating health report:', reportId, updates);
+      
       const { error } = await supabase
         .from('health_reports')
         .update(updates)
@@ -239,6 +284,8 @@ export const useHealthReports = (petId?: string) => {
         healthReportCache.cacheReportPreview(petId, { id: reportId, ...updates });
       }
 
+      console.log('✅ Health report updated successfully');
+
       toast({
         title: "Success",
         description: "Health report updated successfully",
@@ -246,7 +293,7 @@ export const useHealthReports = (petId?: string) => {
 
       fetchReports();
     } catch (error) {
-      console.error('Error updating health report:', error);
+      console.error('❌ Error updating health report:', error);
       toast({
         title: "Error",
         description: "Failed to update health report",
@@ -258,6 +305,7 @@ export const useHealthReports = (petId?: string) => {
   return {
     healthReports,
     loading,
+    error,
     deleteReport,
     updateReport,
     refetch: fetchReports
