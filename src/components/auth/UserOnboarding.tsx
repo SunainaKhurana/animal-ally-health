@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import AddPetDialog from '@/components/pets/AddPetDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePetContext } from '@/contexts/PetContext';
 
 type OnboardingStep = 'welcome' | 'profile' | 'pet' | 'complete';
 
@@ -17,8 +17,8 @@ export const UserOnboarding = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddPet, setShowAddPet] = useState(false);
+  const [petAdded, setPetAdded] = useState(false);
   const { user } = useAuth();
-  const { pets } = usePetContext();
   const { toast } = useToast();
 
   const progress = {
@@ -126,6 +126,8 @@ export const UserOnboarding = () => {
   };
 
   const handlePetAdded = async () => {
+    console.log('Pet added successfully during onboarding');
+    setPetAdded(true);
     setShowAddPet(false);
     await completeOnboarding();
   };
@@ -293,8 +295,8 @@ export const UserOnboarding = () => {
               You're all set!
             </CardTitle>
             <CardDescription>
-              {pets.length > 0 
-                ? `Welcome to PetZone! Let's take great care of ${pets[0]?.name}.`
+              {petAdded 
+                ? "Welcome to PetZone! Let's take great care of your furry friend."
                 : "Welcome to PetZone! You can add your pets anytime from the profile section."
               }
             </CardDescription>
