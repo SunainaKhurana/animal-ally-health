@@ -95,12 +95,15 @@ export const healthReportCache = {
       keys.forEach(key => {
         if (key.startsWith(`${CACHE_KEY_PREFIX}preview_${petId}_`)) {
           try {
-            const preview = JSON.parse(localStorage.getItem(key)!);
-            // Check if preview is not expired
-            if (Date.now() - preview.cached_at < CACHE_EXPIRY) {
-              previews.push(preview);
-            } else {
-              localStorage.removeItem(key);
+            const item = localStorage.getItem(key);
+            if (item) {
+              const preview = JSON.parse(item);
+              // Check if preview is not expired
+              if (Date.now() - preview.cached_at < CACHE_EXPIRY) {
+                previews.push(preview);
+              } else {
+                localStorage.removeItem(key);
+              }
             }
           } catch (e) {
             localStorage.removeItem(key);
@@ -122,12 +125,14 @@ export const healthReportCache = {
       const cached = localStorage.getItem(key);
       if (cached) {
         const preview = JSON.parse(cached);
-        preview.ai_analysis = aiAnalysis;
-        preview.status = 'completed';
-        preview.has_ai_diagnosis = true;
-        preview.ai_diagnosis_date = new Date().toISOString();
-        localStorage.setItem(key, JSON.stringify(preview));
-        console.log('✅ Updated cached preview with AI diagnosis:', reportId);
+        if (preview) {
+          preview.ai_analysis = aiAnalysis;
+          preview.status = 'completed';
+          preview.has_ai_diagnosis = true;
+          preview.ai_diagnosis_date = new Date().toISOString();
+          localStorage.setItem(key, JSON.stringify(preview));
+          console.log('✅ Updated cached preview with AI diagnosis:', reportId);
+        }
       }
     } catch (error) {
       console.warn('Failed to update cached preview:', error);

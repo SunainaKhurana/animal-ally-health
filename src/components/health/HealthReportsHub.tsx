@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,34 +28,14 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
   const { healthReports, loading, addReportToState, triggerAIAnalysis, refetch } = useHealthReports(petId);
   const { toast } = useToast();
 
-  const handleUploadComplete = async (reportId: string, reportData: any) => {
-    console.log('✅ Upload completed for report:', reportId, reportData);
-    
-    // Create a complete HealthReport object
-    const newReport: HealthReport = {
-      id: reportId,
-      pet_id: petId,
-      user_id: reportData.user_id || '',
-      title: reportData.title || reportData.report_type,
-      report_type: reportData.report_type,
-      report_date: reportData.report_date,
-      actual_report_date: reportData.report_date,
-      status: 'completed',
-      image_url: reportData.image_url,
-      report_label: reportData.report_label,
-      vet_diagnosis: reportData.vet_diagnosis,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      extracted_text: '',
-      key_findings: '',
-      ai_analysis: undefined,
-      parent_report_id: undefined
-    };
-    
-    // Add to state and cache immediately
-    addReportToState(newReport);
+  // Fixed: Changed to match expected signature (reportId: string) => void
+  const handleUploadComplete = async (reportId: string) => {
+    console.log('✅ Upload completed for report:', reportId);
     
     setShowUpload(false);
+    
+    // Trigger refetch to get the latest data from cache/Supabase
+    await refetch();
     
     toast({
       title: "Report Uploaded Successfully! 🎉",
