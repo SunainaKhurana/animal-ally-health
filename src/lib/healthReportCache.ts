@@ -65,7 +65,7 @@ export const healthReportCache = {
   cacheReportPreview: (petId: string, report: Partial<HealthReport>) => {
     try {
       // Add proper type guards for required fields
-      if (!report.id || !report.title || !report.report_type || !report.report_date) {
+      if (!report || typeof report !== 'object' || !report.id || !report.title || !report.report_type || !report.report_date) {
         console.warn('Cannot cache report preview: missing required fields', report);
         return;
       }
@@ -158,14 +158,14 @@ export const healthReportCache = {
   addReportToCache: (petId: string, report: HealthReport) => {
     try {
       // Ensure report has required ID
-      if (!report.id) {
+      if (!report || !report.id) {
         console.warn('Cannot add report to cache: missing ID', report);
         return;
       }
 
-      // Update main cache with explicit type checking
-      const existing = this.get(petId) || [];
-      const updated = [report, ...existing.filter(r => r.id && r.id !== report.id)];
+      // Update main cache with safe access
+      const existing = this.get(petId) ?? [];
+      const updated = [report, ...existing.filter(r => r?.id && r.id !== report.id)];
       this.set(petId, updated);
       
       // Cache preview
@@ -180,9 +180,9 @@ export const healthReportCache = {
   // Check if cache has any reports
   hasReports: (petId: string): boolean => {
     try {
-      const cached = this.get(petId);
-      const previews = this.getCachedPreviews(petId);
-      return (cached !== null && cached.length > 0) || (previews !== null && previews.length > 0);
+      const cached = this.get(petId) ?? [];
+      const previews = this.getCachedPreviews(petId) ?? [];
+      return cached.length > 0 || previews.length > 0;
     } catch (error) {
       console.warn('Failed to check cached reports:', error);
       return false;
