@@ -163,8 +163,9 @@ export const healthReportCache = {
         return;
       }
 
-      // Update main cache with safe access
-      const existing = this.get(petId) ?? [];
+      // Update main cache with safe access - get existing reports or empty array
+      const existingReports = this.get(petId);
+      const existing = existingReports || [];
       const updated = [report, ...existing.filter(r => r?.id && r.id !== report.id)];
       this.set(petId, updated);
       
@@ -180,8 +181,12 @@ export const healthReportCache = {
   // Check if cache has any reports
   hasReports: (petId: string): boolean => {
     try {
-      const cached = this.get(petId) ?? [];
-      const previews = this.getCachedPreviews(petId) ?? [];
+      const cachedReports = this.get(petId);
+      const cachedPreviews = this.getCachedPreviews(petId);
+      
+      const cached = cachedReports || [];
+      const previews = cachedPreviews || [];
+      
       return cached.length > 0 || previews.length > 0;
     } catch (error) {
       console.warn('Failed to check cached reports:', error);
