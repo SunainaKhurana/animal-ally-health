@@ -158,9 +158,14 @@ export const healthReportCache = {
 
   // Check if cache has any reports
   hasReports: (petId: string): boolean => {
-    const cached = this.get(petId);
-    const previews = this.getCachedPreviews(petId);
-    return (cached && cached.length > 0) || previews.length > 0;
+    try {
+      const cached = this.get(petId);
+      const previews = this.getCachedPreviews(petId);
+      return (cached && cached.length > 0) || (previews && previews.length > 0);
+    } catch (error) {
+      console.warn('Failed to check cached reports:', error);
+      return false;
+    }
   },
 
   clear: (petId: string) => {
