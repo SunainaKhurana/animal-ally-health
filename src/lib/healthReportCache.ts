@@ -1,7 +1,8 @@
+
 import { HealthReport } from '@/hooks/useHealthReports';
 
 const CACHE_KEY_PREFIX = 'health_reports_';
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 interface CachedData {
   data: HealthReport[];
@@ -20,6 +21,8 @@ interface CachedReportPreview {
   ai_analysis?: string;
   status: 'processing' | 'completed' | 'failed';
   cached_at: number;
+  has_ai_diagnosis: boolean;
+  ai_diagnosis_date?: string;
 }
 
 export const healthReportCache = {
@@ -31,6 +34,7 @@ export const healthReportCache = {
         timestamp: Date.now()
       };
       localStorage.setItem(`${CACHE_KEY_PREFIX}${petId}`, JSON.stringify(cacheData));
+      console.log('💾 Cached reports for pet:', petId, reports.length);
     } catch (error) {
       console.warn('Failed to cache health reports:', error);
     }
@@ -49,6 +53,7 @@ export const healthReportCache = {
         return null;
       }
 
+      console.log('📦 Retrieved cached reports for pet:', petId, cacheData.data.length);
       return cacheData.data;
     } catch (error) {
       console.warn('Failed to retrieve cached health reports:', error);
@@ -56,7 +61,7 @@ export const healthReportCache = {
     }
   },
 
-  // New methods for instant report preview caching
+  // Enhanced methods for instant report preview caching
   cacheReportPreview: (petId: string, report: Partial<HealthReport>) => {
     try {
       const key = `${CACHE_KEY_PREFIX}preview_${petId}_${report.id}`;
@@ -70,10 +75,13 @@ export const healthReportCache = {
         vet_diagnosis: report.vet_diagnosis,
         image_url: report.image_url,
         ai_analysis: report.ai_analysis,
-        status: report.status || 'processing',
-        cached_at: Date.now()
+        status: report.status || 'completed',
+        cached_at: Date.now(),
+        has_ai_diagnosis: !!report.ai_analysis,
+        ai_diagnosis_date: report.ai_analysis ? new Date().toISOString() : undefined
       };
       localStorage.setItem(key, JSON.stringify(preview));
+      console.log('💾 Cached report preview:', report.id);
     } catch (error) {
       console.warn('Failed to cache report preview:', error);
     }
@@ -88,8 +96,8 @@ export const healthReportCache = {
         if (key.startsWith(`${CACHE_KEY_PREFIX}preview_${petId}_`)) {
           try {
             const preview = JSON.parse(localStorage.getItem(key)!);
-            // Check if preview is not expired (keep for 7 days)
-            if (Date.now() - preview.cached_at < 7 * 24 * 60 * 60 * 1000) {
+            // Check if preview is not expired
+            if (Date.now() - preview.cached_at < CACHE_EXPIRY) {
               previews.push(preview);
             } else {
               localStorage.removeItem(key);
@@ -100,6 +108,7 @@ export const healthReportCache = {
         }
       });
       
+      console.log('📦 Retrieved cached previews for pet:', petId, previews.length);
       return previews.sort((a, b) => new Date(b.report_date).getTime() - new Date(a.report_date).getTime());
     } catch (error) {
       console.warn('Failed to get cached previews:', error);
@@ -115,11 +124,38 @@ export const healthReportCache = {
         const preview = JSON.parse(cached);
         preview.ai_analysis = aiAnalysis;
         preview.status = 'completed';
+        preview.has_ai_diagnosis = true;
+        preview.ai_diagnosis_date = new Date().toISOString();
         localStorage.setItem(key, JSON.stringify(preview));
+        console.log('✅ Updated cached preview with AI diagnosis:', reportId);
       }
     } catch (error) {
       console.warn('Failed to update cached preview:', error);
     }
+  },
+
+  // Add new report to cache immediately after upload
+  addReportToCache: (petId: string, report: HealthReport) => {
+    try {
+      // Update main cache
+      const existing = this.get(petId) || [];
+      const updated = [report, ...existing.filter(r => r.id !== report.id)];
+      this.set(petId, updated);
+      
+      // Cache preview
+      this.cacheReportPreview(petId, report);
+      
+      console.log('✅ Added new report to cache:', report.id);
+    } catch (error) {
+      console.warn('Failed to add report to cache:', error);
+    }
+  },
+
+  // Check if cache has any reports
+  hasReports: (petId: string): boolean => {
+    const cached = this.get(petId);
+    const previews = this.getCachedPreviews(petId);
+    return (cached && cached.length > 0) || previews.length > 0;
   },
 
   clear: (petId: string) => {
@@ -132,6 +168,7 @@ export const healthReportCache = {
           localStorage.removeItem(key);
         }
       });
+      console.log('🗑️ Cleared cache for pet:', petId);
     } catch (error) {
       console.warn('Failed to clear health report cache:', error);
     }
@@ -145,6 +182,7 @@ export const healthReportCache = {
           localStorage.removeItem(key);
         }
       });
+      console.log('🗑️ Cleared all health report caches');
     } catch (error) {
       console.warn('Failed to clear all health report caches:', error);
     }

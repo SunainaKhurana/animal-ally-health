@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, FileText, Sparkles, Calendar, Eye, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, FileText, Sparkles, Calendar, Eye, AlertCircle, Loader2, Brain } from 'lucide-react';
 import { useHealthReports, HealthReport } from '@/hooks/useHealthReports';
 import { healthReportCache } from '@/lib/healthReportCache';
 import { useToast } from '@/hooks/use-toast';
@@ -22,78 +22,41 @@ interface HealthReportsHubProps {
 }
 
 const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
-  const [reports, setReports] = useState<HealthReport[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState<HealthReport | null>(null);
-  const [processingDiagnosis, setProcessingDiagnosis] = useState<string | null>(null);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [processingReports, setProcessingReports] = useState<Set<string>>(new Set());
   
-  const { healthReports, loading: dbLoading, refetch } = useHealthReports(petId);
+  const { healthReports, loading, addReportToState, triggerAIAnalysis, refetch } = useHealthReports(petId);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadReports();
-  }, [petId]);
-
-  const loadReports = async () => {
-    console.log('🔄 Loading reports for pet:', petId);
-    setLoading(true);
-    setLoadingError(null);
+  const handleUploadComplete = async (reportId: string, reportData: any) => {
+    console.log('✅ Upload completed for report:', reportId, reportData);
     
-    try {
-      // Step 1: Try to load from cache first for instant display
-      const cachedPreviews = healthReportCache.getCachedPreviews(petId);
-      console.log('📦 Found cached reports:', cachedPreviews.length);
-      
-      if (cachedPreviews.length > 0) {
-        console.log('✅ Loading reports from cache previews');
-        const cachedReports = cachedPreviews.map(preview => ({
-          ...preview,
-          user_id: '',
-          actual_report_date: preview.report_date,
-          extracted_text: '',
-          key_findings: '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })) as HealthReport[];
-        setReports(cachedReports);
-        setLoading(false);
-      }
-
-      // Step 2: Always try to fetch fresh data from Supabase in background
-      console.log('🔄 Fetching fresh data from database...');
-      await refetch();
-      
-    } catch (error) {
-      console.error('❌ Error loading reports:', error);
-      setLoadingError(error instanceof Error ? error.message : 'Failed to load reports');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Update reports when Supabase data changes
-  useEffect(() => {
-    if (healthReports.length > 0) {
-      console.log('✅ Database reports loaded:', healthReports.length);
-      setReports(healthReports);
-    } else if (!dbLoading && healthReports.length === 0) {
-      // If database load is complete and no reports found, check cache one more time
-      const cachedPreviews = healthReportCache.getCachedPreviews(petId);
-      if (cachedPreviews.length === 0) {
-        console.log('📭 No reports found in database or cache');
-        setReports([]);
-      }
-    }
-  }, [healthReports, dbLoading, petId]);
-
-  const handleUploadComplete = (reportId: string) => {
-    console.log('✅ Upload completed for report:', reportId);
+    // Create a complete HealthReport object
+    const newReport: HealthReport = {
+      id: reportId,
+      pet_id: petId,
+      user_id: reportData.user_id || '',
+      title: reportData.title || reportData.report_type,
+      report_type: reportData.report_type,
+      report_date: reportData.report_date,
+      actual_report_date: reportData.report_date,
+      status: 'completed',
+      image_url: reportData.image_url,
+      report_label: reportData.report_label,
+      vet_diagnosis: reportData.vet_diagnosis,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      extracted_text: '',
+      key_findings: '',
+      ai_analysis: undefined,
+      parent_report_id: undefined
+    };
+    
+    // Add to state and cache immediately
+    addReportToState(newReport);
+    
     setShowUpload(false);
-    
-    // Immediately refresh the reports list
-    loadReports();
     
     toast({
       title: "Report Uploaded Successfully! 🎉",
@@ -103,68 +66,19 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
 
   const handleGetAIAnalysis = async (reportId: string) => {
     console.log('🤖 Starting AI analysis for report:', reportId);
-    setProcessingDiagnosis(reportId);
+    
+    setProcessingReports(prev => new Set(prev).add(reportId));
     
     try {
-      const report = reports.find(r => r.id === reportId);
-      if (!report) {
-        throw new Error('Report not found');
-      }
-
-      // Trigger Make.com webhook for AI analysis
-      const payload = {
-        report_id: reportId,
-        pet_id: petId,
-        user_id: report.user_id,
-        pet_name: petInfo.name,
-        pet_type: petInfo.type,
-        pet_breed: petInfo.breed,
-        report_url: report.image_url,
-        report_type: report.report_type,
-        report_date: report.report_date
-      };
-
-      console.log('📤 Sending AI analysis request:', payload);
-
-      const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      console.log('✅ AI analysis request sent successfully');
-
-      toast({
-        title: "AI Analysis Started! 🧠",
-        description: "Analysis has been requested. You'll be notified when it's complete.",
-      });
-
-      // Update report status to processing
-      setReports(prev => prev.map(r => 
-        r.id === reportId ? { ...r, status: 'processing' as const } : r
-      ));
-
-      // Update cache
-      healthReportCache.cacheReportPreview(petId, {
-        id: reportId,
-        status: 'processing'
-      });
-
+      await triggerAIAnalysis(reportId);
     } catch (error) {
-      console.error('❌ Error requesting AI analysis:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Failed to request AI analysis. Please try again.",
-        variant: "destructive",
-      });
+      console.error('❌ Failed to trigger AI analysis:', error);
     } finally {
-      setProcessingDiagnosis(null);
+      setProcessingReports(prev => {
+        const updated = new Set(prev);
+        updated.delete(reportId);
+        return updated;
+      });
     }
   };
 
@@ -176,11 +90,59 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
     });
   };
 
-  if (loading && reports.length === 0) {
+  const getAnalysisStatus = (report: HealthReport) => {
+    if (processingReports.has(report.id) || report.status === 'processing') {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Processing...
+        </Badge>
+      );
+    }
+    
+    if (report.ai_analysis) {
+      return (
+        <Badge className="bg-green-100 text-green-800">
+          <Sparkles className="h-3 w-3 mr-1" />
+          AI Analysis Complete
+        </Badge>
+      );
+    }
+    
+    return null;
+  };
+
+  const getAnalysisButton = (report: HealthReport) => {
+    const isProcessing = processingReports.has(report.id) || report.status === 'processing';
+    
+    if (report.ai_analysis) {
+      return (
+        <div className="text-xs text-green-600 flex items-center gap-1">
+          <Sparkles className="h-3 w-3" />
+          AI Diagnosis on {formatDate(report.updated_at)}
+        </div>
+      );
+    }
+    
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => handleGetAIAnalysis(report.id)}
+        disabled={isProcessing}
+        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+      >
+        <Brain className="h-3 w-3 mr-1" />
+        {isProcessing ? 'Analyzing...' : 'Get AI Analysis'}
+      </Button>
+    );
+  };
+
+  if (loading && healthReports.length === 0) {
     return (
       <div className="space-y-4">
         <div className="text-center py-8">
-          <Loader2 className="h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4 animate-spin" />
+          <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-orange-500" />
           <p className="text-gray-600">Loading health reports...</p>
         </div>
       </div>
@@ -194,7 +156,7 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Health Reports</h2>
           <p className="text-sm text-gray-600">
-            {reports.length} {reports.length === 1 ? 'report' : 'reports'} uploaded
+            {healthReports.length} {healthReports.length === 1 ? 'report' : 'reports'} uploaded
           </p>
         </div>
         <Dialog open={showUpload} onOpenChange={setShowUpload}>
@@ -217,26 +179,8 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         </Dialog>
       </div>
 
-      {/* Loading Error */}
-      {loadingError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Error loading reports:</strong> {loadingError}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadReports}
-              className="ml-2"
-            >
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Reports List */}
-      {reports.length === 0 ? (
+      {healthReports.length === 0 ? (
         <Card className="border-dashed border-2 border-gray-200">
           <CardContent className="p-8 text-center">
             <div className="text-gray-400 mb-4">
@@ -257,8 +201,8 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden">
+          {healthReports.map((report) => (
+            <Card key={report.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -285,33 +229,17 @@ const HealthReportsHub = ({ petId, petInfo }: HealthReportsHubProps) => {
 
                     {/* AI Analysis Status */}
                     <div className="flex items-center gap-2 mb-3">
-                      {report.ai_analysis ? (
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-green-100 text-green-800">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            AI Analysis Complete
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            on {formatDate(report.updated_at || report.created_at)}
-                          </span>
-                        </div>
-                      ) : report.status === 'processing' ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Processing...
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleGetAIAnalysis(report.id)}
-                          disabled={processingDiagnosis === report.id}
-                          className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                        >
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          {processingDiagnosis === report.id ? 'Analyzing...' : 'Get AI Analysis'}
-                        </Button>
+                      {getAnalysisStatus(report)}
+                      {report.ai_analysis && (
+                        <span className="text-xs text-gray-500">
+                          on {formatDate(report.updated_at)}
+                        </span>
                       )}
+                    </div>
+                    
+                    {/* Analysis Button/Status */}
+                    <div className="mb-3">
+                      {getAnalysisButton(report)}
                     </div>
                   </div>
 

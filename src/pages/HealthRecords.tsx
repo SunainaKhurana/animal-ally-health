@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
@@ -23,7 +24,7 @@ const HealthRecords = () => {
   const selectedPet = petId ? pets.find(p => p.id === petId) : pets[0];
   const currentPetId = selectedPet?.id;
   
-  const { healthReports, loading, deleteReport, refetch } = useHealthReports(currentPetId);
+  const { healthReports, loading, deleteReport, addReportToState, refetch } = useHealthReports(currentPetId);
   const [showUpload, setShowUpload] = useState(false);
   const [recentlyUploadedId, setRecentlyUploadedId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -77,10 +78,20 @@ const HealthRecords = () => {
   };
 
   const handleUploadComplete = (reportIds: string[]) => {
+    console.log('📋 Health Records - Upload completed:', reportIds);
     setShowUpload(false);
+    
     if (reportIds.length > 0) {
       setRecentlyUploadedId(reportIds[0]);
+      
+      // The EnhancedHealthRecordUpload component should have already
+      // handled adding the report to cache via the useHealthReports hook
+      toast({
+        title: "Report Uploaded Successfully! 🎉",
+        description: "Your health report has been saved and is ready for analysis.",
+      });
     }
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
