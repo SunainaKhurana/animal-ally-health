@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,10 +55,6 @@ const ImprovedHealthReportsHub = ({ petId, petInfo }: ImprovedHealthReportsHubPr
     console.log('✅ Upload completed for report:', reportId);
     
     setShowUpload(false);
-    
-    // Force a refetch to get the latest data
-    console.log('🔄 Triggering refetch after upload...');
-    await refetch();
     
     toast({
       title: "Report Uploaded Successfully! 🎉",
@@ -223,6 +218,7 @@ const ImprovedHealthReportsHub = ({ petId, petInfo }: ImprovedHealthReportsHubPr
                 petId={petId}
                 petInfo={petInfo}
                 onUploadComplete={handleUploadComplete}
+                addReportToState={addReportToState}
               />
             </DialogContent>
           </Dialog>

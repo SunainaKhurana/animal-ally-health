@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import EnhancedHealthRecordUpload from "@/components/health/EnhancedHealthRecordUpload";
+import ImprovedHealthReportUpload from "@/components/health/ImprovedHealthReportUpload";
 import PetSelector from "@/components/pets/PetSelector";
 import HealthRecordsHeader from "@/components/health/HealthRecordsHeader";
 import PetInfoCard from "@/components/health/PetInfoCard";
@@ -77,20 +77,16 @@ const HealthRecords = () => {
     navigate(`/health/${newPet.id}`, { replace: true });
   };
 
-  const handleUploadComplete = (reportIds: string[]) => {
-    console.log('📋 Health Records - Upload completed:', reportIds);
+  const handleUploadComplete = (reportId: string) => {
+    console.log('📋 Health Records - Upload completed for report:', reportId);
     setShowUpload(false);
+    setRecentlyUploadedId(reportId);
     
-    if (reportIds.length > 0) {
-      setRecentlyUploadedId(reportIds[0]);
-      
-      // The EnhancedHealthRecordUpload component should have already
-      // handled adding the report to cache via the useHealthReports hook
-      toast({
-        title: "Report Uploaded Successfully! 🎉",
-        description: "Your health report has been saved and is ready for analysis.",
-      });
-    }
+    // The report should already be in state via addReportToState in the upload component
+    toast({
+      title: "Report Uploaded Successfully! 🎉",
+      description: "Your health report has been saved and is ready for analysis.",
+    });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -162,7 +158,7 @@ const HealthRecords = () => {
 
         {/* Upload Section */}
         {showUpload && (
-          <EnhancedHealthRecordUpload
+          <ImprovedHealthReportUpload
             petId={selectedPet.id}
             petInfo={{
               name: selectedPet.name,
@@ -170,6 +166,7 @@ const HealthRecords = () => {
               breed: selectedPet.breed
             }}
             onUploadComplete={handleUploadComplete}
+            addReportToState={addReportToState}
           />
         )}
 

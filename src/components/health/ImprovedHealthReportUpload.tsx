@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +16,7 @@ import { healthReportCache } from '@/lib/healthReportCache';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { HealthReport } from '@/hooks/useHealthReports';
 
 interface ImprovedHealthReportUploadProps {
   petId: string;
@@ -26,6 +26,7 @@ interface ImprovedHealthReportUploadProps {
     breed?: string;
   };
   onUploadComplete?: (reportId: string) => void;
+  addReportToState?: (report: HealthReport) => void;
 }
 
 const REPORT_TYPES = [
@@ -49,7 +50,12 @@ interface UploadStep {
   error?: string;
 }
 
-const ImprovedHealthReportUpload = ({ petId, petInfo, onUploadComplete }: ImprovedHealthReportUploadProps) => {
+const ImprovedHealthReportUpload = ({ 
+  petId, 
+  petInfo, 
+  onUploadComplete, 
+  addReportToState 
+}: ImprovedHealthReportUploadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -66,6 +72,7 @@ const ImprovedHealthReportUpload = ({ petId, petInfo, onUploadComplete }: Improv
     { id: 'storage', label: 'Uploading file to storage', status: 'pending' },
     { id: 'database', label: 'Saving report to database', status: 'pending' },
     { id: 'cache', label: 'Updating local cache', status: 'pending' },
+    { id: 'state', label: 'Updating UI state', status: 'pending' },
     { id: 'verification', label: 'Verifying upload success', status: 'pending' }
   ];
 
@@ -236,7 +243,18 @@ const ImprovedHealthReportUpload = ({ petId, petInfo, onUploadComplete }: Improv
       console.log('✅ Local cache updated with new report');
       updateStep('cache', 'completed');
 
-      // Step 6: Verify upload success
+      // Step 6: Update UI state immediately
+      updateStep('state', 'processing');
+      if (addReportToState) {
+        addReportToState(insertedReport);
+        console.log('✅ UI state updated with new report');
+        updateStep('state', 'completed');
+      } else {
+        console.warn('⚠️ addReportToState function not provided');
+        updateStep('state', 'failed', 'State update function not provided');
+      }
+
+      // Step 7: Verify upload success
       const verified = await verifyUploadSuccess(insertedReport.id);
       
       if (!verified) {
