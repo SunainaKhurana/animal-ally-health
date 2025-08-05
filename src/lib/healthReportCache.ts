@@ -163,9 +163,9 @@ export const healthReportCache = {
         return;
       }
 
-      // Update main cache
+      // Update main cache with explicit type checking
       const existing = this.get(petId) || [];
-      const updated = [report, ...existing.filter(r => r.id !== report.id)];
+      const updated = [report, ...existing.filter(r => r.id && r.id !== report.id)];
       this.set(petId, updated);
       
       // Cache preview
@@ -182,7 +182,7 @@ export const healthReportCache = {
     try {
       const cached = this.get(petId);
       const previews = this.getCachedPreviews(petId);
-      return (cached && cached.length > 0) || (previews && previews.length > 0);
+      return (cached !== null && cached.length > 0) || (previews !== null && previews.length > 0);
     } catch (error) {
       console.warn('Failed to check cached reports:', error);
       return false;
