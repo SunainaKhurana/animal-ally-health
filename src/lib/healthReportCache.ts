@@ -163,19 +163,18 @@ export const healthReportCache = {
         return;
       }
 
-      // Get existing reports safely with fallback
-      const cachedReports = this.get(petId) || [];
-      const existing: HealthReport[] = cachedReports;
+      // Get existing reports safely with fallback using optional chaining
+      const existing: HealthReport[] = healthReportCache?.get?.(petId) || [];
       
       // Filter out any existing report with the same ID, using safe access
       const filtered = existing.filter(r => r && r.id && r.id !== report.id);
       const updated = [report, ...filtered];
       
-      // Update main cache
-      this.set(petId, updated);
+      // Update main cache with optional chaining
+      healthReportCache?.set?.(petId, updated);
       
-      // Cache preview
-      this.cacheReportPreview(petId, report);
+      // Cache preview with optional chaining
+      healthReportCache?.cacheReportPreview?.(petId, report);
       
       console.log('✅ Added new report to cache:', report.id);
     } catch (error) {
@@ -186,10 +185,10 @@ export const healthReportCache = {
   // Check if cache has any reports - FIXED VERSION
   hasReports: (petId: string): boolean => {
     try {
-      const cachedReports = this.get(petId) || [];
-      const cachedPreviews = this.getCachedPreviews(petId) || [];
+      const cached: HealthReport[] = healthReportCache?.get?.(petId) || [];
+      const previews: CachedReportPreview[] = healthReportCache?.getCachedPreviews?.(petId) || [];
       
-      return cachedReports.length > 0 || cachedPreviews.length > 0;
+      return cached.length > 0 || previews.length > 0;
     } catch (error) {
       console.warn('Failed to check cached reports:', error);
       return false;
@@ -199,17 +198,19 @@ export const healthReportCache = {
   // Remove report from cache - NEW METHOD
   removeReportFromCache: (petId: string, reportId: string) => {
     try {
-      // Remove from main cache
-      const cachedReports = this.get(petId);
+      // Remove from main cache with optional chaining
+      const cachedReports = healthReportCache?.get?.(petId);
       if (cachedReports) {
         const existing: HealthReport[] = cachedReports;
         const filtered = existing.filter(r => r && r.id && r.id !== reportId);
-        this.set(petId, filtered);
+        healthReportCache?.set?.(petId, filtered);
       }
       
-      // Remove preview cache
-      const previewKey = `${CACHE_KEY_PREFIX}preview_${petId}_${reportId}`;
-      localStorage.removeItem(previewKey);
+      // Remove preview cache with localStorage check
+      if (typeof localStorage !== "undefined") {
+        const previewKey = `${CACHE_KEY_PREFIX}preview_${petId}_${reportId}`;
+        localStorage.removeItem(previewKey);
+      }
       
       console.log('🗑️ Removed report from cache:', reportId);
     } catch (error) {
@@ -219,14 +220,16 @@ export const healthReportCache = {
 
   clear: (petId: string) => {
     try {
-      localStorage.removeItem(`${CACHE_KEY_PREFIX}${petId}`);
-      // Also clear all previews for this pet
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(`${CACHE_KEY_PREFIX}preview_${petId}_`)) {
-          localStorage.removeItem(key);
-        }
-      });
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem(`${CACHE_KEY_PREFIX}${petId}`);
+        // Also clear all previews for this pet
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith(`${CACHE_KEY_PREFIX}preview_${petId}_`)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
       console.log('🗑️ Cleared cache for pet:', petId);
     } catch (error) {
       console.warn('Failed to clear health report cache:', error);
@@ -235,12 +238,14 @@ export const healthReportCache = {
 
   clearAll: () => {
     try {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(CACHE_KEY_PREFIX)) {
-          localStorage.removeItem(key);
-        }
-      });
+      if (typeof localStorage !== "undefined") {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith(CACHE_KEY_PREFIX)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
       console.log('🗑️ Cleared all health report caches');
     } catch (error) {
       console.warn('Failed to clear all health report caches:', error);
