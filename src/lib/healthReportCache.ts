@@ -163,9 +163,9 @@ export const healthReportCache = {
         return;
       }
 
-      // Get existing reports safely
-      const existingReports = this.get(petId);
-      const existing: HealthReport[] = existingReports || [];
+      // Get existing reports safely with fallback
+      const cachedReports = this.get(petId) || [];
+      const existing: HealthReport[] = cachedReports;
       
       // Filter out any existing report with the same ID, using safe access
       const filtered = existing.filter(r => r && r.id && r.id !== report.id);
@@ -186,17 +186,34 @@ export const healthReportCache = {
   // Check if cache has any reports - FIXED VERSION
   hasReports: (petId: string): boolean => {
     try {
-      const cachedReports = this.get(petId);
-      const cachedPreviews = this.getCachedPreviews(petId);
+      const cachedReports = this.get(petId) || [];
+      const cachedPreviews = this.getCachedPreviews(petId) || [];
       
-      // Safe conversion with explicit checks
-      const cached: HealthReport[] = cachedReports || [];
-      const previews: CachedReportPreview[] = cachedPreviews || [];
-      
-      return cached.length > 0 || previews.length > 0;
+      return cachedReports.length > 0 || cachedPreviews.length > 0;
     } catch (error) {
       console.warn('Failed to check cached reports:', error);
       return false;
+    }
+  },
+
+  // Remove report from cache - NEW METHOD
+  removeReportFromCache: (petId: string, reportId: string) => {
+    try {
+      // Remove from main cache
+      const cachedReports = this.get(petId);
+      if (cachedReports) {
+        const existing: HealthReport[] = cachedReports;
+        const filtered = existing.filter(r => r && r.id && r.id !== reportId);
+        this.set(petId, filtered);
+      }
+      
+      // Remove preview cache
+      const previewKey = `${CACHE_KEY_PREFIX}preview_${petId}_${reportId}`;
+      localStorage.removeItem(previewKey);
+      
+      console.log('🗑️ Removed report from cache:', reportId);
+    } catch (error) {
+      console.warn('Failed to remove report from cache:', error);
     }
   },
 

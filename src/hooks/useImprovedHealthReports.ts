@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -394,6 +393,62 @@ export const useImprovedHealthReports = (petId?: string) => {
     }
   };
 
+  const deleteReport = async (reportId: string) => {
+    if (!petId) {
+      console.error('Cannot delete report: no petId provided');
+      return;
+    }
+
+    console.log('🗑️ Deleting health report:', reportId);
+    
+    try {
+      // Optimistically update UI
+      setHealthReports(prev => prev.filter(r => r.id !== reportId));
+      
+      // Remove from cache
+      healthReportCache.removeReportFromCache(petId, reportId);
+      
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('health_reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (deleteError) {
+        console.error('❌ Error deleting report from database:', deleteError);
+        
+        // Revert optimistic update on error
+        await loadReportsImproved();
+        
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete the health report. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Report deleted successfully');
+      
+      toast({
+        title: "Report Deleted",
+        description: "The health report has been deleted successfully.",
+      });
+
+    } catch (error) {
+      console.error('❌ Error in deleteReport:', error);
+      
+      // Revert optimistic update on error
+      await loadReportsImproved();
+      
+      toast({
+        title: "Delete Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     healthReports,
     loading,
@@ -401,6 +456,7 @@ export const useImprovedHealthReports = (petId?: string) => {
     connectionStatus,
     addReportToState,
     triggerAIAnalysis,
+    deleteReport,
     refetch: loadReportsImproved
   };
 };
