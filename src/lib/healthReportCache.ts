@@ -98,8 +98,8 @@ export const healthReportCache = {
             const item = localStorage.getItem(key);
             if (item) {
               const preview = JSON.parse(item);
-              // Check if preview is not expired
-              if (Date.now() - preview.cached_at < CACHE_EXPIRY) {
+              // Check if preview is not expired and has required properties
+              if (preview && preview.cached_at && Date.now() - preview.cached_at < CACHE_EXPIRY) {
                 previews.push(preview);
               } else {
                 localStorage.removeItem(key);
@@ -125,7 +125,7 @@ export const healthReportCache = {
       const cached = localStorage.getItem(key);
       if (cached) {
         const preview = JSON.parse(cached);
-        if (preview) {
+        if (preview && typeof preview === 'object') {
           preview.ai_analysis = aiAnalysis;
           preview.status = 'completed';
           preview.has_ai_diagnosis = true;
