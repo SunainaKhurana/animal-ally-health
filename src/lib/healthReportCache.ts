@@ -154,7 +154,7 @@ export const healthReportCache = {
     }
   },
 
-  // Add new report to cache immediately after upload
+  // Add new report to cache immediately after upload - FIXED VERSION
   addReportToCache: (petId: string, report: HealthReport) => {
     try {
       // Ensure report has required ID
@@ -163,10 +163,15 @@ export const healthReportCache = {
         return;
       }
 
-      // Update main cache with safe access - get existing reports or empty array
+      // Get existing reports safely
       const existingReports = this.get(petId);
-      const existing = existingReports || [];
-      const updated = [report, ...existing.filter(r => r?.id && r.id !== report.id)];
+      const existing: HealthReport[] = existingReports || [];
+      
+      // Filter out any existing report with the same ID, using safe access
+      const filtered = existing.filter(r => r && r.id && r.id !== report.id);
+      const updated = [report, ...filtered];
+      
+      // Update main cache
       this.set(petId, updated);
       
       // Cache preview
@@ -178,14 +183,15 @@ export const healthReportCache = {
     }
   },
 
-  // Check if cache has any reports
+  // Check if cache has any reports - FIXED VERSION
   hasReports: (petId: string): boolean => {
     try {
       const cachedReports = this.get(petId);
       const cachedPreviews = this.getCachedPreviews(petId);
       
-      const cached = cachedReports || [];
-      const previews = cachedPreviews || [];
+      // Safe conversion with explicit checks
+      const cached: HealthReport[] = cachedReports || [];
+      const previews: CachedReportPreview[] = cachedPreviews || [];
       
       return cached.length > 0 || previews.length > 0;
     } catch (error) {
