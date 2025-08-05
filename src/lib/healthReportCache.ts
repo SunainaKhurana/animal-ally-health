@@ -64,13 +64,19 @@ export const healthReportCache = {
   // Enhanced methods for instant report preview caching
   cacheReportPreview: (petId: string, report: Partial<HealthReport>) => {
     try {
+      // Add proper type guards for required fields
+      if (!report.id || !report.title || !report.report_type || !report.report_date) {
+        console.warn('Cannot cache report preview: missing required fields', report);
+        return;
+      }
+
       const key = `${CACHE_KEY_PREFIX}preview_${petId}_${report.id}`;
       const preview: CachedReportPreview = {
-        id: report.id!,
+        id: report.id,
         pet_id: petId,
-        title: report.title!,
-        report_type: report.report_type!,
-        report_date: report.report_date!,
+        title: report.title,
+        report_type: report.report_type,
+        report_date: report.report_date,
         report_label: report.report_label,
         vet_diagnosis: report.vet_diagnosis,
         image_url: report.image_url,
@@ -99,7 +105,11 @@ export const healthReportCache = {
             if (item) {
               const preview = JSON.parse(item);
               // Check if preview is not expired and has required properties
-              if (preview && preview.cached_at && Date.now() - preview.cached_at < CACHE_EXPIRY) {
+              if (preview && 
+                  typeof preview === 'object' && 
+                  preview.cached_at && 
+                  typeof preview.cached_at === 'number' &&
+                  Date.now() - preview.cached_at < CACHE_EXPIRY) {
                 previews.push(preview);
               } else {
                 localStorage.removeItem(key);
@@ -125,7 +135,12 @@ export const healthReportCache = {
       const cached = localStorage.getItem(key);
       if (cached) {
         const preview = JSON.parse(cached);
-        if (preview && typeof preview === 'object') {
+        if (preview && 
+            typeof preview === 'object' && 
+            'ai_analysis' in preview &&
+            'status' in preview &&
+            'has_ai_diagnosis' in preview &&
+            'ai_diagnosis_date' in preview) {
           preview.ai_analysis = aiAnalysis;
           preview.status = 'completed';
           preview.has_ai_diagnosis = true;
@@ -142,6 +157,12 @@ export const healthReportCache = {
   // Add new report to cache immediately after upload
   addReportToCache: (petId: string, report: HealthReport) => {
     try {
+      // Ensure report has required ID
+      if (!report.id) {
+        console.warn('Cannot add report to cache: missing ID', report);
+        return;
+      }
+
       // Update main cache
       const existing = this.get(petId) || [];
       const updated = [report, ...existing.filter(r => r.id !== report.id)];
