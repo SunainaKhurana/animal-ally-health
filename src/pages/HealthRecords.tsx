@@ -170,10 +170,7 @@ const HealthRecords = () => {
           />
         )}
 
-        <ProcessingReportsSection 
-          reports={processingReports}
-          onDelete={deleteReport}
-        />
+        <ProcessingReportsSection />
 
         <CompletedReportsSection 
           reports={completedReports}

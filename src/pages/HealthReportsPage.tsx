@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, FileText, Calendar, Brain, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Brain, Eye, Loader2, Plus, Filter } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
 import ImprovedHealthReportUpload from '@/components/health/ImprovedHealthReportUpload';
-import HealthReportsFilters from '@/components/health/HealthReportsFilters';
 
 const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -20,20 +19,15 @@ const HealthReportsPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [processingReports, setProcessingReports] = useState(new Set());
-  const [filters, setFilters] = useState({
-    reportType: 'all',
-    dateRange: 'all',
-    status: 'all'
-  });
 
   const pet = pets.find(p => p.id === petId);
 
   if (!pet) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Pet not found</h2>
-          <Button onClick={() => navigate('/care')}>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-semibold mb-4">Pet not found</h2>
+          <Button onClick={() => navigate('/care')} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Care
           </Button>
@@ -41,13 +35,6 @@ const HealthReportsPage = () => {
       </div>
     );
   }
-
-  // Filter reports based on current filters
-  const filteredReports = healthReports.filter(report => {
-    if (filters.reportType !== 'all' && report.report_type !== filters.reportType) return false;
-    if (filters.status !== 'all' && report.status !== filters.status) return false;
-    return true;
-  });
 
   const handleUploadComplete = (reportId: string) => {
     console.log('✅ Upload completed for report:', reportId);
@@ -70,258 +57,243 @@ const HealthReportsPage = () => {
     }
   };
 
-  const hasAnyReports = healthReports.length > 0;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusBadge = (report: any) => {
+    if (report.ai_analysis) {
+      return <Badge className="bg-green-100 text-green-800 text-xs">AI Analyzed</Badge>;
+    }
+    return <Badge variant="secondary" className="text-xs">Uploaded</Badge>;
+  };
+
+  const sortedReports = healthReports.sort((a, b) => 
+    new Date(b.actual_report_date || b.report_date).getTime() - 
+    new Date(a.actual_report_date || a.report_date).getTime()
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          {/* Navigation */}
-          <div className="flex items-center mb-6">
+    <div className="min-h-screen bg-background">
+      {/* Mobile Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/care')}
+                className="h-8 w-8 p-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-lg font-semibold truncate">
+                  {pet.name}'s Reports
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  {healthReports.length} {healthReports.length === 1 ? 'report' : 'reports'}
+                </p>
+              </div>
+            </div>
             <Button
-              variant="ghost"
+              onClick={() => setShowUpload(true)}
               size="sm"
-              onClick={() => navigate('/care')}
-              className="mr-2 -ml-2"
+              className="h-8 px-3 text-xs"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <Plus className="h-3 w-3 mr-1" />
+              Add
             </Button>
           </div>
-
-          {/* Title Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-              {pet.name}'s Health Reports
-            </h1>
-            <p className="text-lg text-gray-600">
-              {healthReports.length} {healthReports.length === 1 ? 'report' : 'reports'} uploaded
-            </p>
-          </div>
-
-          {/* Upload Button */}
-          {hasAnyReports && (
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setShowUpload(!showUpload)}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base font-medium"
-              >
-                {showUpload ? 'Hide Upload' : 'Upload Another Report'}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        {/* Upload Component */}
-        {(showUpload || !hasAnyReports) && (
-          <ImprovedHealthReportUpload
-            petId={petId!}
-            petInfo={{
-              name: pet.name,
-              type: pet.type,
-              breed: pet.breed
-            }}
-            onUploadComplete={handleUploadComplete}
-            addReportToState={addReportToState}
-          />
+      {/* Content */}
+      <div className="px-4 pb-20">
+        {/* Upload Section */}
+        {showUpload && (
+          <div className="py-4">
+            <ImprovedHealthReportUpload
+              petId={petId!}
+              petInfo={{
+                name: pet.name,
+                type: pet.type,
+                breed: pet.breed
+              }}
+              onUploadComplete={handleUploadComplete}
+              addReportToState={addReportToState}
+            />
+          </div>
         )}
 
-        {/* Filters and Reports List */}
-        {hasAnyReports && (
-          <>
-            <HealthReportsFilters 
-              filters={filters}
-              onFiltersChange={setFilters}
-              reports={healthReports}
-            />
-
-            {/* Reports List */}
-            <Card className="border-gray-200">
-              <CardHeader className="pb-6">
-                <CardTitle className="text-xl flex items-center gap-3">
-                  <FileText className="h-6 w-6 text-blue-500" />
-                  Health Reports
-                  {filteredReports.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto text-sm">
-                      {filteredReports.length}
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading reports...</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredReports
-                      .sort((a, b) => new Date(b.actual_report_date || b.report_date).getTime() - new Date(a.actual_report_date || a.report_date).getTime())
-                      .map((report) => (
-                      <div key={report.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-medium text-gray-900 cursor-pointer hover:text-blue-600" 
-                                  onClick={() => setSelectedReport(report)}>
-                                {report.report_label || report.title}
-                              </h3>
-                              <Badge variant="outline" className="text-xs">
-                                {report.report_type}
-                              </Badge>
-                              {report.ai_analysis && (
-                                <Badge className="bg-green-100 text-green-800 text-xs">
-                                  AI Analyzed
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Date(report.actual_report_date || report.report_date).toLocaleDateString()}
-                              </div>
-                            </div>
-
-                            {/* Report preview image */}
-                            {report.image_url && (
-                              <img 
-                                src={report.image_url}
-                                alt={report.title}
-                                className="w-full max-w-xs h-24 object-cover rounded border cursor-pointer hover:opacity-80"
-                                onClick={() => setSelectedReport(report)}
-                              />
-                            )}
-                          </div>
-
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setSelectedReport(report)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            
-                            {!report.ai_analysis ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAIAnalysis(report.id)}
-                                disabled={processingReports.has(report.id)}
-                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                              >
-                                {processingReports.has(report.id) ? (
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                ) : (
-                                  <Brain className="h-3 w-3 mr-1" />
-                                )}
-                                {processingReports.has(report.id) ? 'Analyzing...' : 'AI Analyse Report'}
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAIAnalysis(report.id)}
-                                disabled={processingReports.has(report.id)}
-                                className="text-green-600 border-green-200 hover:bg-green-50"
-                              >
-                                {processingReports.has(report.id) ? (
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                ) : (
-                                  <Brain className="h-3 w-3 mr-1" />
-                                )}
-                                {processingReports.has(report.id) ? 'Re-analyzing...' : 'Re-analyze Report'}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
+        {/* Reports List */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Loading reports...</p>
+            </div>
+          </div>
+        ) : sortedReports.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">No Reports Yet</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Upload your first health report to get started
+            </p>
+            <Button onClick={() => setShowUpload(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Report
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3 py-4">
+            {sortedReports.map((report) => (
+              <Card 
+                key={report.id} 
+                className="border-0 shadow-sm bg-card hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Report Image Thumbnail */}
+                    {report.image_url && (
+                      <div 
+                        className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-muted cursor-pointer"
+                        onClick={() => setSelectedReport(report)}
+                      >
+                        <img 
+                          src={report.image_url}
+                          alt={report.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                    ))}
+                    )}
+
+                    {/* Report Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 
+                          className="font-medium text-sm leading-tight truncate cursor-pointer hover:text-primary"
+                          onClick={() => setSelectedReport(report)}
+                        >
+                          {report.report_label || report.title}
+                        </h3>
+                        {getStatusBadge(report)}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(report.actual_report_date || report.report_date)}</span>
+                        <span>•</span>
+                        <span className="capitalize">{report.report_type}</span>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedReport(report)}
+                          className="h-7 px-2 text-xs text-muted-foreground"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant={report.ai_analysis ? "secondary" : "default"}
+                          onClick={() => handleAIAnalysis(report.id)}
+                          disabled={processingReports.has(report.id)}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {processingReports.has(report.id) ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Brain className="h-3 w-3 mr-1" />
+                          )}
+                          {processingReports.has(report.id) 
+                            ? 'Analyzing...' 
+                            : report.ai_analysis 
+                              ? 'Re-analyze' 
+                              : 'AI Analyze'
+                          }
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 
       {/* Report Detail Dialog */}
       {selectedReport && (
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
+          <DialogContent className="w-full h-full md:max-w-4xl md:h-auto md:max-h-[90vh] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-2 border-b">
+              <DialogTitle className="text-base font-medium truncate pr-8">
                 {selectedReport.report_label || selectedReport.title}
-                <div className="flex gap-2">
-                  {!selectedReport.ai_analysis ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAIAnalysis(selectedReport.id)}
-                      disabled={processingReports.has(selectedReport.id)}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                    >
-                      {processingReports.has(selectedReport.id) ? (
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      ) : (
-                        <Brain className="h-3 w-3 mr-1" />
-                      )}
-                      {processingReports.has(selectedReport.id) ? 'Analyzing...' : 'AI Analyse Report'}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAIAnalysis(selectedReport.id)}
-                      disabled={processingReports.has(selectedReport.id)}
-                      className="text-green-600 border-green-200 hover:bg-green-50"
-                    >
-                      {processingReports.has(selectedReport.id) ? (
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      ) : (
-                        <Brain className="h-3 w-3 mr-1" />
-                      )}
-                      {processingReports.has(selectedReport.id) ? 'Re-analyzing...' : 'Re-analyze Report'}
-                    </Button>
-                  )}
-                </div>
               </DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-4">
+            <div className="flex-1 overflow-auto p-4">
               {/* Report Image */}
               {selectedReport.image_url && (
-                <div className="text-center">
+                <div className="mb-6">
                   <img 
                     src={selectedReport.image_url}
                     alt={selectedReport.title}
-                    className="max-w-full h-auto rounded-lg border shadow-lg mx-auto"
+                    className="w-full h-auto rounded-lg border shadow-sm"
                   />
                 </div>
               )}
 
+              {/* AI Analysis CTA in Detail View */}
+              <div className="mb-6">
+                <Button
+                  onClick={() => handleAIAnalysis(selectedReport.id)}
+                  disabled={processingReports.has(selectedReport.id)}
+                  className="w-full"
+                  variant={selectedReport.ai_analysis ? "secondary" : "default"}
+                >
+                  {processingReports.has(selectedReport.id) ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Brain className="h-4 w-4 mr-2" />
+                  )}
+                  {processingReports.has(selectedReport.id) 
+                    ? 'Analyzing Report...' 
+                    : selectedReport.ai_analysis 
+                      ? 'Re-analyze Report' 
+                      : 'AI Analyze Report'
+                  }
+                </Button>
+              </div>
+
               {/* AI Analysis Results */}
               {selectedReport.ai_analysis && (
-                <div className="mt-6">
-                  <HealthReportCard
-                    report={selectedReport}
-                    onDelete={() => {}}
-                    autoExpand={true}
-                  />
-                </div>
+                <HealthReportCard
+                  report={selectedReport}
+                  onDelete={() => {}}
+                  autoExpand={true}
+                />
               )}
 
               {/* Processing State */}
               {processingReports.has(selectedReport.id) && (
                 <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-blue-500" />
-                  <p className="text-gray-600">Analyzing report... This may take a moment.</p>
+                  <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    Analyzing report... This may take a moment.
+                  </p>
                 </div>
               )}
             </div>
