@@ -323,7 +323,7 @@ export const useImprovedHealthReports = (petId?: string) => {
   };
 
   const triggerAIAnalysis = async (reportId: string) => {
-    console.log('🤖 Triggering AI analysis with improved error handling:', reportId);
+    console.log('🤖 Triggering AI analysis with enhanced pet data:', reportId);
     
     const report = healthReports.find(r => r.id === reportId);
     if (!report || !petId) {
@@ -337,9 +337,10 @@ export const useImprovedHealthReports = (petId?: string) => {
         r.id === reportId ? { ...r, status: 'processing' as const } : r
       ));
 
+      // Fetch enhanced pet data including all requested fields
       const { data: petData } = await supabase
         .from('pets')
-        .select('*')
+        .select('name, type, breed, gender, age_years, age_months, weight, weight_kg, pre_existing_conditions')
         .eq('id', petId)
         .single();
 
@@ -350,13 +351,19 @@ export const useImprovedHealthReports = (petId?: string) => {
         pet_name: petData?.name || '',
         pet_type: petData?.type || '',
         pet_breed: petData?.breed || '',
+        pet_gender: petData?.gender || '',
+        pet_age_years: petData?.age_years || 0,
+        pet_age_months: petData?.age_months || 0,
+        pet_weight: petData?.weight || 0,
+        pet_weight_kg: petData?.weight_kg || 0,
+        pre_existing_conditions: petData?.pre_existing_conditions || [],
         report_url: report.image_url,
         report_type: report.report_type,
         report_date: report.report_date,
         report_label: report.report_label
       };
 
-      console.log('📤 Sending AI analysis request:', payload);
+      console.log('📤 Sending enhanced AI analysis request:', payload);
 
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
         method: 'POST',
@@ -370,11 +377,11 @@ export const useImprovedHealthReports = (petId?: string) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('✅ AI analysis request sent successfully');
+      console.log('✅ Enhanced AI analysis request sent successfully');
 
       toast({
         title: "AI Analysis Started! 🧠",
-        description: "Analysis requested successfully. You'll be notified when complete.",
+        description: "Analysis requested successfully with pet health data. You'll be notified when complete.",
       });
 
     } catch (error) {
