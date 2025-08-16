@@ -82,8 +82,32 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
     }
   };
 
-  const analysis = report.ai_analysis ? JSON.parse(report.ai_analysis) : null;
-  const extractedData = report.extracted_text ? JSON.parse(report.extracted_text) : null;
+  // Safe JSON parsing with error handling
+  const parseAIAnalysis = (aiAnalysis: string | null) => {
+    if (!aiAnalysis) return null;
+    
+    try {
+      // Try to parse as JSON first
+      return JSON.parse(aiAnalysis);
+    } catch (error) {
+      console.log('AI analysis is not JSON format, treating as plain text:', aiAnalysis.substring(0, 50) + '...');
+      // If it's not JSON, treat it as plain text analysis
+      return {
+        analysis: aiAnalysis,
+        disclaimer: "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."
+      };
+    }
+  };
+
+  const analysis = parseAIAnalysis(report.ai_analysis);
+  const extractedData = report.extracted_text ? (() => {
+    try {
+      return JSON.parse(report.extracted_text);
+    } catch (error) {
+      console.log('Extracted text is not JSON format');
+      return null;
+    }
+  })() : null;
 
   // Only show the card if there's AI analysis to display
   if (!analysis) {
