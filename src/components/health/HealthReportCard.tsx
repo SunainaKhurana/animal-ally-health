@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { ChevronDown, ChevronUp, Sparkles, Edit2, Save, X, ExternalLink, Link, B
 import { HealthReport } from "@/hooks/useHealthReports";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import AIHealthReportSummary from "./AIHealthReportSummary";
 
 interface HealthReportCardProps {
   report: HealthReport;
@@ -83,19 +83,27 @@ const HealthReportCard = ({ report, onDelete, onTriggerAI, autoExpand = false }:
     }
   };
 
-  // Safe JSON parsing with error handling
+  // Safe JSON parsing with error handling - enhanced to handle structured AI analysis
   const parseAIAnalysis = (aiAnalysis: string | null) => {
     if (!aiAnalysis) return null;
     
     try {
       // Try to parse as JSON first
-      return JSON.parse(aiAnalysis);
+      const parsed = JSON.parse(aiAnalysis);
+      // Check if it's the new structured format
+      if (parsed && typeof parsed === 'object' && parsed.summary) {
+        return { structured: true, data: parsed };
+      }
+      return { structured: false, data: parsed };
     } catch (error) {
       console.log('AI analysis is not JSON format, treating as plain text:', aiAnalysis.substring(0, 50) + '...');
       // If it's not JSON, treat it as plain text analysis
       return {
-        analysis: aiAnalysis,
-        disclaimer: "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."
+        structured: false,
+        data: {
+          analysis: aiAnalysis,
+          disclaimer: "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."
+        }
       };
     }
   };
@@ -221,14 +229,19 @@ const HealthReportCard = ({ report, onDelete, onTriggerAI, autoExpand = false }:
             {/* AI Analysis or Call-to-Action */}
             {analysis ? (
               <>
-                {/* Main AI Analysis */}
-                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                  <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2 text-sm">
-                    <Sparkles className="h-3 w-3" />
-                    AI Summary & Insights
-                  </h4>
-                  <p className="text-xs text-green-800 whitespace-pre-wrap leading-relaxed">{analysis.analysis}</p>
-                </div>
+                {/* Check if it's structured analysis */}
+                {analysis.structured ? (
+                  <AIHealthReportSummary data={analysis.data} />
+                ) : (
+                  /* Legacy AI Analysis Display */
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2 text-sm">
+                      <Sparkles className="h-3 w-3" />
+                      AI Summary & Insights
+                    </h4>
+                    <p className="text-xs text-green-800 whitespace-pre-wrap leading-relaxed">{analysis.data.analysis}</p>
+                  </div>
+                )}
 
                 {/* Test Results */}
                 {extractedData?.parameters && extractedData.parameters.length > 0 && (
@@ -255,12 +268,12 @@ const HealthReportCard = ({ report, onDelete, onTriggerAI, autoExpand = false }:
                   </div>
                 )}
 
-                {/* Questions for Vet */}
-                {analysis.vetQuestions && analysis.vetQuestions.length > 0 && (
+                {/* Questions for Vet - only show for legacy format */}
+                {!analysis.structured && analysis.data.vetQuestions && analysis.data.vetQuestions.length > 0 && (
                   <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
                     <h4 className="font-medium text-orange-900 mb-2 text-sm">Questions to Ask Your Vet</h4>
                     <ul className="text-xs text-orange-800 space-y-1">
-                      {analysis.vetQuestions.map((question: string, index: number) => (
+                      {analysis.data.vetQuestions.map((question: string, index: number) => (
                         <li key={index} className="flex items-start gap-2">
                           <span className="text-orange-600 mt-0.5 flex-shrink-0">•</span>
                           <span>{question}</span>
@@ -339,12 +352,14 @@ const HealthReportCard = ({ report, onDelete, onTriggerAI, autoExpand = false }:
               </div>
             )}
 
-            {/* Disclaimer */}
-            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
-              <p className="text-xs text-amber-800">
-                <strong>Important:</strong> {analysis?.disclaimer || "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."}
-              </p>
-            </div>
+            {/* Disclaimer - only show for legacy format or if no structured disclaimer */}
+            {(!analysis || !analysis.structured) && (
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                <p className="text-xs text-amber-800">
+                  <strong>Important:</strong> {analysis?.data?.disclaimer || "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."}
+                </p>
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
