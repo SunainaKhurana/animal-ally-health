@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ChevronRight, Edit2, Save, X, Calendar, Stethoscope, Brain, FileText, Camera } from "lucide-react";
+import { ChevronRight, Edit2, Save, X, Calendar, Stethoscope, Brain, FileText, Camera, Loader2 } from "lucide-react";
 import { HealthReport } from "@/hooks/useHealthReports";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import AIHealthReportSummary from "./AIHealthReportSummary";
 
 interface HealthReportCardProps {
   report: HealthReport;
@@ -17,6 +18,7 @@ interface HealthReportCardProps {
   onTriggerAI?: (reportId: string) => void;
   onTap?: (report: HealthReport) => void;
   showAsListItem?: boolean;
+  isProcessing?: boolean;
 }
 
 const HealthReportCard = ({ 
@@ -24,7 +26,8 @@ const HealthReportCard = ({
   onDelete, 
   onTriggerAI, 
   onTap,
-  showAsListItem = false 
+  showAsListItem = false,
+  isProcessing = false
 }: HealthReportCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedLabel, setEditedLabel] = useState(report.report_label || '');
@@ -61,7 +64,7 @@ const HealthReportCard = ({
     }
   };
 
-  // Parse AI analysis to get key findings
+  // Parse AI analysis to get structured data
   const parseAIAnalysis = (aiAnalysis: string | null) => {
     if (!aiAnalysis) return null;
     
@@ -71,7 +74,7 @@ const HealthReportCard = ({
       const parsed = JSON.parse(cleanedAnalysis);
       return parsed;
     } catch (error) {
-      console.log('AI analysis is not JSON format');
+      console.log('AI analysis is not JSON format, treating as plain text');
       return { analysis: aiAnalysis };
     }
   };
@@ -84,11 +87,11 @@ const HealthReportCard = ({
     if (!analysis) return [];
     
     if (analysis.key_highlights) {
-      return analysis.key_highlights.slice(0, 3);
+      return analysis.key_highlights.slice(0, 2);
     }
     
     if (analysis.summary) {
-      return [analysis.summary];
+      return [analysis.summary.substring(0, 100) + '...'];
     }
     
     return [];
@@ -96,7 +99,20 @@ const HealthReportCard = ({
 
   const keyHighlights = getKeyHighlights();
 
-  // List view layout (matches screenshots)
+  // Get report images - handle both single image_url and multiple images
+  const getReportImages = () => {
+    const images = [];
+    if (report.image_url) {
+      images.push(report.image_url);
+    }
+    // If there are additional images in report_images array, add them
+    // This assumes there might be a report_images field in the future
+    return images;
+  };
+
+  const reportImages = getReportImages();
+
+  // List view layout
   if (showAsListItem) {
     return (
       <Card 
@@ -128,32 +144,37 @@ const HealthReportCard = ({
                 <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
               </div>
 
-              {/* Thumbnail Images */}
-              {report.image_url && (
+              {/* Thumbnail Images - Only show actual uploaded images */}
+              {reportImages.length > 0 && (
                 <div className="flex gap-2 mb-3">
-                  <div className="w-16 h-12 bg-gray-100 rounded overflow-hidden">
-                    <img 
-                      src={report.image_url} 
-                      alt="Report thumbnail"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {/* Mock second thumbnail for demo */}
-                  <div className="w-16 h-12 bg-red-100 rounded flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-red-500" />
-                    <span className="text-xs ml-1">PDF</span>
-                  </div>
+                  {reportImages.slice(0, 3).map((imageUrl, index) => (
+                    <div key={index} className="w-16 h-12 bg-gray-100 rounded overflow-hidden">
+                      <img 
+                        src={imageUrl} 
+                        alt={`Report image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ))}
+                  {reportImages.length > 3 && (
+                    <div className="w-16 h-12 bg-gray-200 rounded flex items-center justify-center">
+                      <span className="text-xs text-gray-600">+{reportImages.length - 3}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* AI Analysis Highlights */}
-              {hasAIAnalysis && keyHighlights.length > 0 && (
+              {/* AI Analysis Highlights or CTA */}
+              {hasAIAnalysis && keyHighlights.length > 0 ? (
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">AI</span>
                     </div>
-                    <span className="text-sm font-medium text-blue-900">AI Analysis Highlights</span>
+                    <span className="text-sm font-medium text-blue-900">AI Analysis</span>
                   </div>
                   <ul className="space-y-1">
                     {keyHighlights.map((highlight, index) => (
@@ -164,6 +185,30 @@ const HealthReportCard = ({
                     ))}
                   </ul>
                 </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {isProcessing ? (
+                    <div className="flex items-center gap-2 text-orange-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Analyzing...</span>
+                    </div>
+                  ) : (
+                    onTriggerAI && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTriggerAI(report.id);
+                        }}
+                        className="h-8 px-3 text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 hover:from-blue-600 hover:to-purple-700"
+                      >
+                        <Brain className="h-3 w-3 mr-1" />
+                        AI Analyze
+                      </Button>
+                    )
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -172,7 +217,7 @@ const HealthReportCard = ({
     );
   }
 
-  // Detail view layout (matches screenshots)
+  // Detail view layout
   return (
     <div className="space-y-6">
       {/* Report Header */}
@@ -242,37 +287,44 @@ const HealthReportCard = ({
       </div>
 
       {/* Attachments */}
-      <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Attachments</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {report.image_url && (
-            <div 
-              className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowImageDialog(true)}
-            >
-              <img 
-                src={report.image_url} 
-                alt="Report attachment"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          
-          {/* Mock PDF attachment */}
-          <div className="aspect-square bg-red-50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-red-100 transition-colors">
-            <FileText className="h-12 w-12 text-red-500 mb-2" />
-            <span className="text-sm font-medium text-red-700">Chemistry_Panel.pdf</span>
+      {reportImages.length > 0 && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-3">Attachments</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {reportImages.map((imageUrl, index) => (
+              <div 
+                key={index}
+                className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setShowImageDialog(true)}
+              >
+                <img 
+                  src={imageUrl} 
+                  alt={`Report attachment ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Report Summary */}
+      {/* AI Analysis Section */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Report Summary</h3>
-        {hasAIAnalysis ? (
+        <h3 className="font-semibold text-gray-900 mb-3">Report Analysis</h3>
+        {isProcessing ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              Analyzing report... This may take a moment.
+            </p>
+          </div>
+        ) : hasAIAnalysis ? (
           <div className="space-y-4">
-            {/* Key Highlights Box */}
-            {keyHighlights.length > 0 && (
+            {/* Use structured AI analysis component if data is structured */}
+            {analysis.summary || analysis.key_highlights || analysis.test_results ? (
+              <AIHealthReportSummary data={analysis} />
+            ) : (
+              /* Fallback for plain text analysis */
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -280,45 +332,19 @@ const HealthReportCard = ({
                   </div>
                   <span className="font-medium text-blue-900">AI Analysis</span>
                 </div>
-                
-                <div className="mb-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Key Highlights</h4>
-                  <ul className="space-y-1">
-                    {keyHighlights.map((highlight, index) => (
-                      <li key={index} className="text-blue-800 flex items-center gap-2">
-                        <span className="text-blue-600">•</span>
-                        <span>{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {analysis.summary && (
-                  <div>
-                    <h4 className="font-medium text-blue-900 mb-2">Detailed Analysis</h4>
-                    <p className="text-blue-800 leading-relaxed">{analysis.summary}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Full Report Analysis */}
-            {analysis.meaning && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-2">Full Report</h4>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {analysis.meaning}
+                <p className="text-blue-800 leading-relaxed whitespace-pre-line">
+                  {analysis.analysis || report.ai_analysis}
                 </p>
               </div>
             )}
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">All values within normal ranges.</p>
+            <p className="text-gray-600 mb-4">No analysis available yet.</p>
             {onTriggerAI && (
               <Button
                 onClick={() => onTriggerAI(report.id)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
               >
                 <Brain className="h-4 w-4 mr-2" />
                 Run AI Analysis
@@ -348,17 +374,19 @@ const HealthReportCard = ({
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Report Image</DialogTitle>
+            <DialogTitle>Report Images</DialogTitle>
           </DialogHeader>
-          {report.image_url && (
-            <div className="flex justify-center">
-              <img 
-                src={report.image_url} 
-                alt="Full report"
-                className="max-w-full h-auto rounded-lg"
-              />
-            </div>
-          )}
+          <div className="space-y-4">
+            {reportImages.map((imageUrl, index) => (
+              <div key={index} className="flex justify-center">
+                <img 
+                  src={imageUrl} 
+                  alt={`Full report ${index + 1}`}
+                  className="max-w-full h-auto rounded-lg"
+                />
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

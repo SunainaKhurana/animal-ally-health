@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Search, Plus, Loader2, Filter } from 'lucide-react';
+import { ArrowLeft, Search, Plus, Loader2 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
@@ -19,7 +19,6 @@ const HealthReportsPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
   const [processingReports, setProcessingReports] = useState(new Set());
 
   const pet = pets.find(p => p.id === petId);
@@ -73,24 +72,15 @@ const HealthReportsPage = () => {
     setSelectedReport(report);
   };
 
-  const filteredReports = healthReports.filter(report => {
-    const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (activeFilter === 'All') return matchesSearch;
-    if (activeFilter === 'Checkups') return matchesSearch && report.report_type === 'checkup';
-    if (activeFilter === 'Lab Tests') return matchesSearch && report.report_type === 'lab_test';
-    if (activeFilter === 'Imaging') return matchesSearch && report.report_type === 'imaging';
-    
-    return matchesSearch;
-  });
+  const filteredReports = healthReports.filter(report => 
+    report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const sortedReports = filteredReports.sort((a, b) => 
     new Date(b.actual_report_date || b.report_date).getTime() - 
     new Date(a.actual_report_date || a.report_date).getTime()
   );
-
-  const filters = ['All', 'Checkups', 'Lab Tests', 'Imaging'];
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,7 +110,7 @@ const HealthReportsPage = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="relative mb-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search reports..."
@@ -128,25 +118,6 @@ const HealthReportsPage = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-gray-50 border-0"
             />
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex gap-2 overflow-x-auto">
-            {filters.map((filter) => (
-              <Button
-                key={filter}
-                variant={activeFilter === filter ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter(filter)}
-                className={`whitespace-nowrap text-xs h-8 ${
-                  activeFilter === filter 
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                {filter}
-              </Button>
-            ))}
           </div>
         </div>
       </div>
@@ -202,17 +173,18 @@ const HealthReportsPage = () => {
                 onTriggerAI={handleAIAnalysis}
                 onTap={handleReportTap}
                 showAsListItem={true}
+                isProcessing={processingReports.has(report.id)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Report Detail Dialog */}
+      {/* Report Detail Dialog - Fixed scrolling */}
       {selectedReport && (
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="w-full h-full md:max-w-4xl md:h-auto md:max-h-[90vh] p-0 overflow-hidden">
-            <DialogHeader className="p-4 pb-2 border-b">
+          <DialogContent className="w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col">
+            <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
@@ -228,23 +200,14 @@ const HealthReportsPage = () => {
               </div>
             </DialogHeader>
             
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4">
               <HealthReportCard
                 report={selectedReport}
                 onDelete={() => {}}
                 onTriggerAI={handleAIAnalysis}
                 showAsListItem={false}
+                isProcessing={processingReports.has(selectedReport.id)}
               />
-
-              {/* Processing State */}
-              {processingReports.has(selectedReport.id) && (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    Analyzing report... This may take a moment.
-                  </p>
-                </div>
-              )}
             </div>
           </DialogContent>
         </Dialog>
