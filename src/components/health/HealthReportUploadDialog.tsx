@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -97,6 +96,24 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess, petId }
     return publicUrl;
   };
 
+  const insertHealthReport = async (reportData: any): Promise<string> => {
+    console.log('📝 Creating health report record in database:', reportData);
+
+    const { data: insertedReport, error } = await supabase
+      .from('health_reports')
+      .insert(reportData)
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('❌ Database insertion error:', error);
+      throw new Error(`Database insert failed: ${error.message}`);
+    }
+
+    console.log('✅ Health report record created with ID:', insertedReport.id);
+    return insertedReport.id;
+  };
+
   const resetForm = () => {
     setFile(null);
     setReportType('');
@@ -125,16 +142,33 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess, petId }
     setIsUploading(true);
 
     try {
-      console.log('🚀 Starting upload for pet:', { id: targetPet.id, name: targetPet.name });
+      console.log('🚀 Starting enhanced upload process for pet:', { id: targetPet.id, name: targetPet.name });
       
       // Step 1: Upload file to Supabase Storage
       const fileUrl = await uploadFileToSupabase(file);
       
-      // Step 2: Send complete payload to Make.com webhook
+      // Step 2: Create database record first to get the ID
       const title = reportLabel || `${reportType} - ${format(reportDate, 'MMM dd, yyyy')}`;
       
+      const reportData = {
+        pet_id: targetPet.id,
+        user_id: user.id,
+        title: title,
+        report_type: reportType,
+        report_date: format(reportDate, 'yyyy-MM-dd'),
+        actual_report_date: format(reportDate, 'yyyy-MM-dd'),
+        status: 'processing',
+        image_url: fileUrl,
+        report_label: reportLabel || null,
+        vet_diagnosis: vetDiagnosis || null
+      };
+
+      const healthReportId = await insertHealthReport(reportData);
+      
+      // Step 3: Send complete payload to Make.com webhook with the health report ID
       const payload = {
-        pet_id: targetPet.id, // Use the target pet ID (from props or selectedPet)
+        health_report_id: healthReportId, // Include the database record ID
+        pet_id: targetPet.id,
         user_id: user.id,
         title: title,
         report_type: reportType,
@@ -155,7 +189,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess, petId }
         pre_existing_conditions: targetPet.preExistingConditions || []
       };
 
-      console.log('📤 Sending payload to Make.com webhook:', payload);
+      console.log('📤 Sending enhanced payload to Make.com webhook with health_report_id:', payload);
 
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
         method: 'POST',
@@ -166,10 +200,11 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess, petId }
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.warn('⚠️ Make.com webhook failed, but database record exists:', response.status);
+        // Don't throw error here - the record is already created and visible to user
+      } else {
+        console.log('✅ Webhook call successful');
       }
-
-      console.log('✅ Webhook call successful');
 
       toast({
         title: "Report uploaded successfully!",
