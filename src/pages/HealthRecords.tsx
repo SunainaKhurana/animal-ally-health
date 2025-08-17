@@ -179,7 +179,9 @@ const HealthRecords = () => {
           loading={loading}
           onDelete={handleDeleteReport}
           onShowUpload={handleShowUpload}
+          onRefresh={refetch}
           recentlyUploadedId={recentlyUploadedId}
+          petId={currentPetId}
         />
       </div>
     </div>
