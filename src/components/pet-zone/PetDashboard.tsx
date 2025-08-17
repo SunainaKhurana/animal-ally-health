@@ -11,19 +11,64 @@ import {
   Calendar,
   Weight,
   Cake,
-  Stethoscope
+  Stethoscope,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { formatDate } from '@/lib/dateUtils';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '@/components/common/EmptyState';
 import emptyPets from '@/assets/empty-pets.png';
+import { useEffect } from 'react';
 
 const PetDashboard = () => {
-  const { selectedPet } = usePetContext();
+  const { selectedPet, pets, loading, error, retry } = usePetContext();
   const navigate = useNavigate();
 
-  if (!selectedPet) {
+  // Debug logging for dashboard
+  useEffect(() => {
+    console.log('🏠 PetDashboard State:', {
+      selectedPet: selectedPet ? { id: selectedPet.id, name: selectedPet.name } : null,
+      petsCount: pets.length,
+      loading,
+      error
+    });
+  }, [selectedPet, pets, loading, error]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-4 flex items-center justify-center min-h-[200px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your pets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-4">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="font-semibold text-red-800 mb-2">Unable to Load Pets</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={retry} variant="outline" className="text-red-700 border-red-300">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // No pets state
+  if (pets.length === 0) {
     return (
       <div className="p-4">
         <EmptyState
@@ -34,6 +79,25 @@ const PetDashboard = () => {
           onAction={() => navigate('/more')}
           className="mt-8"
         />
+      </div>
+    );
+  }
+
+  // No selected pet but pets exist
+  if (!selectedPet) {
+    return (
+      <div className="p-4">
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-6 text-center">
+            <h3 className="font-semibold text-orange-800 mb-2">Select a Pet</h3>
+            <p className="text-orange-600 mb-4">
+              You have {pets.length} pet{pets.length > 1 ? 's' : ''} but none is currently selected.
+            </p>
+            <p className="text-sm text-orange-500">
+              Use the pet switcher in the top right to select a pet.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -147,11 +211,14 @@ const PetDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('/care')}>
+        <Card 
+          className="cursor-pointer hover:bg-gray-50 transition-colors" 
+          onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
+        >
           <CardContent className="p-4 text-center">
             <Stethoscope className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">Quick Log</h3>
-            <p className="text-sm text-gray-600">Report symptoms</p>
+            <h3 className="font-semibold text-gray-900">Health Reports</h3>
+            <p className="text-sm text-gray-600">Upload & analyze reports</p>
           </CardContent>
         </Card>
       </div>

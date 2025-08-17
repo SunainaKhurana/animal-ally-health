@@ -59,46 +59,61 @@ export const usePets = () => {
         throw fetchError;
       }
 
-      console.log('✅ Fetched pets:', data?.length || 0);
+      console.log('✅ Raw pets data from database:', data);
 
-      // Transform data to match frontend interface
+      // Simplified transformation with better error handling
       const transformedPets = data?.map(pet => {
+        console.log('🔄 Transforming pet:', pet.name, pet);
+        
+        // Simple age calculation - use current age fields if available
         const currentDate = new Date();
+        let birthDate = new Date(currentDate);
         
-        const years = pet.age_years || pet.age || 0;
-        const months = pet.age_months || 0;
+        // If we have age fields, calculate birth date from them
+        if (pet.age_years || pet.age_months) {
+          const years = pet.age_years || 0;
+          const months = pet.age_months || 0;
+          birthDate.setFullYear(currentDate.getFullYear() - years);
+          birthDate.setMonth(currentDate.getMonth() - months);
+        } else if (pet.age) {
+          // Fallback to just age field
+          birthDate.setFullYear(currentDate.getFullYear() - pet.age);
+        }
         
-        const birthDate = new Date(currentDate);
-        birthDate.setFullYear(currentDate.getFullYear() - years);
-        birthDate.setMonth(currentDate.getMonth() - months);
-        
-        let displayWeight = pet.weight;
+        // Weight handling
+        let displayWeight = pet.weight || 0;
         let weightUnit = 'lbs';
         
+        // If weight_kg exists and is different from weight, use lbs
         if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) > 0.1) {
           displayWeight = pet.weight;
           weightUnit = 'lbs';
         } else if (pet.weight_kg && Math.abs(pet.weight_kg - pet.weight) < 0.1) {
+          // If weight and weight_kg are similar, it's probably in kg
           displayWeight = pet.weight;
           weightUnit = 'kg';
         }
 
-        return {
+        const transformedPet = {
           id: pet.id,
           name: pet.name,
           type: pet.type as 'dog' | 'cat',
-          breed: pet.breed,
+          breed: pet.breed || '',
           dateOfBirth: birthDate,
           weight: Number(displayWeight),
           weightUnit: weightUnit,
-          gender: pet.gender as 'male' | 'female',
+          gender: (pet.gender || 'male') as 'male' | 'female',
           photo: pet.photo_url,
           nextVaccination: undefined,
           preExistingConditions: pet.pre_existing_conditions || [],
-          reproductiveStatus: pet.reproductive_status as 'spayed' | 'neutered' | 'not_yet' || 'not_yet'
+          reproductiveStatus: (pet.reproductive_status || 'not_yet') as 'spayed' | 'neutered' | 'not_yet'
         };
+
+        console.log('✅ Transformed pet:', transformedPet);
+        return transformedPet;
       }) || [];
 
+      console.log('🎯 Final transformed pets:', transformedPets);
       setPets(transformedPets);
       setError(null);
     } catch (error: any) {

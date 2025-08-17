@@ -50,32 +50,53 @@ export const PetProvider = ({ children }: PetProviderProps) => {
   const { pets, loading, addPet, updatePet, deletePet, refetch, error } = usePets();
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
+  // Debug logging for context state
+  useEffect(() => {
+    console.log('🔍 PetContext Debug:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      petsCount: pets.length,
+      selectedPet: selectedPet ? { id: selectedPet.id, name: selectedPet.name } : null,
+      loading,
+      error
+    });
+  }, [user, pets, selectedPet, loading, error]);
+
   // Auto-select first pet if none selected and pets are available
   useEffect(() => {
-    if (user && !selectedPet && pets.length > 0) {
-      console.log('Auto-selecting first pet:', pets[0].name);
+    console.log('🎯 Auto-selection check:', {
+      hasUser: !!user,
+      hasSelectedPet: !!selectedPet,
+      petsCount: pets.length,
+      firstPet: pets[0] ? { id: pets[0].id, name: pets[0].name } : null
+    });
+
+    if (user && !loading && !selectedPet && pets.length > 0) {
+      console.log('✅ Auto-selecting first pet:', pets[0].name);
       setSelectedPet(pets[0]);
     }
-  }, [pets, selectedPet, user]);
+  }, [pets, selectedPet, user, loading]);
 
   // If selected pet is deleted or no longer exists, select first available pet
   useEffect(() => {
-    if (user && selectedPet && !pets.find(pet => pet.id === selectedPet.id)) {
-      console.log('Selected pet no longer exists, selecting new pet');
-      setSelectedPet(pets.length > 0 ? pets[0] : null);
+    if (user && !loading && selectedPet && pets.length > 0) {
+      const petExists = pets.find(pet => pet.id === selectedPet.id);
+      if (!petExists) {
+        console.log('⚠️ Selected pet no longer exists, selecting new pet');
+        setSelectedPet(pets.length > 0 ? pets[0] : null);
+      }
     }
-  }, [pets, selectedPet, user]);
+  }, [pets, selectedPet, user, loading]);
 
   // Clear selected pet when user logs out
   useEffect(() => {
     if (!user) {
-      console.log('User logged out, clearing selected pet');
+      console.log('🚪 User logged out, clearing selected pet');
       setSelectedPet(null);
     }
   }, [user]);
 
   const retry = () => {
-    console.log('Retrying pet fetch...');
+    console.log('🔄 Retrying pet fetch...');
     refetch();
   };
 
