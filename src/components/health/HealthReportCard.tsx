@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ChevronRight, Edit2, Save, X, Calendar, Stethoscope, Brain, FileText, Camera, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ChevronRight, Edit2, Save, X, Calendar, Stethoscope, Brain, FileText, Camera, Loader2, Trash2 } from "lucide-react";
 import { HealthReport } from "@/hooks/useHealthReports";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ const HealthReportCard = ({
   const [editedLabel, setEditedLabel] = useState(report.report_label || '');
   const [editedVetDiagnosis, setEditedVetDiagnosis] = useState(report.vet_diagnosis || '');
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
 
   const handleSaveEdit = async () => {
@@ -61,6 +62,13 @@ const HealthReportCard = ({
         description: "Could not save your changes. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (onDelete) {
+      onDelete(report.id);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -141,7 +149,43 @@ const HealthReportCard = ({
                     })} • {report.vet_diagnosis ? 'Dr. ' + report.vet_diagnosis.split(' ')[0] : 'No vet noted'}
                   </p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {onDelete && (
+                    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteDialog(true);
+                          }}
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Health Report</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{report.report_label || report.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteConfirm}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
               </div>
 
               {/* Thumbnail Images - Only show actual uploaded images */}
@@ -240,13 +284,45 @@ const HealthReportCard = ({
               </h1>
             )}
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => isEditing ? handleSaveEdit() : setIsEditing(true)}
-            >
-              {isEditing ? <Save className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => isEditing ? handleSaveEdit() : setIsEditing(true)}
+              >
+                {isEditing ? <Save className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+              </Button>
+              {onDelete && (
+                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Health Report</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{report.report_label || report.title}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDeleteConfirm}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
           <p className="text-gray-600">{report.report_type}</p>
         </div>

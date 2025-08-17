@@ -15,7 +15,7 @@ const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { pets } = usePetContext();
-  const { healthReports, loading, refetch, triggerAIAnalysis } = useImprovedHealthReports(petId);
+  const { healthReports, loading, refetch, triggerAIAnalysis, deleteReport } = useImprovedHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +65,17 @@ const HealthReportsPage = () => {
         return updated;
       });
     }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    console.log('🗑️ Deleting health report:', reportId);
+    
+    // Close detail dialog if the deleted report is currently selected
+    if (selectedReport && selectedReport.id === reportId) {
+      setSelectedReport(null);
+    }
+    
+    await deleteReport(reportId);
   };
 
   const handleReportTap = (report: any) => {
@@ -159,7 +170,7 @@ const HealthReportsPage = () => {
               <HealthReportCard
                 key={report.id}
                 report={report}
-                onDelete={() => {}}
+                onDelete={handleDeleteReport}
                 onTriggerAI={handleAIAnalysis}
                 onTap={handleReportTap}
                 showAsListItem={true}
@@ -200,7 +211,7 @@ const HealthReportsPage = () => {
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <HealthReportCard
                 report={selectedReport}
-                onDelete={() => {}}
+                onDelete={handleDeleteReport}
                 onTriggerAI={handleAIAnalysis}
                 showAsListItem={false}
                 isProcessing={processingReports.has(selectedReport.id)}

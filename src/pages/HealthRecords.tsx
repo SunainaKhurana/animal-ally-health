@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
@@ -98,6 +97,11 @@ const HealthRecords = () => {
     setShowUpload(true);
   };
 
+  const handleDeleteReport = async (reportId: string) => {
+    console.log('🗑️ Deleting health report from Health Records:', reportId);
+    await deleteReport(reportId);
+  };
+
   // Error states
   if (pets.length === 0) {
     return (
@@ -173,7 +177,7 @@ const HealthRecords = () => {
         <CompletedReportsSection 
           reports={completedReports}
           loading={loading}
-          onDelete={deleteReport}
+          onDelete={handleDeleteReport}
           onShowUpload={handleShowUpload}
           recentlyUploadedId={recentlyUploadedId}
         />
