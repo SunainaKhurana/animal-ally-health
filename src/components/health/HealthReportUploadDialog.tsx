@@ -151,9 +151,14 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
         report_label: reportLabel || null,
         vet_diagnosis: vetDiagnosis || null,
         file_url: fileUrl,
+        report_url: fileUrl,
         pet_name: selectedPet.name,
         pet_breed: selectedPet.breed,
-        pet_age: calculateAge(selectedPet.dateOfBirth)
+        pet_age: calculateAge(selectedPet.dateOfBirth),
+        pet_type: selectedPet.type,
+        pet_gender: selectedPet.gender,
+        pet_weight: selectedPet.weight,
+        pre_existing_conditions: selectedPet.preExistingConditions || []
       };
 
       console.log('Sending complete payload to Make.com webhook:', payload);
