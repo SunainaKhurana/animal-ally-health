@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -308,19 +309,7 @@ export const useImprovedHealthReports = (petId?: string) => {
     }, 5000);
   };
 
-  const addReportToState = (newReport: HealthReport) => {
-    console.log('✅ Adding report to state with improved tracking:', newReport.id);
-    
-    setHealthReports(prev => {
-      const updated = [newReport, ...prev.filter(r => r.id !== newReport.id)];
-      return updated;
-    });
-    
-    // Cache immediately
-    if (petId) {
-      healthReportCache.addReportToCache(petId, newReport);
-    }
-  };
+  // Remove the addReportToState function as it's no longer needed with direct database creation
 
   const triggerAIAnalysis = async (reportId: string) => {
     console.log('🤖 Triggering AI analysis with enhanced pet data:', reportId);
@@ -461,7 +450,6 @@ export const useImprovedHealthReports = (petId?: string) => {
     loading,
     error,
     connectionStatus,
-    addReportToState,
     triggerAIAnalysis,
     deleteReport,
     refetch: loadReportsImproved

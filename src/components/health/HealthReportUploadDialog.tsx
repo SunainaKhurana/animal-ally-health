@@ -92,6 +92,87 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     return publicUrl;
   };
 
+  const createHealthReportRecord = async (fileUrl: string): Promise<string> => {
+    if (!selectedPet || !user || !reportDate) {
+      throw new Error('Missing required data for creating health report');
+    }
+
+    const title = reportLabel || `${reportType} - ${format(reportDate, 'MMM dd, yyyy')}`;
+    
+    console.log('Creating health report record in database...');
+    
+    const { data, error } = await supabase
+      .from('health_reports')
+      .insert({
+        pet_id: selectedPet.id,
+        user_id: user.id,
+        title: title,
+        report_type: reportType,
+        report_date: format(reportDate, 'yyyy-MM-dd'),
+        actual_report_date: format(reportDate, 'yyyy-MM-dd'),
+        status: 'processing',
+        image_url: fileUrl,
+        report_label: reportLabel || null,
+        vet_diagnosis: vetDiagnosis || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database insert error:', error);
+      throw new Error(`Failed to create health report: ${error.message}`);
+    }
+
+    console.log('Health report record created:', data.id);
+    return data.id;
+  };
+
+  const triggerAIAnalysis = async (reportId: string, fileUrl: string) => {
+    try {
+      const calculateAge = (dateOfBirth: Date): number => {
+        const today = new Date();
+        const birthDate = new Date(dateOfBirth);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        return age;
+      };
+
+      const payload = {
+        report_id: reportId,
+        pet_id: selectedPet!.id,
+        user_id: user!.id,
+        report_type: reportType,
+        report_date: format(reportDate!, 'yyyy-MM-dd'),
+        report_label: reportLabel || null,
+        vet_diagnosis: vetDiagnosis || null,
+        file_url: fileUrl,
+        pet_name: selectedPet!.name,
+        pet_breed: selectedPet!.breed,
+        pet_age: calculateAge(selectedPet!.dateOfBirth)
+      };
+
+      console.log('Triggering AI analysis via webhook...');
+
+      await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('AI analysis webhook triggered successfully');
+    } catch (error) {
+      console.warn('AI analysis webhook failed, but report was created:', error);
+      // Don't throw error here as the report was successfully created
+    }
+  };
+
   const resetForm = () => {
     setFile(null);
     setReportType('');
@@ -101,19 +182,6 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     
     const fileInput = document.getElementById('file-upload') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
-  };
-
-  const calculateAge = (dateOfBirth: Date): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,43 +201,18 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     setIsUploading(true);
 
     try {
-      // First upload file to Supabase Storage
+      // Step 1: Upload file to Supabase Storage
       const fileUrl = await uploadFileToSupabase(file);
       
-      const payload = {
-        pet_id: selectedPet.id,
-        user_id: user.id,
-        report_type: reportType,
-        report_date: format(reportDate, 'yyyy-MM-dd'),
-        report_label: reportLabel || null,
-        vet_diagnosis: vetDiagnosis || null,
-        file_url: fileUrl,
-        pet_name: selectedPet.name,
-        pet_breed: selectedPet.breed,
-        pet_age: calculateAge(selectedPet.dateOfBirth)
-      };
-
-      console.log('Sending health report to Make.com webhook:', {
-        pet_id: payload.pet_id,
-        report_type: payload.report_type,
-        file_url: payload.file_url
-      });
-
-      const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Step 2: Create health report record in database
+      const reportId = await createHealthReportRecord(fileUrl);
+      
+      // Step 3: Trigger AI analysis (non-blocking)
+      triggerAIAnalysis(reportId, fileUrl);
 
       toast({
-        title: "Report uploaded!",
-        description: "Processing... You'll be notified when analysis is complete.",
+        title: "Report uploaded successfully!",
+        description: "Your health report has been uploaded and AI analysis is processing.",
       });
 
       resetForm();
