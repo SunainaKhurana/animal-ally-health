@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { usePetContext } from '@/contexts/PetContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateAge } from '@/lib/dateUtils';
 
 interface HealthReportUploadDialogProps {
   open: boolean;
@@ -90,19 +90,6 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
 
     console.log('File uploaded successfully, public URL:', publicUrl);
     return publicUrl;
-  };
-
-  const calculateAge = (dateOfBirth: Date): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
   };
 
   const resetForm = () => {
