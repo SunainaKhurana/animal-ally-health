@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +19,7 @@ const HealthReportsPage = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [processingReports, setProcessingReports] = useState(new Set());
+  const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
 
   const pet = pets.find(p => p.id === petId);
 
@@ -70,9 +70,17 @@ const HealthReportsPage = () => {
   const handleDeleteReport = async (reportId: string) => {
     console.log('🗑️ Deleting health report:', reportId);
     
-    // Close detail dialog if the deleted report is currently selected
-    if (selectedReport && selectedReport.id === reportId) {
-      setSelectedReport(null);
+    // Check if deletion is from detail view
+    const deletingFromDetail = selectedReport && selectedReport.id === reportId;
+    
+    if (deletingFromDetail) {
+      setIsDeletingFromDetail(true);
+      
+      // Add a smooth transition delay
+      setTimeout(() => {
+        setSelectedReport(null);
+        setIsDeletingFromDetail(false);
+      }, 500);
     }
     
     await deleteReport(reportId);
@@ -190,8 +198,15 @@ const HealthReportsPage = () => {
 
       {/* Report Detail Dialog */}
       {selectedReport && (
-        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col">
+        <Dialog 
+          open={!!selectedReport && !isDeletingFromDetail} 
+          onOpenChange={() => {
+            if (!isDeletingFromDetail) {
+              setSelectedReport(null);
+            }
+          }}
+        >
+          <DialogContent className={`w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col transition-all duration-300 ${isDeletingFromDetail ? 'animate-fade-out' : 'animate-fade-in'}`}>
             <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Button
@@ -199,6 +214,7 @@ const HealthReportsPage = () => {
                   size="sm"
                   onClick={() => setSelectedReport(null)}
                   className="h-8 w-8 p-0"
+                  disabled={isDeletingFromDetail}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>

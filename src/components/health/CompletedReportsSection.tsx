@@ -25,6 +25,7 @@ const CompletedReportsSection = ({
 }: CompletedReportsSectionProps) => {
   const [selectedReport, setSelectedReport] = useState<HealthReport | null>(null);
   const [processingReports, setProcessingReports] = useState(new Set<string>());
+  const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
 
   const handleReportClick = (report: HealthReport) => {
     console.log('📋 Report selected:', report.id);
@@ -36,8 +37,6 @@ const CompletedReportsSection = ({
     setProcessingReports(prev => new Set(prev).add(reportId));
     
     try {
-      // This would typically call the AI analysis function
-      // For now, we'll just simulate the processing state
       await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (error) {
       console.error('❌ AI analysis failed:', error);
@@ -48,6 +47,25 @@ const CompletedReportsSection = ({
         return updated;
       });
     }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    console.log('🗑️ Deleting health report from CompletedReportsSection:', reportId);
+    
+    // Check if deletion is from detail view
+    const deletingFromDetail = selectedReport && selectedReport.id === reportId;
+    
+    if (deletingFromDetail) {
+      setIsDeletingFromDetail(true);
+      
+      // Add smooth transition delay before closing dialog  
+      setTimeout(() => {
+        setSelectedReport(null);
+        setIsDeletingFromDetail(false);
+      }, 500);
+    }
+    
+    await onDelete(reportId);
   };
 
   if (loading) {
@@ -105,7 +123,7 @@ const CompletedReportsSection = ({
               <HealthReportCard
                 key={report.id}
                 report={report}
-                onDelete={onDelete}
+                onDelete={handleDeleteReport}
                 onTriggerAI={handleTriggerAI}
                 onTap={handleReportClick}
                 showAsListItem={true}
@@ -118,8 +136,15 @@ const CompletedReportsSection = ({
 
       {/* Report Detail Dialog */}
       {selectedReport && (
-        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col">
+        <Dialog 
+          open={!!selectedReport && !isDeletingFromDetail} 
+          onOpenChange={() => {
+            if (!isDeletingFromDetail) {
+              setSelectedReport(null);
+            }
+          }}
+        >
+          <DialogContent className={`w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col transition-all duration-300 ${isDeletingFromDetail ? 'animate-fade-out' : 'animate-fade-in'}`}>
             <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Button
@@ -127,6 +152,7 @@ const CompletedReportsSection = ({
                   size="sm"
                   onClick={() => setSelectedReport(null)}
                   className="h-8 w-8 p-0"
+                  disabled={isDeletingFromDetail}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -139,10 +165,7 @@ const CompletedReportsSection = ({
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <HealthReportCard
                 report={selectedReport}
-                onDelete={(reportId) => {
-                  onDelete(reportId);
-                  setSelectedReport(null); // Close dialog after delete
-                }}
+                onDelete={handleDeleteReport}
                 onTriggerAI={handleTriggerAI}
                 showAsListItem={false}
                 isProcessing={processingReports.has(selectedReport.id)}

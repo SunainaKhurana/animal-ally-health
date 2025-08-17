@@ -34,6 +34,7 @@ const HealthReportCard = ({
   const [editedVetDiagnosis, setEditedVetDiagnosis] = useState(report.vet_diagnosis || '');
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleSaveEdit = async () => {
@@ -65,19 +66,37 @@ const HealthReportCard = ({
     }
   };
 
-  const handleDeleteConfirm = () => {
-    if (onDelete) {
-      onDelete(report.id);
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(report.id);
       setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  // Parse AI analysis to get structured data
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent card click if delete dialog is open or currently deleting
+    if (showDeleteDialog || isDeleting) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    if (onTap) {
+      onTap(report);
+    }
+  };
+
   const parseAIAnalysis = (aiAnalysis: string | null) => {
     if (!aiAnalysis) return null;
     
     try {
-      // Remove markdown code blocks if present
       const cleanedAnalysis = aiAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '');
       const parsed = JSON.parse(cleanedAnalysis);
       return parsed;
@@ -90,7 +109,6 @@ const HealthReportCard = ({
   const analysis = parseAIAnalysis(report.ai_analysis);
   const hasAIAnalysis = !!analysis;
 
-  // Extract key highlights for list view
   const getKeyHighlights = () => {
     if (!analysis) return [];
     
@@ -107,14 +125,11 @@ const HealthReportCard = ({
 
   const keyHighlights = getKeyHighlights();
 
-  // Get report images - handle both single image_url and multiple images
   const getReportImages = () => {
     const images = [];
     if (report.image_url) {
       images.push(report.image_url);
     }
-    // If there are additional images in report_images array, add them
-    // This assumes there might be a report_images field in the future
     return images;
   };
 
@@ -124,8 +139,8 @@ const HealthReportCard = ({
   if (showAsListItem) {
     return (
       <Card 
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => onTap?.(report)}
+        className={`cursor-pointer hover:shadow-md transition-shadow ${showDeleteDialog || isDeleting ? 'pointer-events-none opacity-75' : ''}`}
+        onClick={handleCardClick}
       >
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
@@ -157,15 +172,21 @@ const HealthReportCard = ({
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             setShowDeleteDialog(true);
                           }}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 pointer-events-auto"
+                          disabled={isDeleting}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Health Report</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -173,12 +194,31 @@ const HealthReportCard = ({
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={handleDeleteConfirm}
-                            className="bg-red-600 hover:bg-red-700"
+                          <AlertDialogCancel 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDeleteDialog(false);
+                            }}
+                            disabled={isDeleting}
                           >
-                            Delete
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteConfirm();
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Deleting...
+                              </>
+                            ) : (
+                              'Delete'
+                            )}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -299,8 +339,13 @@ const HealthReportCard = ({
                       variant="ghost"
                       size="sm"
                       className="text-gray-400 hover:text-red-600"
+                      disabled={isDeleting}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -311,12 +356,20 @@ const HealthReportCard = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleDeleteConfirm}
                         className="bg-red-600 hover:bg-red-700"
+                        disabled={isDeleting}
                       >
-                        Delete
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          'Delete'
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
