@@ -56,7 +56,7 @@ const CompletedReportsSection = ({
               key={report.id}
               report={report}
               onDelete={onDelete}
-              autoExpand={report.id === recentlyUploadedId}
+              showAsListItem={true}
             />
           ))
         )}
