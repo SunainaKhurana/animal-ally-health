@@ -7,14 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PetProvider } from "@/contexts/PetContext";
 import { ChatCacheProvider } from "@/contexts/ChatCacheContext";
-import AuthGuard from "@/components/auth/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import CareTab from "./pages/CareTab";
 import ActivityTab from "./pages/ActivityTab";
 import AssistantTab from "./pages/AssistantTab";
 import MoreTab from "./pages/MoreTab";
 import PetProfile from "./pages/PetProfile";
-import HealthReports from "./pages/HealthReports";
 import HealthReportsPage from "./pages/HealthReportsPage";
 import WeightTracking from "./pages/WeightTracking";
 import WalksTracker from "./pages/WalksTracker";
@@ -46,7 +45,7 @@ const App = () => (
                   <Route path="/assistant" element={<AssistantTab />} />
                   <Route path="/more" element={<MoreTab />} />
                   <Route path="/pet/:petId" element={<PetProfile />} />
-                  <Route path="/health-reports" element={<HealthReports />} />
+                  <Route path="/health-reports" element={<HealthReportsPage />} />
                   <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
                   <Route path="/weight/:petId" element={<WeightTracking />} />
                   <Route path="/walks/:petId" element={<WalksTracker />} />
