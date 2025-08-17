@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -123,6 +123,7 @@ export type Database = {
         Row: {
           actual_report_date: string | null
           ai_analysis: string | null
+          ai_diagnosis: string | null
           confidence_score: number | null
           created_at: string | null
           extracted_text: string | null
@@ -133,10 +134,13 @@ export type Database = {
           key_findings: string | null
           manual_diagnosis: string | null
           notes: string | null
+          ocr_parameters: Json | null
+          ocr_text_raw: string | null
           parent_report_id: string | null
           parsed_parameters_json: Json | null
           pet_id: string
           report_date: string
+          report_images: string[] | null
           report_label: string | null
           report_origin: string | null
           report_type: string
@@ -151,6 +155,7 @@ export type Database = {
         Insert: {
           actual_report_date?: string | null
           ai_analysis?: string | null
+          ai_diagnosis?: string | null
           confidence_score?: number | null
           created_at?: string | null
           extracted_text?: string | null
@@ -161,10 +166,13 @@ export type Database = {
           key_findings?: string | null
           manual_diagnosis?: string | null
           notes?: string | null
+          ocr_parameters?: Json | null
+          ocr_text_raw?: string | null
           parent_report_id?: string | null
           parsed_parameters_json?: Json | null
           pet_id: string
           report_date: string
+          report_images?: string[] | null
           report_label?: string | null
           report_origin?: string | null
           report_type: string
@@ -179,6 +187,7 @@ export type Database = {
         Update: {
           actual_report_date?: string | null
           ai_analysis?: string | null
+          ai_diagnosis?: string | null
           confidence_score?: number | null
           created_at?: string | null
           extracted_text?: string | null
@@ -189,10 +198,13 @@ export type Database = {
           key_findings?: string | null
           manual_diagnosis?: string | null
           notes?: string | null
+          ocr_parameters?: Json | null
+          ocr_text_raw?: string | null
           parent_report_id?: string | null
           parsed_parameters_json?: Json | null
           pet_id?: string
           report_date?: string
+          report_images?: string[] | null
           report_label?: string | null
           report_origin?: string | null
           report_type?: string

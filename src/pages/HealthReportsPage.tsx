@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ArrowLeft, Search, Plus, Loader2 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useImprovedHealthReports } from '@/hooks/useImprovedHealthReports';
+import { useHealthReportsRealtime } from '@/hooks/useHealthReportsRealtime';
 import HealthReportCard from '@/components/health/HealthReportCard';
 import HealthReportUploadDialog from '@/components/health/HealthReportUploadDialog';
+import HealthReportsRefreshButton from '@/components/health/HealthReportsRefreshButton';
 
 const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -20,8 +22,33 @@ const HealthReportsPage = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
+  const [localReports, setLocalReports] = useState(healthReports);
 
   const pet = pets.find(p => p.id === petId);
+
+  // Update local reports when healthReports change
+  useEffect(() => {
+    setLocalReports(healthReports);
+  }, [healthReports]);
+
+  // Set up real-time subscription
+  useHealthReportsRealtime(
+    petId,
+    (updatedReport) => {
+      console.log('📝 Real-time update received for report:', updatedReport.id);
+      setLocalReports(prev => prev.map(r => 
+        r.id === updatedReport.id ? updatedReport : r
+      ));
+    },
+    (newReport) => {
+      console.log('➕ Real-time insert received for report:', newReport.id);
+      setLocalReports(prev => [newReport, ...prev.filter(r => r.id !== newReport.id)]);
+    },
+    (deletedReportId) => {
+      console.log('🗑️ Real-time delete received for report:', deletedReportId);
+      setLocalReports(prev => prev.filter(r => r.id !== deletedReportId));
+    }
+  );
 
   // Set the selected pet when component mounts
   useEffect(() => {
@@ -33,7 +60,7 @@ const HealthReportsPage = () => {
   console.log('HealthReportsPage Debug:', {
     petId,
     pet: pet ? { id: pet.id, name: pet.name } : null,
-    reportsCount: healthReports.length,
+    reportsCount: localReports.length,
     loading,
     selectedReport: selectedReport ? selectedReport.id : null
   });
@@ -81,7 +108,7 @@ const HealthReportsPage = () => {
   };
 
   // Simple search filtering only
-  const filteredReports = healthReports.filter(report => {
+  const filteredReports = localReports.filter(report => {
     if (!searchQuery) return true;
     
     const searchLower = searchQuery.toLowerCase();
@@ -115,14 +142,20 @@ const HealthReportsPage = () => {
                 <p className="text-sm text-muted-foreground">{pet.name}</p>
               </div>
             </div>
-            <Button
-              onClick={() => setShowUpload(true)}
-              size="sm"
-              className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add
-            </Button>
+            <div className="flex items-center gap-2">
+              <HealthReportsRefreshButton 
+                onRefresh={refetch} 
+                isLoading={loading}
+              />
+              <Button
+                onClick={() => setShowUpload(true)}
+                size="sm"
+                className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            </div>
           </div>
 
           {/* Search Bar */}

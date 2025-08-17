@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,14 +6,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileText, Plus, ArrowLeft, Stethoscope, Brain, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { HealthReport } from "@/hooks/useHealthReports";
+import { useHealthReportsRealtime } from "@/hooks/useHealthReportsRealtime";
 import HealthReportCard from "./HealthReportCard";
+import HealthReportsRefreshButton from "./HealthReportsRefreshButton";
 
 interface CompletedReportsSectionProps {
   reports: HealthReport[];
   loading: boolean;
   onDelete: (reportId: string) => void;
   onShowUpload: () => void;
+  onRefresh: () => Promise<void>;
   recentlyUploadedId?: string | null;
+  petId?: string;
 }
 
 const CompletedReportsSection = ({ 
@@ -20,10 +25,37 @@ const CompletedReportsSection = ({
   loading, 
   onDelete, 
   onShowUpload, 
-  recentlyUploadedId 
+  onRefresh,
+  recentlyUploadedId,
+  petId
 }: CompletedReportsSectionProps) => {
   const [selectedReport, setSelectedReport] = useState<HealthReport | null>(null);
   const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
+  const [localReports, setLocalReports] = useState(reports);
+
+  // Update local reports when reports prop changes
+  React.useEffect(() => {
+    setLocalReports(reports);
+  }, [reports]);
+
+  // Set up real-time subscription
+  useHealthReportsRealtime(
+    petId,
+    (updatedReport) => {
+      console.log('📝 CompletedReportsSection: Real-time update received');
+      setLocalReports(prev => prev.map(r => 
+        r.id === updatedReport.id ? updatedReport : r
+      ));
+    },
+    (newReport) => {
+      console.log('➕ CompletedReportsSection: Real-time insert received');
+      setLocalReports(prev => [newReport, ...prev.filter(r => r.id !== newReport.id)]);
+    },
+    (deletedReportId) => {
+      console.log('🗑️ CompletedReportsSection: Real-time delete received');
+      setLocalReports(prev => prev.filter(r => r.id !== deletedReportId));
+    }
+  );
 
   const handleReportClick = (report: HealthReport) => {
     console.log('📋 Report selected:', report.id);
@@ -73,17 +105,23 @@ const CompletedReportsSection = ({
               <FileText className="h-5 w-5" />
               Health Reports
             </CardTitle>
-            <Button onClick={onShowUpload} size="sm" className="h-8 px-3 text-xs">
-              <Plus className="h-3 w-3 mr-1" />
-              Add Report
-            </Button>
+            <div className="flex items-center gap-2">
+              <HealthReportsRefreshButton 
+                onRefresh={onRefresh} 
+                isLoading={loading}
+              />
+              <Button onClick={onShowUpload} size="sm" className="h-8 px-3 text-xs">
+                <Plus className="h-3 w-3 mr-1" />
+                Add Report
+              </Button>
+            </div>
           </div>
           <CardDescription>
-            {reports.length === 0 ? 'No reports yet' : `${reports.length} report${reports.length !== 1 ? 's' : ''}`}
+            {localReports.length === 0 ? 'No reports yet' : `${localReports.length} report${localReports.length !== 1 ? 's' : ''}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {reports.length === 0 ? (
+          {localReports.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileText className="h-8 w-8 text-gray-400" />
@@ -98,7 +136,7 @@ const CompletedReportsSection = ({
               </Button>
             </div>
           ) : (
-            reports.map((report) => (
+            localReports.map((report) => (
               <HealthReportCard
                 key={report.id}
                 report={report}
