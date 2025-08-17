@@ -309,8 +309,6 @@ export const useImprovedHealthReports = (petId?: string) => {
     }, 5000);
   };
 
-  // Remove the addReportToState function as it's no longer needed with direct database creation
-
   const triggerAIAnalysis = async (reportId: string) => {
     console.log('🤖 Triggering AI analysis with enhanced pet data:', reportId);
     
