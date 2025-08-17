@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,14 +15,34 @@ const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { pets } = usePetContext();
-  const { healthReports, loading, refetch, triggerAIAnalysis, deleteReport } = useImprovedHealthReports(petId);
+  const { healthReports, loading, refetch, deleteReport } = useImprovedHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [processingReports, setProcessingReports] = useState(new Set());
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
 
   const pet = pets.find(p => p.id === petId);
+
+  // Category mapping
+  const getReportCategory = (reportType: string) => {
+    const type = reportType.toLowerCase();
+    if (type.includes('checkup') || type.includes('exam') || type.includes('wellness')) {
+      return 'checkups';
+    } else if (type.includes('lab') || type.includes('blood') || type.includes('urine') || type.includes('test')) {
+      return 'lab';
+    } else if (type.includes('x-ray') || type.includes('ultrasound') || type.includes('mri') || type.includes('imaging') || type.includes('scan')) {
+      return 'imaging';
+    }
+    return 'other';
+  };
+
+  const categories = [
+    { id: 'all', label: 'All', count: healthReports.length },
+    { id: 'checkups', label: 'Checkups', count: healthReports.filter(r => getReportCategory(r.report_type) === 'checkups').length },
+    { id: 'lab', label: 'Lab Tests', count: healthReports.filter(r => getReportCategory(r.report_type) === 'lab').length },
+    { id: 'imaging', label: 'Imaging', count: healthReports.filter(r => getReportCategory(r.report_type) === 'imaging').length }
+  ];
 
   console.log('HealthReportsPage Debug:', {
     petId,
@@ -51,32 +72,14 @@ const HealthReportsPage = () => {
     refetch();
   };
 
-  const handleAIAnalysis = async (reportId: string) => {
-    console.log('🤖 Starting AI analysis for report:', reportId);
-    setProcessingReports(prev => new Set(prev).add(reportId));
-    try {
-      await triggerAIAnalysis(reportId);
-    } catch (error) {
-      console.error('❌ AI Analysis failed:', error);
-    } finally {
-      setProcessingReports(prev => {
-        const updated = new Set(prev);
-        updated.delete(reportId);
-        return updated;
-      });
-    }
-  };
-
   const handleDeleteReport = async (reportId: string) => {
     console.log('🗑️ Deleting health report:', reportId);
     
-    // Check if deletion is from detail view
     const deletingFromDetail = selectedReport && selectedReport.id === reportId;
     
     if (deletingFromDetail) {
       setIsDeletingFromDetail(true);
       
-      // Add a smooth transition delay
       setTimeout(() => {
         setSelectedReport(null);
         setIsDeletingFromDetail(false);
@@ -91,10 +94,15 @@ const HealthReportsPage = () => {
     setSelectedReport(report);
   };
 
-  const filteredReports = healthReports.filter(report => 
-    report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredReports = healthReports.filter(report => {
+    const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || 
+      getReportCategory(report.report_type) === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   const sortedReports = filteredReports.sort((a, b) => 
     new Date(b.actual_report_date || b.report_date).getTime() - 
@@ -128,6 +136,25 @@ const HealthReportsPage = () => {
             </Button>
           </div>
 
+          {/* Category Filters */}
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category.id)}
+                className={`h-8 px-3 text-xs whitespace-nowrap ${
+                  selectedCategory === category.id 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {category.label} ({category.count})
+              </Button>
+            ))}
+          </div>
+
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -157,15 +184,15 @@ const HealthReportsPage = () => {
               <Search className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium mb-2">
-              {searchQuery ? 'No matching reports' : 'No Reports Yet'}
+              {searchQuery || selectedCategory !== 'all' ? 'No matching reports' : 'No Reports Yet'}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              {searchQuery 
-                ? 'Try adjusting your search terms'
+              {searchQuery || selectedCategory !== 'all'
+                ? 'Try adjusting your search terms or filters'
                 : 'Upload your first health report to get started'
               }
             </p>
-            {!searchQuery && (
+            {!searchQuery && selectedCategory === 'all' && (
               <Button onClick={() => setShowUpload(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Upload Report
@@ -179,10 +206,8 @@ const HealthReportsPage = () => {
                 key={report.id}
                 report={report}
                 onDelete={handleDeleteReport}
-                onTriggerAI={handleAIAnalysis}
                 onTap={handleReportTap}
                 showAsListItem={true}
-                isProcessing={processingReports.has(report.id)}
               />
             ))}
           </div>
@@ -228,9 +253,8 @@ const HealthReportsPage = () => {
               <HealthReportCard
                 report={selectedReport}
                 onDelete={handleDeleteReport}
-                onTriggerAI={handleAIAnalysis}
+                onTap={handleReportTap}
                 showAsListItem={false}
-                isProcessing={processingReports.has(selectedReport.id)}
               />
             </div>
           </DialogContent>

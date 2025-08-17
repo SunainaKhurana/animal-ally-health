@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,24 +11,20 @@ import { ChevronRight, Edit2, Save, X, Calendar, Stethoscope, Brain, FileText, C
 import { HealthReport } from "@/hooks/useHealthReports";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import AIHealthReportSummary from "./AIHealthReportSummary";
+import OCRParametersDisplay from "./OCRParametersDisplay";
 
 interface HealthReportCardProps {
   report: HealthReport;
   onDelete?: (reportId: string) => void;
-  onTriggerAI?: (reportId: string) => void;
   onTap?: (report: HealthReport) => void;
   showAsListItem?: boolean;
-  isProcessing?: boolean;
 }
 
 const HealthReportCard = ({ 
   report, 
   onDelete, 
-  onTriggerAI, 
   onTap,
-  showAsListItem = false,
-  isProcessing = false
+  showAsListItem = false
 }: HealthReportCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedLabel, setEditedLabel] = useState(report.report_label || '');
@@ -35,6 +32,7 @@ const HealthReportCard = ({
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingFromList, setIsDeletingFromList] = useState(false);
   const { toast } = useToast();
 
   const handleSaveEdit = async () => {
@@ -70,6 +68,11 @@ const HealthReportCard = ({
     if (!onDelete) return;
     
     setIsDeleting(true);
+    
+    if (showAsListItem) {
+      setIsDeletingFromList(true);
+    }
+    
     try {
       await onDelete(report.id);
       setShowDeleteDialog(false);
@@ -77,53 +80,33 @@ const HealthReportCard = ({
       console.error('Delete failed:', error);
     } finally {
       setIsDeleting(false);
+      setIsDeletingFromList(false);
     }
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent card click if delete dialog is open or currently deleting
-    if (showDeleteDialog || isDeleting) {
+    if (showDeleteDialog || isDeleting || isDeletingFromList) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
     
-    if (onTap) {
+    if (onTap && showAsListItem) {
       onTap(report);
     }
   };
 
-  const parseAIAnalysis = (aiAnalysis: string | null) => {
-    if (!aiAnalysis) return null;
+  const formatKeyFindings = (keyFindings: string | null) => {
+    if (!keyFindings) return [];
     
-    try {
-      const cleanedAnalysis = aiAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      const parsed = JSON.parse(cleanedAnalysis);
-      return parsed;
-    } catch (error) {
-      console.log('AI analysis is not JSON format, treating as plain text');
-      return { analysis: aiAnalysis };
-    }
+    // Split by bullet points, periods, or new lines and clean up
+    const findings = keyFindings
+      .split(/[•\n]|(?:\d+\.)|(?:-\s)/)
+      .map(finding => finding.trim())
+      .filter(finding => finding.length > 0 && finding !== '.' && finding !== '-');
+    
+    return findings.slice(0, 3); // Show max 3 findings in list view
   };
-
-  const analysis = parseAIAnalysis(report.ai_analysis);
-  const hasAIAnalysis = !!analysis;
-
-  const getKeyHighlights = () => {
-    if (!analysis) return [];
-    
-    if (analysis.key_highlights) {
-      return analysis.key_highlights.slice(0, 2);
-    }
-    
-    if (analysis.summary) {
-      return [analysis.summary.substring(0, 100) + '...'];
-    }
-    
-    return [];
-  };
-
-  const keyHighlights = getKeyHighlights();
 
   const getReportImages = () => {
     const images = [];
@@ -134,12 +117,15 @@ const HealthReportCard = ({
   };
 
   const reportImages = getReportImages();
+  const keyFindings = formatKeyFindings(report.key_findings);
 
   // List view layout
   if (showAsListItem) {
     return (
       <Card 
-        className={`cursor-pointer hover:shadow-md transition-shadow ${showDeleteDialog || isDeleting ? 'pointer-events-none opacity-75' : ''}`}
+        className={`cursor-pointer hover:shadow-md transition-all duration-200 ${
+          showDeleteDialog || isDeleting || isDeletingFromList ? 'pointer-events-none opacity-75' : ''
+        }`}
         onClick={handleCardClick}
       >
         <CardContent className="p-4">
@@ -228,7 +214,7 @@ const HealthReportCard = ({
                 </div>
               </div>
 
-              {/* Thumbnail Images - Only show actual uploaded images */}
+              {/* Thumbnail Images */}
               {reportImages.length > 0 && (
                 <div className="flex gap-2 mb-3">
                   {reportImages.slice(0, 3).map((imageUrl, index) => (
@@ -251,47 +237,33 @@ const HealthReportCard = ({
                 </div>
               )}
 
-              {/* AI Analysis Highlights or CTA */}
-              {hasAIAnalysis && keyHighlights.length > 0 ? (
+              {/* Summary Section */}
+              {keyFindings.length > 0 ? (
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">AI</span>
-                    </div>
-                    <span className="text-sm font-medium text-blue-900">AI Analysis</span>
+                    <span className="text-sm font-medium text-blue-900">Summary</span>
                   </div>
                   <ul className="space-y-1">
-                    {keyHighlights.map((highlight, index) => (
-                      <li key={index} className="text-sm text-blue-800 flex items-center gap-2">
-                        <span className="text-blue-600">•</span>
-                        <span>{highlight}</span>
+                    {keyFindings.map((finding, index) => (
+                      <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
+                        <span className="text-blue-600 mt-1">•</span>
+                        <span>{finding}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  {isProcessing ? (
-                    <div className="flex items-center gap-2 text-orange-600">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Analyzing...</span>
-                    </div>
-                  ) : (
-                    onTriggerAI && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onTriggerAI(report.id);
-                        }}
-                        className="h-8 px-3 text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 hover:from-blue-600 hover:to-purple-700"
-                      >
-                        <Brain className="h-3 w-3 mr-1" />
-                        AI Analyze
-                      </Button>
-                    )
-                  )}
+                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    {report.status === 'processing' ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Analysis in progress...</span>
+                      </>
+                    ) : (
+                      <span className="text-sm">No summary available yet</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -437,51 +409,70 @@ const HealthReportCard = ({
         </div>
       )}
 
-      {/* AI Analysis Section */}
-      <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Report Analysis</h3>
-        {isProcessing ? (
-          <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Analyzing report... This may take a moment.
-            </p>
-          </div>
-        ) : hasAIAnalysis ? (
-          <div className="space-y-4">
-            {/* Use structured AI analysis component if data is structured */}
-            {analysis.summary || analysis.key_highlights || analysis.test_results ? (
-              <AIHealthReportSummary data={analysis} />
-            ) : (
-              /* Fallback for plain text analysis */
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">AI</span>
-                  </div>
-                  <span className="font-medium text-blue-900">AI Analysis</span>
+      {/* Report Summary */}
+      {report.key_findings && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-3">Report Summary</h3>
+          <Card>
+            <CardContent className="pt-6">
+              <ul className="space-y-2">
+                {formatKeyFindings(report.key_findings).map((finding, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-1">•</span>
+                    <span className="text-gray-700">{finding}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* AI Analysis */}
+      {report.ai_analysis && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-3">AI Analysis</h3>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">AI</span>
                 </div>
-                <p className="text-blue-800 leading-relaxed whitespace-pre-line">
-                  {analysis.analysis || report.ai_analysis}
-                </p>
+                <span className="font-medium text-blue-900">Detailed Analysis</span>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">No analysis available yet.</p>
-            {onTriggerAI && (
-              <Button
-                onClick={() => onTriggerAI(report.id)}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                Run AI Analysis
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                {report.ai_analysis}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Full Report - OCR Parameters */}
+      {report.ocr_parameters && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-3">Full Report</h3>
+          <OCRParametersDisplay ocrParameters={report.ocr_parameters} />
+        </div>
+      )}
+
+      {/* No Analysis Available */}
+      {!report.key_findings && !report.ai_analysis && !report.ocr_parameters && (
+        <div className="text-center py-8">
+          {report.status === 'processing' ? (
+            <div>
+              <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Analyzing report... This may take a moment.
+              </p>
+            </div>
+          ) : (
+            <p className="text-gray-600">No analysis available yet.</p>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-4 pt-4 border-t">

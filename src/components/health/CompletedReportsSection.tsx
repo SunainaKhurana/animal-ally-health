@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ const CompletedReportsSection = ({
   recentlyUploadedId 
 }: CompletedReportsSectionProps) => {
   const [selectedReport, setSelectedReport] = useState<HealthReport | null>(null);
-  const [processingReports, setProcessingReports] = useState(new Set<string>());
   const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
 
   const handleReportClick = (report: HealthReport) => {
@@ -32,33 +30,14 @@ const CompletedReportsSection = ({
     setSelectedReport(report);
   };
 
-  const handleTriggerAI = async (reportId: string) => {
-    console.log('🤖 Triggering AI analysis for report:', reportId);
-    setProcessingReports(prev => new Set(prev).add(reportId));
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.error('❌ AI analysis failed:', error);
-    } finally {
-      setProcessingReports(prev => {
-        const updated = new Set(prev);
-        updated.delete(reportId);
-        return updated;
-      });
-    }
-  };
-
   const handleDeleteReport = async (reportId: string) => {
     console.log('🗑️ Deleting health report from CompletedReportsSection:', reportId);
     
-    // Check if deletion is from detail view
     const deletingFromDetail = selectedReport && selectedReport.id === reportId;
     
     if (deletingFromDetail) {
       setIsDeletingFromDetail(true);
       
-      // Add smooth transition delay before closing dialog  
       setTimeout(() => {
         setSelectedReport(null);
         setIsDeletingFromDetail(false);
@@ -124,10 +103,8 @@ const CompletedReportsSection = ({
                 key={report.id}
                 report={report}
                 onDelete={handleDeleteReport}
-                onTriggerAI={handleTriggerAI}
                 onTap={handleReportClick}
                 showAsListItem={true}
-                isProcessing={processingReports.has(report.id)}
               />
             ))
           )}
@@ -166,9 +143,7 @@ const CompletedReportsSection = ({
               <HealthReportCard
                 report={selectedReport}
                 onDelete={handleDeleteReport}
-                onTriggerAI={handleTriggerAI}
                 showAsListItem={false}
-                isProcessing={processingReports.has(selectedReport.id)}
               />
             </div>
           </DialogContent>
