@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, FileText, Sparkles, Calendar, Eye, AlertCircle, Loader2, Brain, RefreshCw } from 'lucide-react';
-import { useHealthReports, HealthReport } from '@/hooks/useHealthReports';
+import { useImprovedHealthReports, HealthReport } from '@/hooks/useImprovedHealthReports';
 import { healthReportCache } from '@/lib/healthReportCache';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -26,7 +26,7 @@ const ImprovedHealthReportsHub = ({ petId, petInfo }: ImprovedHealthReportsHubPr
   const [processingReports, setProcessingReports] = useState<Set<string>>(new Set());
   const [debugInfo, setDebugInfo] = useState<any>(null);
   
-  const { healthReports, loading, addReportToState, triggerAIAnalysis, refetch } = useHealthReports(petId);
+  const { healthReports, loading, triggerAIAnalysis, refetch } = useImprovedHealthReports(petId);
   const { toast } = useToast();
 
   // Debug effect to monitor cache and reports state
@@ -218,7 +218,6 @@ const ImprovedHealthReportsHub = ({ petId, petInfo }: ImprovedHealthReportsHubPr
                 petId={petId}
                 petInfo={petInfo}
                 onUploadComplete={handleUploadComplete}
-                addReportToState={addReportToState}
               />
             </DialogContent>
           </Dialog>

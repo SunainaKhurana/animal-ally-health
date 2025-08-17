@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePets } from "@/hooks/usePets";
-import { useHealthReports } from "@/hooks/useHealthReports";
+import { useImprovedHealthReports } from "@/hooks/useImprovedHealthReports";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,7 @@ const HealthRecords = () => {
   const selectedPet = petId ? pets.find(p => p.id === petId) : pets[0];
   const currentPetId = selectedPet?.id;
   
-  const { healthReports, loading, deleteReport, addReportToState, refetch } = useHealthReports(currentPetId);
+  const { healthReports, loading, deleteReport, refetch } = useImprovedHealthReports(currentPetId);
   const [showUpload, setShowUpload] = useState(false);
   const [recentlyUploadedId, setRecentlyUploadedId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -82,7 +82,6 @@ const HealthRecords = () => {
     setShowUpload(false);
     setRecentlyUploadedId(reportId);
     
-    // The report should already be in state via addReportToState in the upload component
     toast({
       title: "Report Uploaded Successfully! 🎉",
       description: "Your health report has been saved and is ready for analysis.",
@@ -166,7 +165,6 @@ const HealthRecords = () => {
               breed: selectedPet.breed
             }}
             onUploadComplete={handleUploadComplete}
-            addReportToState={addReportToState}
           />
         )}
 

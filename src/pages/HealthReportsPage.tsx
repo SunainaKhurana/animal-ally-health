@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Search, Plus, Loader2 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
-import { useHealthReports } from '@/hooks/useHealthReports';
+import { useImprovedHealthReports } from '@/hooks/useImprovedHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
 import HealthReportUploadDialog from '@/components/health/HealthReportUploadDialog';
 
@@ -15,7 +15,7 @@ const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { pets } = usePetContext();
-  const { healthReports, loading, refetch, addReportToState, triggerAIAnalysis } = useHealthReports(petId);
+  const { healthReports, loading, refetch, triggerAIAnalysis } = useImprovedHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
