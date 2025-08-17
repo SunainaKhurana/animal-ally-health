@@ -12,6 +12,7 @@ interface UploadFile {
   progress: number;
   error?: string;
   reportId?: string;
+  preview?: string;
 }
 
 interface MultipleFileUploadProps {
@@ -43,18 +44,28 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
     const remainingSlots = maxFiles - uploadFiles.length;
     const filesToAdd = files.slice(0, remainingSlots);
     
-    const newUploadFiles: UploadFile[] = filesToAdd.map(file => ({
-      id: Date.now() + Math.random().toString(),
-      file,
-      status: 'pending',
-      progress: 0
-    }));
+    const newUploadFiles: UploadFile[] = filesToAdd.map(file => {
+      const preview = URL.createObjectURL(file);
+      return {
+        id: Date.now() + Math.random().toString(),
+        file,
+        status: 'pending',
+        progress: 0,
+        preview
+      };
+    });
 
     setUploadFiles(prev => [...prev, ...newUploadFiles]);
   };
 
   const removeFile = (id: string) => {
-    setUploadFiles(prev => prev.filter(file => file.id !== id));
+    setUploadFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === id);
+      if (fileToRemove?.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+      return prev.filter(file => file.id !== id);
+    });
   };
 
   const updateFileStatus = (id: string, updates: Partial<UploadFile>) => {
@@ -68,7 +79,13 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
   };
 
   const clearCompleted = () => {
-    setUploadFiles(prev => prev.filter(file => file.status !== 'completed'));
+    setUploadFiles(prev => {
+      const toRemove = prev.filter(file => file.status === 'completed');
+      toRemove.forEach(file => {
+        if (file.preview) URL.revokeObjectURL(file.preview);
+      });
+      return prev.filter(file => file.status !== 'completed');
+    });
   };
 
   const getStatusIcon = (status: UploadFile['status']) => {
@@ -96,52 +113,52 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Upload Health Records
+          Upload Health Report
         </CardTitle>
         <CardDescription>
-          Upload multiple diagnostic test results, lab reports, or veterinary records
+          Upload multiple images or PDF files of your health report
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Upload Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Upload Area - Updated styling to match screenshots */}
+        <div 
+          className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+          onClick={() => handleFileSelection('image/*,application/pdf')}
+        >
+          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-600 mb-2">Click to upload images or PDF files</p>
+          <p className="text-sm text-gray-500">You can select multiple files</p>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
-            className="h-24 flex flex-col gap-2"
+            className="h-16 flex flex-col gap-2"
             onClick={() => handleFileSelection('image/*', 'environment')}
             disabled={uploadFiles.length >= maxFiles}
           >
-            <Camera className="h-6 w-6" />
+            <Camera className="h-5 w-5" />
             <span className="text-xs">Take Photos</span>
           </Button>
           
           <Button
             variant="outline"
-            className="h-24 flex flex-col gap-2"
-            onClick={() => handleFileSelection('image/*')}
-            disabled={uploadFiles.length >= maxFiles}
-          >
-            <Upload className="h-6 w-6" />
-            <span className="text-xs">Upload Images</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col gap-2"
+            className="h-16 flex flex-col gap-2"
             onClick={() => handleFileSelection('.pdf')}
             disabled={uploadFiles.length >= maxFiles}
           >
-            <FileText className="h-6 w-6" />
+            <FileText className="h-5 w-5" />
             <span className="text-xs">Upload PDFs</span>
           </Button>
         </div>
 
-        {/* File List */}
+        {/* File Thumbnails Grid */}
         {uploadFiles.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium">
-                Files ({uploadFiles.length}/{maxFiles})
+                Attachments ({uploadFiles.length}/{maxFiles})
               </h4>
               {completedFiles.length > 0 && (
                 <Button 
@@ -155,36 +172,48 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
               )}
             </div>
 
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3">
               {uploadFiles.map((uploadFile) => (
-                <div key={uploadFile.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  {getStatusIcon(uploadFile.status)}
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {uploadFile.file.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {(uploadFile.file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    
-                    {uploadFile.status === 'processing' && (
-                      <Progress value={uploadFile.progress} className="mt-1 h-1" />
+                <div key={uploadFile.id} className="relative group">
+                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
+                    {uploadFile.file.type.startsWith('image/') ? (
+                      <img 
+                        src={uploadFile.preview} 
+                        alt={uploadFile.file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <FileText className="h-12 w-12 text-red-500" />
+                      </div>
                     )}
                     
-                    {uploadFile.error && (
-                      <p className="text-xs text-red-500 mt-1">{uploadFile.error}</p>
-                    )}
+                    {/* Status Overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {getStatusIcon(uploadFile.status)}
+                    </div>
                   </div>
 
+                  {/* File Name */}
+                  <p className="text-xs text-center mt-1 truncate">
+                    {uploadFile.file.name}
+                  </p>
+
+                  {/* Remove Button */}
                   {uploadFile.status === 'pending' && (
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
                       onClick={() => removeFile(uploadFile.id)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
+                  )}
+
+                  {/* Progress Bar */}
+                  {uploadFile.status === 'processing' && (
+                    <Progress value={uploadFile.progress} className="mt-1 h-1" />
                   )}
                 </div>
               ))}
@@ -198,16 +227,16 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
             <Button 
               onClick={handleProcessFiles}
               disabled={isProcessing}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  Uploading...
                 </>
               ) : (
                 <>
-                  Process {pendingFiles.length} Report{pendingFiles.length !== 1 ? 's' : ''}
+                  Upload Report
                 </>
               )}
             </Button>
@@ -230,11 +259,13 @@ const MultipleFileUpload = ({ onFilesProcessed, isProcessing, maxFiles = 5 }: Mu
         )}
 
         {/* Help Text */}
-        <div className="text-xs text-gray-500 space-y-1">
-          <p>• Supported formats: JPG, PNG, PDF</p>
-          <p>• Maximum {maxFiles} files at once</p>
-          <p>• Maximum file size: 10MB each</p>
-          <p>• AI will analyze each report and provide insights</p>
+        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+          <p className="font-medium mb-1">AI analysis will be generated after upload</p>
+          <div className="space-y-1">
+            <p>• Supported formats: JPG, PNG, PDF</p>
+            <p>• Maximum {maxFiles} files per report</p>
+            <p>• Maximum file size: 10MB each</p>
+          </div>
         </div>
       </CardContent>
     </Card>

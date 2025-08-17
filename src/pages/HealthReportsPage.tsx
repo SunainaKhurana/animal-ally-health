@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, FileText, Calendar, Brain, Eye, Loader2, Plus, Filter } from 'lucide-react';
+import { ArrowLeft, Search, Plus, Loader2, Filter } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
-import ImprovedHealthReportUpload from '@/components/health/ImprovedHealthReportUpload';
+import MultipleFileUpload from '@/components/health/MultipleFileUpload';
 
 const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -18,6 +18,8 @@ const HealthReportsPage = () => {
   const { healthReports, loading, refetch, addReportToState, triggerAIAnalysis } = useHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [processingReports, setProcessingReports] = useState(new Set());
 
   const pet = pets.find(p => p.id === petId);
@@ -66,32 +68,36 @@ const HealthReportsPage = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const handleReportTap = (report: any) => {
+    console.log('📋 Report tapped:', report.id);
+    setSelectedReport(report);
   };
 
-  const getStatusBadge = (report: any) => {
-    if (report.ai_analysis) {
-      return <Badge className="bg-green-100 text-green-800 text-xs">AI Analyzed</Badge>;
-    }
-    return <Badge variant="secondary" className="text-xs">Uploaded</Badge>;
-  };
+  const filteredReports = healthReports.filter(report => {
+    const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeFilter === 'All') return matchesSearch;
+    if (activeFilter === 'Checkups') return matchesSearch && report.report_type === 'checkup';
+    if (activeFilter === 'Lab Tests') return matchesSearch && report.report_type === 'lab_test';
+    if (activeFilter === 'Imaging') return matchesSearch && report.report_type === 'imaging';
+    
+    return matchesSearch;
+  });
 
-  const sortedReports = healthReports.sort((a, b) => 
+  const sortedReports = filteredReports.sort((a, b) => 
     new Date(b.actual_report_date || b.report_date).getTime() - 
     new Date(a.actual_report_date || a.report_date).getTime()
   );
+
+  const filters = ['All', 'Checkups', 'Lab Tests', 'Imaging'];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b">
         <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -101,23 +107,46 @@ const HealthReportsPage = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h1 className="text-lg font-semibold truncate">
-                  {pet.name}'s Reports
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  {healthReports.length} {healthReports.length === 1 ? 'report' : 'reports'}
-                </p>
-              </div>
+              <h1 className="text-lg font-semibold">Health Reports</h1>
             </div>
             <Button
               onClick={() => setShowUpload(true)}
               size="sm"
-              className="h-8 px-3 text-xs"
+              className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-3 w-3 mr-1" />
               Add
             </Button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search reports..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-gray-50 border-0"
+            />
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto">
+            {filters.map((filter) => (
+              <Button
+                key={filter}
+                variant={activeFilter === filter ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveFilter(filter)}
+                className={`whitespace-nowrap text-xs h-8 ${
+                  activeFilter === filter 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                {filter}
+              </Button>
+            ))}
           </div>
         </div>
       </div>
@@ -127,15 +156,9 @@ const HealthReportsPage = () => {
         {/* Upload Section */}
         {showUpload && (
           <div className="py-4">
-            <ImprovedHealthReportUpload
-              petId={petId!}
-              petInfo={{
-                name: pet.name,
-                type: pet.type,
-                breed: pet.breed
-              }}
-              onUploadComplete={handleUploadComplete}
-              addReportToState={addReportToState}
+            <MultipleFileUpload
+              onFilesProcessed={() => {}}
+              isProcessing={false}
             />
           </div>
         )}
@@ -150,27 +173,36 @@ const HealthReportsPage = () => {
           </div>
         ) : sortedReports.length === 0 ? (
           <div className="text-center py-12">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">No Reports Yet</h3>
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">
+              {searchQuery ? 'No matching reports' : 'No Reports Yet'}
+            </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Upload your first health report to get started
+              {searchQuery 
+                ? 'Try adjusting your search terms'
+                : 'Upload your first health report to get started'
+              }
             </p>
-            <Button onClick={() => setShowUpload(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Upload Report
-            </Button>
+            {!searchQuery && (
+              <Button onClick={() => setShowUpload(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Upload Report
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-3 py-4">
             {sortedReports.map((report) => (
-              <div key={report.id}>
-                <HealthReportCard
-                  report={report}
-                  onDelete={() => {}}
-                  onTriggerAI={handleAIAnalysis}
-                  autoExpand={false}
-                />
-              </div>
+              <HealthReportCard
+                key={report.id}
+                report={report}
+                onDelete={() => {}}
+                onTriggerAI={handleAIAnalysis}
+                onTap={handleReportTap}
+                showAsListItem={true}
+              />
             ))}
           </div>
         )}
@@ -181,29 +213,27 @@ const HealthReportsPage = () => {
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
           <DialogContent className="w-full h-full md:max-w-4xl md:h-auto md:max-h-[90vh] p-0 overflow-hidden">
             <DialogHeader className="p-4 pb-2 border-b">
-              <DialogTitle className="text-base font-medium truncate pr-8">
-                {selectedReport.report_label || selectedReport.title}
-              </DialogTitle>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedReport(null)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <DialogTitle className="text-base font-medium">
+                  Report Details
+                </DialogTitle>
+              </div>
             </DialogHeader>
             
             <div className="flex-1 overflow-auto p-4">
-              {/* Report Image */}
-              {selectedReport.image_url && (
-                <div className="mb-6">
-                  <img 
-                    src={selectedReport.image_url}
-                    alt={selectedReport.title}
-                    className="w-full h-auto rounded-lg border shadow-sm"
-                  />
-                </div>
-              )}
-
-              {/* Health Report Card in Detail View */}
               <HealthReportCard
                 report={selectedReport}
                 onDelete={() => {}}
                 onTriggerAI={handleAIAnalysis}
-                autoExpand={true}
+                showAsListItem={false}
               />
 
               {/* Processing State */}
