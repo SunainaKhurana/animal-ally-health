@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ChevronDown, ChevronUp, Sparkles, Edit2, Save, X, ExternalLink, Link } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, Edit2, Save, X, ExternalLink, Link, Brain } from "lucide-react";
 import { HealthReport } from "@/hooks/useHealthReports";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,10 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 interface HealthReportCardProps {
   report: HealthReport;
   onDelete?: (reportId: string) => void;
+  onTriggerAI?: (reportId: string) => void;
   autoExpand?: boolean;
 }
 
-const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReportCardProps) => {
+const HealthReportCard = ({ report, onDelete, onTriggerAI, autoExpand = false }: HealthReportCardProps) => {
   const [isExpanded, setIsExpanded] = useState(autoExpand);
   const [isEditing, setIsEditing] = useState(false);
   const [editedLabel, setEditedLabel] = useState(report.report_label || '');
@@ -109,18 +110,18 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
     }
   })() : null;
 
-  // Only show the card if there's AI analysis to display
-  if (!analysis) {
-    return null;
-  }
-
+  // Always show the card, regardless of AI analysis status
   return (
-    <Card className="border-green-200 bg-green-50/30 shadow-sm">
+    <Card className={analysis ? "border-green-200 bg-green-50/30 shadow-sm" : "border-gray-200 bg-white shadow-sm"}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+              {analysis ? (
+                <Sparkles className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+              ) : (
+                <Brain className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              )}
               {isEditing ? (
                 <Input
                   value={editedLabel}
@@ -133,12 +134,12 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
               )}
             </CardTitle>
             <CardDescription className="text-xs mt-1">
-              AI Analysis • {new Date(report.actual_report_date || report.report_date).toLocaleDateString()}
+              {analysis ? 'AI Analysis' : 'Ready for Analysis'} • {new Date(report.actual_report_date || report.report_date).toLocaleDateString()}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge className="bg-green-100 text-green-800 text-xs">
-              AI Analyzed
+            <Badge className={analysis ? "bg-green-100 text-green-800 text-xs" : "bg-gray-100 text-gray-800 text-xs"}>
+              {analysis ? 'AI Analyzed' : 'Uploaded'}
             </Badge>
             {isEditing ? (
               <div className="flex gap-1">
@@ -182,8 +183,17 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
           <CollapsibleTrigger asChild>
             <Button variant="ghost" className="w-full justify-between p-2 hover:bg-transparent h-auto">
               <span className="flex items-center gap-2 text-sm">
-                <Sparkles className="h-3 w-3 text-yellow-500" />
-                AI Analysis & Report Details
+                {analysis ? (
+                  <>
+                    <Sparkles className="h-3 w-3 text-yellow-500" />
+                    AI Analysis & Report Details
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-3 w-3 text-gray-400" />
+                    Report Details & Analysis Options
+                  </>
+                )}
               </span>
               {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
@@ -208,72 +218,96 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
               )}
             </div>
 
-            {/* Main AI Analysis */}
-            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-              <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2 text-sm">
-                <Sparkles className="h-3 w-3" />
-                AI Summary & Insights
-              </h4>
-              <p className="text-xs text-green-800 whitespace-pre-wrap leading-relaxed">{analysis.analysis}</p>
-            </div>
-
-            {/* Test Results */}
-            {extractedData?.parameters && extractedData.parameters.length > 0 && (
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <h4 className="font-medium text-gray-900 mb-3 text-sm">Test Results</h4>
-                <div className="space-y-2">
-                  {extractedData.parameters.map((param: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center text-xs bg-white p-2 rounded">
-                      <span className="font-medium">{param.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span>{param.value} {param.unit}</span>
-                        {param.status && (
-                          <Badge 
-                            variant={param.status === 'normal' ? 'default' : 'destructive'}
-                            className="text-xs h-4"
-                          >
-                            {param.status}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+            {/* AI Analysis or Call-to-Action */}
+            {analysis ? (
+              <>
+                {/* Main AI Analysis */}
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2 text-sm">
+                    <Sparkles className="h-3 w-3" />
+                    AI Summary & Insights
+                  </h4>
+                  <p className="text-xs text-green-800 whitespace-pre-wrap leading-relaxed">{analysis.analysis}</p>
                 </div>
-              </div>
-            )}
 
-            {/* Questions for Vet */}
-            {analysis.vetQuestions && analysis.vetQuestions.length > 0 && (
-              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                <h4 className="font-medium text-orange-900 mb-2 text-sm">Questions to Ask Your Vet</h4>
-                <ul className="text-xs text-orange-800 space-y-1">
-                  {analysis.vetQuestions.map((question: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-orange-600 mt-0.5 flex-shrink-0">•</span>
-                      <span>{question}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Related Reports */}
-            {relatedReports.length > 0 && (
-              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <h4 className="font-medium text-purple-900 mb-2 flex items-center gap-2 text-sm">
-                  <Link className="h-3 w-3" />
-                  Related {report.report_type} Reports
-                </h4>
-                <div className="space-y-2">
-                  {relatedReports.map((relatedReport) => (
-                    <div key={relatedReport.id} className="flex items-center justify-between text-xs bg-white p-2 rounded">
-                      <span className="truncate flex-1 mr-2">{relatedReport.report_label || relatedReport.title}</span>
-                      <span className="text-gray-600 flex-shrink-0">
-                        {new Date(relatedReport.actual_report_date || relatedReport.report_date).toLocaleDateString()}
-                      </span>
+                {/* Test Results */}
+                {extractedData?.parameters && extractedData.parameters.length > 0 && (
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-3 text-sm">Test Results</h4>
+                    <div className="space-y-2">
+                      {extractedData.parameters.map((param: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center text-xs bg-white p-2 rounded">
+                          <span className="font-medium">{param.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span>{param.value} {param.unit}</span>
+                            {param.status && (
+                              <Badge 
+                                variant={param.status === 'normal' ? 'default' : 'destructive'}
+                                className="text-xs h-4"
+                              >
+                                {param.status}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Questions for Vet */}
+                {analysis.vetQuestions && analysis.vetQuestions.length > 0 && (
+                  <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                    <h4 className="font-medium text-orange-900 mb-2 text-sm">Questions to Ask Your Vet</h4>
+                    <ul className="text-xs text-orange-800 space-y-1">
+                      {analysis.vetQuestions.map((question: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-orange-600 mt-0.5 flex-shrink-0">•</span>
+                          <span>{question}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Related Reports */}
+                {relatedReports.length > 0 && (
+                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                    <h4 className="font-medium text-purple-900 mb-2 flex items-center gap-2 text-sm">
+                      <Link className="h-3 w-3" />
+                      Related {report.report_type} Reports
+                    </h4>
+                    <div className="space-y-2">
+                      {relatedReports.map((relatedReport) => (
+                        <div key={relatedReport.id} className="flex items-center justify-between text-xs bg-white p-2 rounded">
+                          <span className="truncate flex-1 mr-2">{relatedReport.report_label || relatedReport.title}</span>
+                          <span className="text-gray-600 flex-shrink-0">
+                            {new Date(relatedReport.actual_report_date || relatedReport.report_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* No AI Analysis - Show Call to Action */
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 text-center">
+                <Brain className="h-8 w-8 mx-auto mb-2 text-amber-600" />
+                <h4 className="font-medium text-amber-900 mb-2 text-sm">AI Analysis Available</h4>
+                <p className="text-xs text-amber-800 mb-3">
+                  Get detailed insights about this health report using AI analysis
+                </p>
+                {onTriggerAI && (
+                  <Button
+                    onClick={() => onTriggerAI(report.id)}
+                    size="sm"
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <Brain className="h-3 w-3 mr-1" />
+                    Analyze with AI
+                  </Button>
+                )}
               </div>
             )}
 
@@ -308,7 +342,7 @@ const HealthReportCard = ({ report, onDelete, autoExpand = false }: HealthReport
             {/* Disclaimer */}
             <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
               <p className="text-xs text-amber-800">
-                <strong>Important:</strong> {analysis.disclaimer || "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."}
+                <strong>Important:</strong> {analysis?.disclaimer || "This AI analysis is for informational purposes only and should not replace professional veterinary advice. Always consult with your veterinarian for proper diagnosis and treatment."}
               </p>
             </div>
           </CollapsibleContent>

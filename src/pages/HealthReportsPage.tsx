@@ -22,6 +22,14 @@ const HealthReportsPage = () => {
 
   const pet = pets.find(p => p.id === petId);
 
+  console.log('HealthReportsPage Debug:', {
+    petId,
+    pet: pet ? { id: pet.id, name: pet.name } : null,
+    reportsCount: healthReports.length,
+    loading,
+    selectedReport: selectedReport ? selectedReport.id : null
+  });
+
   if (!pet) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -43,6 +51,7 @@ const HealthReportsPage = () => {
   };
 
   const handleAIAnalysis = async (reportId: string) => {
+    console.log('🤖 Starting AI analysis for report:', reportId);
     setProcessingReports(prev => new Set(prev).add(reportId));
     try {
       await triggerAIAnalysis(reportId);
@@ -154,81 +163,14 @@ const HealthReportsPage = () => {
         ) : (
           <div className="space-y-3 py-4">
             {sortedReports.map((report) => (
-              <Card 
-                key={report.id} 
-                className="border-0 shadow-sm bg-card hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    {/* Report Image Thumbnail */}
-                    {report.image_url && (
-                      <div 
-                        className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-muted cursor-pointer"
-                        onClick={() => setSelectedReport(report)}
-                      >
-                        <img 
-                          src={report.image_url}
-                          alt={report.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    {/* Report Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 
-                          className="font-medium text-sm leading-tight truncate cursor-pointer hover:text-primary"
-                          onClick={() => setSelectedReport(report)}
-                        >
-                          {report.report_label || report.title}
-                        </h3>
-                        {getStatusBadge(report)}
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                        <Calendar className="h-3 w-3" />
-                        <span>{formatDate(report.actual_report_date || report.report_date)}</span>
-                        <span>•</span>
-                        <span className="capitalize">{report.report_type}</span>
-                      </div>
-
-                      {/* Action Button */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedReport(report)}
-                          className="h-7 px-2 text-xs text-muted-foreground"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant={report.ai_analysis ? "secondary" : "default"}
-                          onClick={() => handleAIAnalysis(report.id)}
-                          disabled={processingReports.has(report.id)}
-                          className="h-7 px-2 text-xs"
-                        >
-                          {processingReports.has(report.id) ? (
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          ) : (
-                            <Brain className="h-3 w-3 mr-1" />
-                          )}
-                          {processingReports.has(report.id) 
-                            ? 'Analyzing...' 
-                            : report.ai_analysis 
-                              ? 'Re-analyze' 
-                              : 'AI Analyze'
-                          }
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={report.id}>
+                <HealthReportCard
+                  report={report}
+                  onDelete={() => {}}
+                  onTriggerAI={handleAIAnalysis}
+                  autoExpand={false}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -256,36 +198,13 @@ const HealthReportsPage = () => {
                 </div>
               )}
 
-              {/* AI Analysis CTA in Detail View */}
-              <div className="mb-6">
-                <Button
-                  onClick={() => handleAIAnalysis(selectedReport.id)}
-                  disabled={processingReports.has(selectedReport.id)}
-                  className="w-full"
-                  variant={selectedReport.ai_analysis ? "secondary" : "default"}
-                >
-                  {processingReports.has(selectedReport.id) ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4 mr-2" />
-                  )}
-                  {processingReports.has(selectedReport.id) 
-                    ? 'Analyzing Report...' 
-                    : selectedReport.ai_analysis 
-                      ? 'Re-analyze Report' 
-                      : 'AI Analyze Report'
-                  }
-                </Button>
-              </div>
-
-              {/* AI Analysis Results */}
-              {selectedReport.ai_analysis && (
-                <HealthReportCard
-                  report={selectedReport}
-                  onDelete={() => {}}
-                  autoExpand={true}
-                />
-              )}
+              {/* Health Report Card in Detail View */}
+              <HealthReportCard
+                report={selectedReport}
+                onDelete={() => {}}
+                onTriggerAI={handleAIAnalysis}
+                autoExpand={true}
+              />
 
               {/* Processing State */}
               {processingReports.has(selectedReport.id) && (
