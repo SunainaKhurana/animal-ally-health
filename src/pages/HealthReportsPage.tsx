@@ -9,7 +9,7 @@ import { ArrowLeft, Search, Plus, Loader2 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import HealthReportCard from '@/components/health/HealthReportCard';
-import MultipleFileUpload from '@/components/health/MultipleFileUpload';
+import HealthReportUploadDialog from '@/components/health/HealthReportUploadDialog';
 
 const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
@@ -45,8 +45,8 @@ const HealthReportsPage = () => {
     );
   }
 
-  const handleUploadComplete = (reportId: string) => {
-    console.log('✅ Upload completed for report:', reportId);
+  const handleUploadSuccess = () => {
+    console.log('✅ Upload completed successfully');
     setShowUpload(false);
     refetch();
   };
@@ -124,16 +124,6 @@ const HealthReportsPage = () => {
 
       {/* Content */}
       <div className="px-4 pb-20">
-        {/* Upload Section */}
-        {showUpload && (
-          <div className="py-4">
-            <MultipleFileUpload
-              onFilesProcessed={() => {}}
-              isProcessing={false}
-            />
-          </div>
-        )}
-
         {/* Reports List */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -180,7 +170,14 @@ const HealthReportsPage = () => {
         )}
       </div>
 
-      {/* Report Detail Dialog - Fixed scrolling */}
+      {/* Upload Dialog */}
+      <HealthReportUploadDialog
+        open={showUpload}
+        onOpenChange={setShowUpload}
+        onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Report Detail Dialog */}
       {selectedReport && (
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
           <DialogContent className="w-full max-w-4xl h-[95vh] p-0 overflow-hidden flex flex-col">
