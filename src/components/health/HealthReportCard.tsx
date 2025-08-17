@@ -99,11 +99,27 @@ const HealthReportCard = ({
   const formatKeyFindings = (keyFindings: string | null) => {
     if (!keyFindings) return [];
     
-    // Split by bullet points, periods, or new lines and clean up
-    const findings = keyFindings
-      .split(/[•\n]|(?:\d+\.)|(?:-\s)/)
-      .map(finding => finding.trim())
-      .filter(finding => finding.length > 0 && finding !== '.' && finding !== '-');
+    // Handle both structured (bullet points) and unstructured text
+    let findings: string[] = [];
+    
+    // First try to split by bullet points or numbered lists
+    if (keyFindings.includes('•') || keyFindings.includes('-') || /\d+\./.test(keyFindings)) {
+      findings = keyFindings
+        .split(/[•\n]|(?:\d+\.)|(?:-\s)/)
+        .map(finding => finding.trim())
+        .filter(finding => finding.length > 0 && finding !== '.' && finding !== '-');
+    } else {
+      // For plain text, split by sentences or commas
+      findings = keyFindings
+        .split(/[.,;]|\n/)
+        .map(finding => finding.trim())
+        .filter(finding => finding.length > 10); // Only keep meaningful sentences
+    }
+    
+    // If no structured findings found, treat the whole text as one finding
+    if (findings.length === 0 && keyFindings.trim().length > 0) {
+      findings = [keyFindings.trim()];
+    }
     
     return findings.slice(0, 3); // Show max 3 findings in list view
   };
@@ -116,8 +132,21 @@ const HealthReportCard = ({
     return images;
   };
 
+  // Check if report has analysis content (improved logic)
+  const hasAnalysisContent = () => {
+    return !!(report.ai_analysis && report.ai_analysis.trim().length > 0) || 
+           !!(report.key_findings && report.key_findings.trim().length > 0);
+  };
+
+  // Check if report is actually processing
+  const isActuallyProcessing = () => {
+    return report.status === 'processing' && !hasAnalysisContent();
+  };
+
   const reportImages = getReportImages();
   const keyFindings = formatKeyFindings(report.key_findings);
+  const hasFindings = keyFindings.length > 0;
+  const hasAIAnalysis = report.ai_analysis && report.ai_analysis.trim().length > 0;
 
   // List view layout
   if (showAsListItem) {
@@ -237,8 +266,8 @@ const HealthReportCard = ({
                 </div>
               )}
 
-              {/* Summary Section */}
-              {keyFindings.length > 0 ? (
+              {/* Summary Section - Improved Logic */}
+              {hasFindings ? (
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-blue-900">Summary</span>
@@ -252,17 +281,27 @@ const HealthReportCard = ({
                     ))}
                   </ul>
                 </div>
+              ) : hasAIAnalysis ? (
+                <div className="bg-green-50 p-3 rounded border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-900">AI Analysis Ready</span>
+                  </div>
+                  <p className="text-sm text-green-800 line-clamp-2">
+                    {report.ai_analysis.slice(0, 120)}...
+                  </p>
+                </div>
+              ) : isActuallyProcessing() ? (
+                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Analysis in progress...</span>
+                  </div>
+                </div>
               ) : (
                 <div className="bg-gray-50 p-3 rounded border border-gray-200">
                   <div className="flex items-center gap-2 text-gray-600">
-                    {report.status === 'processing' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Analysis in progress...</span>
-                      </>
-                    ) : (
-                      <span className="text-sm">No summary available yet</span>
-                    )}
+                    <span className="text-sm">No analysis available yet</span>
                   </div>
                 </div>
               )}
@@ -409,14 +448,14 @@ const HealthReportCard = ({
         </div>
       )}
 
-      {/* Report Summary */}
-      {report.key_findings && (
+      {/* Report Summary - Improved Display */}
+      {hasFindings && (
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">Report Summary</h3>
           <Card>
             <CardContent className="pt-6">
               <ul className="space-y-2">
-                {formatKeyFindings(report.key_findings).map((finding, index) => (
+                {keyFindings.map((finding, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <span className="text-blue-600 mt-1">•</span>
                     <span className="text-gray-700">{finding}</span>
@@ -428,8 +467,8 @@ const HealthReportCard = ({
         </div>
       )}
 
-      {/* AI Analysis */}
-      {report.ai_analysis && (
+      {/* AI Analysis - Always Show When Available */}
+      {hasAIAnalysis && (
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">AI Analysis</h3>
           <Card>
@@ -458,10 +497,10 @@ const HealthReportCard = ({
         </div>
       )}
 
-      {/* No Analysis Available */}
-      {!report.key_findings && !report.ai_analysis && !report.ocr_parameters && (
+      {/* No Analysis Available - Only Show When Actually Processing */}
+      {!hasFindings && !hasAIAnalysis && !report.ocr_parameters && (
         <div className="text-center py-8">
-          {report.status === 'processing' ? (
+          {isActuallyProcessing() ? (
             <div>
               <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
