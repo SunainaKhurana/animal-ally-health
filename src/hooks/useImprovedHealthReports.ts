@@ -17,6 +17,8 @@ export interface HealthReport {
   extracted_text?: string;
   key_findings?: string;
   ai_analysis?: string;
+  ai_diagnosis?: string;
+  ocr_parameters?: any;
   created_at: string;
   updated_at: string;
   report_label?: string;
