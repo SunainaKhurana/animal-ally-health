@@ -14,35 +14,21 @@ import HealthReportUploadDialog from '@/components/health/HealthReportUploadDial
 const HealthReportsPage = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
-  const { pets } = usePetContext();
+  const { pets, setSelectedPet } = usePetContext();
   const { healthReports, loading, refetch, deleteReport } = useImprovedHealthReports(petId);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isDeletingFromDetail, setIsDeletingFromDetail] = useState(false);
 
   const pet = pets.find(p => p.id === petId);
 
-  // Category mapping
-  const getReportCategory = (reportType: string) => {
-    const type = reportType.toLowerCase();
-    if (type.includes('checkup') || type.includes('exam') || type.includes('wellness')) {
-      return 'checkups';
-    } else if (type.includes('lab') || type.includes('blood') || type.includes('urine') || type.includes('test')) {
-      return 'lab';
-    } else if (type.includes('x-ray') || type.includes('ultrasound') || type.includes('mri') || type.includes('imaging') || type.includes('scan')) {
-      return 'imaging';
+  // Set the selected pet when component mounts
+  useEffect(() => {
+    if (pet && petId) {
+      setSelectedPet(pet);
     }
-    return 'other';
-  };
-
-  const categories = [
-    { id: 'all', label: 'All', count: healthReports.length },
-    { id: 'checkups', label: 'Checkups', count: healthReports.filter(r => getReportCategory(r.report_type) === 'checkups').length },
-    { id: 'lab', label: 'Lab Tests', count: healthReports.filter(r => getReportCategory(r.report_type) === 'lab').length },
-    { id: 'imaging', label: 'Imaging', count: healthReports.filter(r => getReportCategory(r.report_type) === 'imaging').length }
-  ];
+  }, [pet, petId, setSelectedPet]);
 
   console.log('HealthReportsPage Debug:', {
     petId,
@@ -94,14 +80,14 @@ const HealthReportsPage = () => {
     setSelectedReport(report);
   };
 
+  // Simple search filtering only
   const filteredReports = healthReports.filter(report => {
-    const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (report.report_label || '').toLowerCase().includes(searchQuery.toLowerCase());
+    if (!searchQuery) return true;
     
-    const matchesCategory = selectedCategory === 'all' || 
-      getReportCategory(report.report_type) === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
+    const searchLower = searchQuery.toLowerCase();
+    return report.title.toLowerCase().includes(searchLower) ||
+           (report.report_label || '').toLowerCase().includes(searchLower) ||
+           report.report_type.toLowerCase().includes(searchLower);
   });
 
   const sortedReports = filteredReports.sort((a, b) => 
@@ -124,7 +110,10 @@ const HealthReportsPage = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-lg font-semibold">Health Reports</h1>
+              <div>
+                <h1 className="text-lg font-semibold">Health Reports</h1>
+                <p className="text-sm text-muted-foreground">{pet.name}</p>
+              </div>
             </div>
             <Button
               onClick={() => setShowUpload(true)}
@@ -134,25 +123,6 @@ const HealthReportsPage = () => {
               <Plus className="h-3 w-3 mr-1" />
               Add
             </Button>
-          </div>
-
-          {/* Category Filters */}
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-            {categories.map((category) => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category.id)}
-                className={`h-8 px-3 text-xs whitespace-nowrap ${
-                  selectedCategory === category.id 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {category.label} ({category.count})
-              </Button>
-            ))}
           </div>
 
           {/* Search Bar */}
@@ -184,15 +154,15 @@ const HealthReportsPage = () => {
               <Search className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium mb-2">
-              {searchQuery || selectedCategory !== 'all' ? 'No matching reports' : 'No Reports Yet'}
+              {searchQuery ? 'No matching reports' : 'No Reports Yet'}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              {searchQuery || selectedCategory !== 'all'
-                ? 'Try adjusting your search terms or filters'
-                : 'Upload your first health report to get started'
+              {searchQuery
+                ? 'Try adjusting your search terms'
+                : `Upload your first health report for ${pet.name} to get started`
               }
             </p>
-            {!searchQuery && selectedCategory === 'all' && (
+            {!searchQuery && (
               <Button onClick={() => setShowUpload(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Upload Report
@@ -219,6 +189,7 @@ const HealthReportsPage = () => {
         open={showUpload}
         onOpenChange={setShowUpload}
         onUploadSuccess={handleUploadSuccess}
+        petId={petId}
       />
 
       {/* Report Detail Dialog */}

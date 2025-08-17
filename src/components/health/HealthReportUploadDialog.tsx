@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface HealthReportUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUploadSuccess?: () => void;
+  petId?: string; // Add petId prop to ensure correct pet association
 }
 
 const REPORT_TYPES = [
@@ -37,8 +39,8 @@ const REPORT_TYPES = [
   'Other'
 ];
 
-const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: HealthReportUploadDialogProps) => {
-  const { selectedPet } = usePetContext();
+const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess, petId }: HealthReportUploadDialogProps) => {
+  const { selectedPet, pets } = usePetContext();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -47,6 +49,9 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
   const [reportDate, setReportDate] = useState<Date>();
   const [reportLabel, setReportLabel] = useState('');
   const [vetDiagnosis, setVetDiagnosis] = useState('');
+
+  // Use petId from props if provided, otherwise fall back to selectedPet
+  const targetPet = petId ? pets.find(p => p.id === petId) : selectedPet;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -106,7 +111,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedPet || !user || !file || !reportType || !reportDate) {
+    if (!targetPet || !user || !file || !reportType || !reportDate) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields and select a file.",
@@ -120,6 +125,8 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     setIsUploading(true);
 
     try {
+      console.log('🚀 Starting upload for pet:', { id: targetPet.id, name: targetPet.name });
+      
       // Step 1: Upload file to Supabase Storage
       const fileUrl = await uploadFileToSupabase(file);
       
@@ -127,7 +134,7 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
       const title = reportLabel || `${reportType} - ${format(reportDate, 'MMM dd, yyyy')}`;
       
       const payload = {
-        pet_id: selectedPet.id,
+        pet_id: targetPet.id, // Use the target pet ID (from props or selectedPet)
         user_id: user.id,
         title: title,
         report_type: reportType,
@@ -139,16 +146,16 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
         vet_diagnosis: vetDiagnosis || null,
         file_url: fileUrl,
         report_url: fileUrl,
-        pet_name: selectedPet.name,
-        pet_breed: selectedPet.breed,
-        pet_age: calculateAge(selectedPet.dateOfBirth),
-        pet_type: selectedPet.type,
-        pet_gender: selectedPet.gender,
-        pet_weight: selectedPet.weight,
-        pre_existing_conditions: selectedPet.preExistingConditions || []
+        pet_name: targetPet.name,
+        pet_breed: targetPet.breed,
+        pet_age: calculateAge(targetPet.dateOfBirth),
+        pet_type: targetPet.type,
+        pet_gender: targetPet.gender,
+        pet_weight: targetPet.weight,
+        pre_existing_conditions: targetPet.preExistingConditions || []
       };
 
-      console.log('Sending complete payload to Make.com webhook:', payload);
+      console.log('📤 Sending payload to Make.com webhook:', payload);
 
       const response = await fetch('https://hook.eu2.make.com/ohpjbbdx10uxe4jowe72jsaz9tvf6znc', {
         method: 'POST',
@@ -162,18 +169,18 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Webhook call successful');
+      console.log('✅ Webhook call successful');
 
       toast({
         title: "Report uploaded successfully!",
-        description: "Your health report has been uploaded and AI analysis is processing.",
+        description: `Your health report for ${targetPet.name} has been uploaded and AI analysis is processing.`,
       });
 
       resetForm();
       onUploadSuccess?.();
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "There was an error uploading your report. Please try again.",
@@ -184,11 +191,32 @@ const HealthReportUploadDialog = ({ open, onOpenChange, onUploadSuccess }: Healt
     }
   };
 
+  if (!targetPet) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>No Pet Selected</DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Please select a pet to upload health reports.
+            </p>
+            <Button onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Upload Health Report</DialogTitle>
+          <p className="text-sm text-muted-foreground">For {targetPet.name}</p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
