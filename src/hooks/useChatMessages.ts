@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,7 +68,7 @@ export const useChatMessages = (petId?: string) => {
     pollingService.pendingResponsesCount
   );
 
-  // Load chat history with caching
+  // Improved load chat history with better error handling
   const loadChatHistory = useCallback(async () => {
     if (!petId) {
       console.log('No petId provided, clearing messages');
@@ -108,18 +109,41 @@ export const useChatMessages = (petId?: string) => {
 
       if (error) {
         console.error('Database error loading chat history:', error);
-        throw error;
+        
+        // Handle specific error types
+        if (error.code === 'PGRST116') {
+          // No data found - not really an error
+          console.log('No chat history found for this pet');
+          messageService.setMessages([]);
+          setCachedMessages(petId, []);
+          setLastFetch(petId, now);
+          return;
+        }
+        
+        // For other errors, show user-friendly message but don't crash
+        console.warn('Failed to load chat history, showing cached or empty state');
+        if (cachedMessages.length > 0) {
+          messageService.setMessages(cachedMessages);
+        } else {
+          messageService.setMessages([]);
+        }
+        return;
       }
 
       console.log('Raw reports loaded:', reports?.length || 0);
 
-      // Validate and filter reports
+      // Validate and filter reports with better error handling
       const validReports = (reports || []).filter(report => {
-        const isValid = report && report.id && report.created_at;
-        if (!isValid) {
-          console.warn('Filtering out invalid report:', report);
+        try {
+          const isValid = report && report.id && report.created_at;
+          if (!isValid) {
+            console.warn('Filtering out invalid report:', report);
+          }
+          return isValid;
+        } catch (err) {
+          console.warn('Error validating report:', err);
+          return false;
         }
-        return isValid;
       });
 
       console.log('Valid reports after filtering:', validReports.length);
@@ -142,35 +166,21 @@ export const useChatMessages = (petId?: string) => {
       console.log('Chat history loaded and cached successfully');
 
     } catch (error: any) {
-      console.error('Error loading chat history:', error);
+      console.error('Unexpected error loading chat history:', error);
 
-      // Show user-friendly error message
-      let errorMessage = "Failed to load chat history. Please try again.";
-      
-      if (error.message?.includes('Authentication')) {
-        errorMessage = "Please sign in again to load your chat history.";
-      } else if (error.message?.includes('network')) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.code === 'PGRST116') {
-        // No data found - not really an error
-        console.log('No chat history found for this pet');
+      // Fallback to cached messages or empty state without showing error toast
+      if (cachedMessages.length > 0) {
+        console.log('Using cached messages as fallback');
+        messageService.setMessages(cachedMessages);
+      } else {
+        console.log('No cached messages available, showing empty state');
         messageService.setMessages([]);
         setCachedMessages(petId, []);
-        setLastFetch(petId, now);
-        return;
       }
-
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-
-      // Set empty messages on error to prevent UI issues
-      messageService.setMessages([]);
-      setCachedMessages(petId, []);
+      
+      setLastFetch(petId, now);
     }
-  }, [petId, messageService, pollingService, toast, getCachedMessages, setCachedMessages, getLastFetch, setLastFetch, getPendingReports, addPendingReport]);
+  }, [petId, messageService, pollingService, getCachedMessages, setCachedMessages, getLastFetch, setLastFetch, getPendingReports, addPendingReport]);
 
   // Load chat history when pet changes
   useEffect(() => {

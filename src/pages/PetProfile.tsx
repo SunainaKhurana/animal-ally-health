@@ -47,7 +47,7 @@ const PetProfile = () => {
       // Find the pet in the pets array if it's not already selected
       const foundPet = pets.find(p => p.id === petId);
       if (!foundPet) {
-        navigate('/pets'); // Redirect if pet is not found
+        navigate('/more'); // Fixed: redirect to /more instead of /pets
       }
     }
   }, [pet, petId, pets, navigate]);
@@ -55,7 +55,7 @@ const PetProfile = () => {
   const handleDeletePet = async () => {
     if (pet) {
       await deletePet(pet.id);
-      navigate('/more');
+      navigate('/more'); // Fixed: redirect to /more instead of /pets
     }
   };
 
@@ -68,9 +68,9 @@ const PetProfile = () => {
               <CardTitle>Pet Not Found</CardTitle>
               <CardDescription>The requested pet profile could not be found.</CardDescription>
             </CardHeader>
-            <Button onClick={() => navigate('/pets')}>
+            <Button onClick={() => navigate('/more')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Pets
+              Back to More
             </Button>
           </CardContent>
         </Card>
@@ -82,7 +82,7 @@ const PetProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
       <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-orange-100">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/pets')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/more')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="text-center">
