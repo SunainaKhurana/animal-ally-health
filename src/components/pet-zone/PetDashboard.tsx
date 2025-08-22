@@ -1,103 +1,57 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Heart, 
-  Activity, 
-  FileText, 
-  MessageCircle, 
-  Calendar,
-  Weight,
-  Cake,
-  Stethoscope,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
-import { usePetContext } from '@/contexts/PetContext';
-import { formatDate } from '@/lib/dateUtils';
-import { useNavigate } from 'react-router-dom';
-import { EmptyState } from '@/components/common/EmptyState';
-import emptyPets from '@/assets/empty-pets.png';
-import { useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, Heart, Activity, Calendar, Scale, Stethoscope } from "lucide-react";
+import { usePetContext } from "@/contexts/PetContext";
+import { useNavigate } from "react-router-dom";
+import PetLoader from "@/components/ui/PetLoader";
 
 const PetDashboard = () => {
   const { selectedPet, pets, loading, error, retry } = usePetContext();
   const navigate = useNavigate();
 
-  // Debug logging for dashboard
-  useEffect(() => {
-    console.log('🏠 PetDashboard State:', {
-      selectedPet: selectedPet ? { id: selectedPet.id, name: selectedPet.name } : null,
-      petsCount: pets.length,
-      loading,
-      error
-    });
-  }, [selectedPet, pets, loading, error]);
-
-  // Loading state
   if (loading) {
+    return <PetLoader type="chasing" size="md" />;
+  }
+
+  if (error) {
     return (
-      <div className="p-4 flex items-center justify-center min-h-[200px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your pets...</p>
+      <div className="p-4 text-center">
+        <p className="text-red-600 mb-4">{error}</p>
+        <Button onClick={retry} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (pets.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <div className="max-w-sm mx-auto">
+          <img 
+            src="/src/assets/empty-pets.png" 
+            alt="No pets" 
+            className="w-32 h-32 mx-auto mb-4 opacity-50"
+          />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pets Yet</h3>
+          <p className="text-gray-600 mb-4">Add your first pet to get started with tracking their health and activities.</p>
+          <Button 
+            onClick={() => navigate('/more')} 
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Pet
+          </Button>
         </div>
       </div>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="p-4">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="font-semibold text-red-800 mb-2">Unable to Load Pets</h3>
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={retry} variant="outline" className="text-red-700 border-red-300">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // No pets state
-  if (pets.length === 0) {
-    return (
-      <div className="p-4">
-        <EmptyState
-          illustration={emptyPets}
-          title="Welcome to PetZone! 🐾"
-          description="Let's add your first furry friend to start tracking their health, activities, and happiness. Your pet's wellness journey begins here!"
-          actionLabel="Add My First Pet"
-          onAction={() => navigate('/more')}
-          className="mt-8"
-        />
-      </div>
-    );
-  }
-
-  // No selected pet but pets exist
   if (!selectedPet) {
     return (
-      <div className="p-4">
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-6 text-center">
-            <h3 className="font-semibold text-orange-800 mb-2">Select a Pet</h3>
-            <p className="text-orange-600 mb-4">
-              You have {pets.length} pet{pets.length > 1 ? 's' : ''} but none is currently selected.
-            </p>
-            <p className="text-sm text-orange-500">
-              Use the pet switcher in the top right to select a pet.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="p-4 text-center">
+        <p className="text-gray-600">Please select a pet to view their dashboard.</p>
       </div>
     );
   }
@@ -105,136 +59,115 @@ const PetDashboard = () => {
   const calculateAge = (dateOfBirth: Date) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
-    let years = today.getFullYear() - birthDate.getFullYear();
-    let months = today.getMonth() - birthDate.getMonth();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
     
-    if (months < 0 || (months === 0 && today.getDate() < birthDate.getDate())) {
-      years--;
-      months += 12;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
     }
     
-    if (today.getDate() < birthDate.getDate()) {
-      months--;
-    }
-    
-    if (years > 0) {
-      return `${years} year${years > 1 ? 's' : ''} ${months > 0 ? `${months} month${months > 1 ? 's' : ''}` : ''}`;
-    }
-    return `${months} month${months > 1 ? 's' : ''}`;
+    return age;
   };
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Pet Profile Card */}
+    <div className="p-4 space-y-6">
+      {/* Pet Overview Card */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={selectedPet.photo} alt={selectedPet.name} />
-              <AvatarFallback className="bg-orange-100 text-orange-600 text-2xl">
-                {selectedPet.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => navigate(`/pet/${selectedPet.id}`)}
+        >
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center overflow-hidden">
+              {selectedPet.photo ? (
+                <img 
+                  src={selectedPet.photo} 
+                  alt={selectedPet.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-2xl text-white">
+                  {selectedPet.type === 'dog' ? '🐕' : '🐱'}
+                </span>
+              )}
+            </div>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{selectedPet.name}</h1>
-              <p className="text-gray-600 capitalize">{selectedPet.breed} {selectedPet.type}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="secondary" className="capitalize">
-                  {selectedPet.gender}
-                </Badge>
-                {selectedPet.reproductiveStatus && selectedPet.reproductiveStatus !== 'not_yet' && (
-                  <Badge variant="outline" className="capitalize">
-                    {selectedPet.reproductiveStatus}
-                  </Badge>
-                )}
+              <CardTitle className="text-xl text-gray-900">{selectedPet.name}</CardTitle>
+              <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                <span className="capitalize">{selectedPet.breed || 'Unknown Breed'}</span>
+                <span>{calculateAge(selectedPet.dateOfBirth)} years old</span>
+                <span className="capitalize">{selectedPet.gender}</span>
               </div>
             </div>
           </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-              <Cake className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-gray-600">Age</p>
-                <p className="font-semibold">{calculateAge(selectedPet.dateOfBirth)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-              <Weight className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-gray-600">Weight</p>
-                <p className="font-semibold">{selectedPet.weight} {selectedPet.weightUnit || 'lbs'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Health Conditions */}
-          {selectedPet.preExistingConditions && selectedPet.preExistingConditions.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Health Conditions</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedPet.preExistingConditions.map((condition, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {condition}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
+        </CardHeader>
       </Card>
 
-      {/* Quick Actions */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('/care')}>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Scale className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-gray-900">{selectedPet.weight}</p>
+            <p className="text-sm text-gray-600">{selectedPet.weightUnit || 'lbs'}</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
           <CardContent className="p-4 text-center">
             <Heart className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">Health Care</h3>
-            <p className="text-sm text-gray-600">Medical records & reports</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('/activity')}>
-          <CardContent className="p-4 text-center">
-            <Activity className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">Activity</h3>
-            <p className="text-sm text-gray-600">Walks & behavior logs</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate('/assistant')}>
-          <CardContent className="p-4 text-center">
-            <MessageCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">AI Assistant</h3>
-            <p className="text-sm text-gray-600">Health questions & advice</p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:bg-gray-50 transition-colors" 
-          onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
-        >
-          <CardContent className="p-4 text-center">
-            <Stethoscope className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">Health Reports</h3>
-            <p className="text-sm text-gray-600">Upload & analyze reports</p>
+            <p className="text-2xl font-bold text-gray-900">Good</p>
+            <p className="text-sm text-gray-600">Health Status</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity - Placeholder for now */}
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
+          <CardTitle className="text-lg">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/activity')}
+          >
+            <Activity className="h-4 w-4 mr-3" />
+            Log Activity
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/care')}
+          >
+            <Stethoscope className="h-4 w-4 mr-3" />
+            Health Records
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/activity')}
+          >
+            <Calendar className="h-4 w-4 mr-3" />
+            Schedule Reminder
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-center py-8">
-            Recent health logs and activities will appear here
-          </p>
+          <div className="text-center py-8 text-gray-500">
+            <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>No recent activities</p>
+            <p className="text-sm">Start logging activities to see them here</p>
+          </div>
         </CardContent>
       </Card>
     </div>

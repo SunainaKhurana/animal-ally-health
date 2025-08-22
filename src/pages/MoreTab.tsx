@@ -7,8 +7,7 @@ import {
   User, 
   Phone, 
   Info,
-  Edit,
-  Trash2,
+  ChevronRight,
   LogOut
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
@@ -18,14 +17,12 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import AddPetDialog from '@/components/pets/AddPetDialog';
-import EditPetDialog from '@/components/pets/EditPetDialog';
 
 const MoreTab = () => {
-  const { pets, selectedPet, addPet, updatePet, deletePet } = usePetContext();
+  const { pets, addPet, setSelectedPet } = usePetContext();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [showAddPet, setShowAddPet] = useState(false);
-  const [editingPet, setEditingPet] = useState(null);
 
   const handleAddPet = async (petData: any) => {
     const newPet = await addPet(petData);
@@ -34,9 +31,9 @@ const MoreTab = () => {
     }
   };
 
-  const handleUpdatePet = async (updatedPet: any) => {
-    await updatePet(updatedPet);
-    setEditingPet(null);
+  const handlePetClick = (pet: any) => {
+    setSelectedPet(pet);
+    navigate(`/pet/${pet.id}`);
   };
 
   return (
@@ -70,30 +67,33 @@ const MoreTab = () => {
 
             {pets.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">Manage Existing Pets</h4>
+                <h4 className="text-sm font-medium text-gray-700">Your Pets</h4>
                 {pets.map((pet) => (
-                  <div key={pet.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{pet.name}</p>
-                      <p className="text-sm text-gray-600 capitalize">{pet.breed} {pet.type}</p>
+                  <div 
+                    key={pet.id} 
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handlePetClick(pet)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center overflow-hidden">
+                        {pet.photo ? (
+                          <img 
+                            src={pet.photo} 
+                            alt={pet.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm text-white">
+                            {pet.type === 'dog' ? '🐕' : '🐱'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{pet.name}</p>
+                        <p className="text-sm text-gray-600 capitalize">{pet.breed} {pet.type}</p>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingPet(pet)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deletePet(pet.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </div>
                 ))}
               </div>
@@ -165,13 +165,6 @@ const MoreTab = () => {
         open={showAddPet}
         onOpenChange={setShowAddPet}
         onAddPet={handleAddPet}
-      />
-
-      <EditPetDialog
-        open={!!editingPet}
-        onOpenChange={() => setEditingPet(null)}
-        pet={editingPet}
-        onUpdatePet={handleUpdatePet}
       />
     </div>
   );

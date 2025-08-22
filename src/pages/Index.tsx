@@ -40,15 +40,7 @@ const Index = () => {
         </div>
       )}
 
-      {/* Loading State */}
-      {petsLoading && (
-        <div className="max-w-lg mx-auto p-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your pets...</p>
-        </div>
-      )}
-
-      {/* Main Content */}
+      {/* Main Content - PetDashboard handles its own loading state */}
       <div className="max-w-lg mx-auto">
         <PetDashboard />
       </div>

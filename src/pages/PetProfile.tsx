@@ -1,13 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { usePetContext } from '@/contexts/PetContext';
 import PetOverviewTab from '@/components/pet-profile/PetOverviewTab';
 import PetWeightTrendsTab from '@/components/pet-profile/PetWeightTrendsTab';
 import PetHealthReportsTab from "@/components/pet-profile/PetHealthReportsTab";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Pet {
   id: string;
@@ -27,7 +39,7 @@ interface Pet {
 const PetProfile = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
-  const { selectedPet: pet, pets } = usePetContext();
+  const { selectedPet: pet, pets, deletePet } = usePetContext();
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -39,6 +51,13 @@ const PetProfile = () => {
       }
     }
   }, [pet, petId, pets, navigate]);
+
+  const handleDeletePet = async () => {
+    if (pet) {
+      await deletePet(pet.id);
+      navigate('/more');
+    }
+  };
 
   if (!pet) {
     return (
@@ -102,6 +121,38 @@ const PetProfile = () => {
             <PetWeightTrendsTab petId={pet.id} />
           </TabsContent>
         </Tabs>
+
+        {/* Delete Pet Section - At the bottom */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {pet.name}'s Profile
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Pet Profile</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete {pet.name}'s profile? This action cannot be undone and will remove all associated health records, activities, and data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeletePet}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete Profile
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </div>
   );
