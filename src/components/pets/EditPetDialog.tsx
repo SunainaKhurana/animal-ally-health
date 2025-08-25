@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import GenderSelector from "./GenderSelector";
 import DateOfBirthSelector from "./DateOfBirthSelector";
 import WeightInput from "./WeightInput";
 import PreExistingConditionsSelector from "./PreExistingConditionsSelector";
-import ReproductiveStatusSelector from "./ReproductiveStatusSelector";
 
 interface Pet {
   id: string;
@@ -23,9 +23,7 @@ interface Pet {
   weightUnit?: string;
   gender: 'male' | 'female';
   photo?: string;
-  nextVaccination?: string;
   preExistingConditions?: string[];
-  reproductiveStatus?: 'spayed' | 'neutered' | 'not_yet';
 }
 
 interface EditPetDialogProps {
@@ -45,9 +43,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
     weightUnit: "lbs",
     gender: "" as 'male' | 'female' | "",
     photo: "",
-    nextVaccination: "",
-    preExistingConditions: [] as string[],
-    reproductiveStatus: "not_yet"
+    preExistingConditions: [] as string[]
   });
 
   useEffect(() => {
@@ -62,9 +58,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
         weightUnit: pet.weightUnit || "lbs",
         gender: pet.gender,
         photo: pet.photo || "",
-        nextVaccination: pet.nextVaccination || "",
-        preExistingConditions: pet.preExistingConditions || [],
-        reproductiveStatus: pet.reproductiveStatus || "not_yet"
+        preExistingConditions: pet.preExistingConditions || []
       });
     }
   }, [pet]);
@@ -86,9 +80,7 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
       weightUnit: formData.weightUnit,
       gender: formData.gender as 'male' | 'female',
       photo: formData.photo,
-      nextVaccination: formData.nextVaccination,
-      preExistingConditions: formData.preExistingConditions,
-      reproductiveStatus: formData.reproductiveStatus as 'spayed' | 'neutered' | 'not_yet'
+      preExistingConditions: formData.preExistingConditions
     };
 
     console.log('Submitting updated pet data:', updatedPet);
@@ -174,22 +166,6 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
               value={formData.preExistingConditions}
               onChange={(conditions) => setFormData({ ...formData, preExistingConditions: conditions })}
             />
-
-            <ReproductiveStatusSelector
-              value={formData.reproductiveStatus}
-              onChange={(status) => setFormData({ ...formData, reproductiveStatus: status })}
-            />
-
-            <div className="pb-4">
-              <Label htmlFor="nextVaccination">Next Vaccination</Label>
-              <Input
-                id="nextVaccination"
-                value={formData.nextVaccination}
-                onChange={(e) => setFormData({ ...formData, nextVaccination: e.target.value })}
-                placeholder="e.g., 2024-12-15"
-                className="mt-1"
-              />
-            </div>
           </form>
         </div>
       </SheetContent>

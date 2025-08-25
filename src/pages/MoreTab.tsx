@@ -8,7 +8,8 @@ import {
   Phone, 
   Info,
   ChevronRight,
-  LogOut
+  LogOut,
+  Edit
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,12 +18,15 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import AddPetDialog from '@/components/pets/AddPetDialog';
+import EditPetDialog from '@/components/pets/EditPetDialog';
 
 const MoreTab = () => {
-  const { pets, addPet, setSelectedPet } = usePetContext();
+  const { pets, addPet, updatePet, setSelectedPet } = usePetContext();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [showAddPet, setShowAddPet] = useState(false);
+  const [showEditPet, setShowEditPet] = useState(false);
+  const [selectedEditPet, setSelectedEditPet] = useState<any>(null);
 
   const handleAddPet = async (petData: any) => {
     const newPet = await addPet(petData);
@@ -31,9 +35,15 @@ const MoreTab = () => {
     }
   };
 
-  const handlePetClick = (pet: any) => {
-    setSelectedPet(pet);
-    navigate(`/pet/${pet.id}`);
+  const handleEditPet = (pet: any) => {
+    setSelectedEditPet(pet);
+    setShowEditPet(true);
+  };
+
+  const handleUpdatePet = async (updatedPet: any) => {
+    await updatePet(updatedPet);
+    setShowEditPet(false);
+    setSelectedEditPet(null);
   };
 
   return (
@@ -71,8 +81,7 @@ const MoreTab = () => {
                 {pets.map((pet) => (
                   <div 
                     key={pet.id} 
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handlePetClick(pet)}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center overflow-hidden">
@@ -93,7 +102,13 @@ const MoreTab = () => {
                         <p className="text-sm text-gray-600 capitalize">{pet.breed} {pet.type}</p>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditPet(pet)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -165,6 +180,13 @@ const MoreTab = () => {
         open={showAddPet}
         onOpenChange={setShowAddPet}
         onAddPet={handleAddPet}
+      />
+
+      <EditPetDialog
+        open={showEditPet}
+        onOpenChange={setShowEditPet}
+        pet={selectedEditPet}
+        onUpdatePet={handleUpdatePet}
       />
     </div>
   );

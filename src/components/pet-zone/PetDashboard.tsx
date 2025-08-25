@@ -71,12 +71,9 @@ const PetDashboard = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Pet Overview Card */}
+      {/* Pet Overview Card - Non-clickable */}
       <Card>
-        <CardHeader 
-          className="cursor-pointer hover:bg-gray-50 transition-colors"
-          onClick={() => navigate(`/pet/${selectedPet.id}`)}
-        >
+        <CardHeader>
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center overflow-hidden">
               {selectedPet.photo ? (
