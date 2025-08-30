@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,7 @@ export const useChatMessages = (petId?: string) => {
   const isInitializedRef = useRef(false);
   const lastPetIdRef = useRef<string | undefined>(undefined);
   const isLoadingRef = useRef(false);
+  const loadChatHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     getCachedMessages,
@@ -73,6 +75,12 @@ export const useChatMessages = (petId?: string) => {
 
   // Debounced load function to prevent rapid re-execution
   const loadChatHistory = useCallback(async () => {
+    // Clear any pending timeout
+    if (loadChatHistoryTimeoutRef.current) {
+      clearTimeout(loadChatHistoryTimeoutRef.current);
+      loadChatHistoryTimeoutRef.current = null;
+    }
+
     // Prevent loading if already loading or no petId
     if (!petId || isLoadingRef.current) {
       if (!petId) {
@@ -188,6 +196,7 @@ export const useChatMessages = (petId?: string) => {
 
     } catch (error: any) {
       console.error('Unexpected error loading chat history:', error);
+      const now = Date.now();
 
       // Fallback to cached messages or empty state
       const cachedMessages = getCachedMessages(petId);
@@ -208,6 +217,18 @@ export const useChatMessages = (petId?: string) => {
     }
   }, [petId, messageService, pollingService, getCachedMessages, setCachedMessages, getLastFetch, setLastFetch, getPendingReports, addPendingReport]);
 
+  const debouncedLoadChatHistory = useCallback(() => {
+    // Clear any existing timeout
+    if (loadChatHistoryTimeoutRef.current) {
+      clearTimeout(loadChatHistoryTimeoutRef.current);
+    }
+
+    // Set a new timeout
+    loadChatHistoryTimeoutRef.current = setTimeout(() => {
+      loadChatHistory();
+    }, 100);
+  }, [loadChatHistory]);
+
   // Reset when pet changes
   useEffect(() => {
     if (lastPetIdRef.current !== petId) {
@@ -223,14 +244,12 @@ export const useChatMessages = (petId?: string) => {
       // Cleanup previous polling state
       pollingService.cleanup();
       
-      // Load new chat history with a small delay to prevent race conditions
+      // Load new chat history with debouncing
       if (petId) {
-        setTimeout(() => {
-          loadChatHistory();
-        }, 100);
+        debouncedLoadChatHistory();
       }
     }
-  }, [petId, loadChatHistory, messageService, pollingService]);
+  }, [petId, debouncedLoadChatHistory, messageService, pollingService]);
 
   const addProcessingMessage = (reportId: number, content: string) => {
     if (!petId) return;
@@ -260,6 +279,13 @@ export const useChatMessages = (petId?: string) => {
   useEffect(() => {
     return () => {
       console.log('Cleaning up chat messages hook');
+      
+      // Clear timeout
+      if (loadChatHistoryTimeoutRef.current) {
+        clearTimeout(loadChatHistoryTimeoutRef.current);
+        loadChatHistoryTimeoutRef.current = null;
+      }
+      
       pollingService.cleanup();
       isInitializedRef.current = false;
       isLoadingRef.current = false;
