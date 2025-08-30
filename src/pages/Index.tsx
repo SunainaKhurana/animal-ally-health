@@ -107,6 +107,23 @@ const Index = () => {
     ];
   };
 
+  // Transform weekly activity data for chart
+  const getWeeklyActivityData = () => {
+    if (!dashboardData.weeklyActivity) return [];
+    
+    return dashboardData.weeklyActivity.map(day => ({
+      day: day.day,
+      value: (day.walks * 30) + (day.feedings * 5) + (day.playtime * 45), // Convert to minutes
+      percentage: Math.min(100, ((day.walks * 30) + (day.feedings * 5) + (day.playtime * 45)) / 2) // Scale for visual
+    }));
+  };
+
+  const weeklyData = getWeeklyActivityData();
+  const totalWeeklyActivity = weeklyData.reduce((sum, day) => sum + day.value, 0);
+  const averageDailyActivity = weeklyData.length > 0 ? totalWeeklyActivity / weeklyData.length : 0;
+  const previousWeekAverage = averageDailyActivity * 0.89; // Mock previous week data
+  const activityChange = previousWeekAverage > 0 ? ((averageDailyActivity - previousWeekAverage) / previousWeekAverage) * 100 : 12;
+
   if (petsLoading) {
     return <PetLoader type="chasing" size="md" />;
   }
@@ -330,6 +347,47 @@ const Index = () => {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* Health Insights Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-purple-800 mb-6">Health Insights</h2>
+          
+          <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Weekly Activity</h3>
+                  <p className="text-sm text-gray-600">Last 7 days</p>
+                </div>
+                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                  +{Math.round(activityChange)}%
+                </div>
+              </div>
+              
+              {/* Activity Bar Chart */}
+              <div className="flex items-end justify-between h-32 mb-4">
+                {weeklyData.map((day, index) => (
+                  <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
+                    <div className="flex-1 flex items-end w-full px-1">
+                      <div 
+                        className={`w-full rounded-t-md transition-all duration-300 ${
+                          index % 2 === 0 
+                            ? 'bg-gradient-to-t from-purple-400 to-purple-500' 
+                            : 'bg-gradient-to-t from-pink-400 to-pink-500'
+                        }`}
+                        style={{ 
+                          height: `${Math.max(8, day.percentage)}%`,
+                          minHeight: '8px'
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">{day.day}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
