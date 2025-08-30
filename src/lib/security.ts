@@ -11,12 +11,6 @@ export const validateEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-export const validatePhoneNumber = (phone: string): boolean => {
-  // Basic phone number validation
-  const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
-  return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
-};
-
 // Simplified logging function that doesn't depend on database
 export const logSecurityEvent = async (event: {
   event_type: string;
@@ -27,15 +21,4 @@ export const logSecurityEvent = async (event: {
 }) => {
   // Just log to console for now - no database dependency
   console.log('Security Event:', event);
-};
-
-// Simple rate limiting without database
-export const checkOTPRateLimit = async (phone: string) => {
-  // Always allow for MVP - no database dependency
-  return {
-    allowed: true,
-    attempts_remaining: 5,
-    retry_after: null,
-    reason: null
-  };
 };

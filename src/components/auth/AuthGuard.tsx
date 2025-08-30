@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { PhoneAuthForm } from './PhoneAuthForm';
+import AuthForm from './AuthForm';
 import { UserOnboarding } from './UserOnboarding';
 import { useProfileStatus } from '@/hooks/useProfileStatus';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   }
 
   if (!user) {
-    return <PhoneAuthForm />;
+    return <AuthForm />;
   }
 
   // Show onboarding if not completed
