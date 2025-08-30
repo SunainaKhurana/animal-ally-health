@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { usePetContext } from "@/contexts/PetContext";
 import { useEffect, useState } from "react";
@@ -22,14 +23,14 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PetLoader from "@/components/ui/PetLoader";
-import { useDashboardData } from "@/hooks/useDashboardData";
 import { useSmartActivityData } from "@/hooks/useSmartActivityData";
+import { useWeeklyActivityData } from "@/hooks/useWeeklyActivityData";
 
 const Index = () => {
   const { user, session } = useAuth();
   const { pets, loading: petsLoading, error: petsError, selectedPet, setSelectedPet } = usePetContext();
-  const { dashboardData, loading: dashboardLoading } = useDashboardData();
   const { activities, loading: activitiesLoading, showWeekly } = useSmartActivityData();
+  const { currentWeek: weeklyData, percentageChange, loading: weeklyLoading } = useWeeklyActivityData();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -55,37 +56,9 @@ const Index = () => {
 
   // Generate health summary text
   const getHealthSummary = () => {
-    if (!selectedPet || dashboardLoading) return "";
-    
-    const hasRecentActivity = dashboardData.hasActivity;
-    const healthStatus = dashboardData.healthStatus;
-    
-    if (healthStatus === 'good' && hasRecentActivity) {
-      return `${selectedPet.name} is in excellent health with all vitals in normal range.`;
-    } else if (healthStatus === 'good') {
-      return `${selectedPet.name} appears healthy. Consider logging recent activities.`;
-    } else if (healthStatus === 'attention') {
-      return `${selectedPet.name} may need attention. Check recent health reports.`;
-    }
-    return `Here's ${selectedPet.name}'s health summary for today`;
+    if (!selectedPet) return "";
+    return `Here's ${selectedPet.name}'s summary for today`;
   };
-
-  // Transform weekly activity data for chart
-  const getWeeklyActivityData = () => {
-    if (!dashboardData.weeklyActivity) return [];
-    
-    return dashboardData.weeklyActivity.map(day => ({
-      day: day.day,
-      value: (day.walks * 30) + (day.feedings * 5) + (day.playtime * 45), // Convert to minutes
-      percentage: Math.min(100, ((day.walks * 30) + (day.feedings * 5) + (day.playtime * 45)) / 2) // Scale for visual
-    }));
-  };
-
-  const weeklyData = getWeeklyActivityData();
-  const totalWeeklyActivity = weeklyData.reduce((sum, day) => sum + day.value, 0);
-  const averageDailyActivity = weeklyData.length > 0 ? totalWeeklyActivity / weeklyData.length : 0;
-  const previousWeekAverage = averageDailyActivity * 0.89; // Mock previous week data
-  const activityChange = previousWeekAverage > 0 ? ((averageDailyActivity - previousWeekAverage) / previousWeekAverage) * 100 : 12;
 
   if (petsLoading) {
     return <PetLoader type="chasing" size="md" />;
@@ -361,31 +334,72 @@ const Index = () => {
                   <h3 className="text-lg font-semibold text-gray-900">Weekly Activity</h3>
                   <p className="text-sm text-gray-600">Last 7 days</p>
                 </div>
-                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-                  +{Math.round(activityChange)}%
-                </div>
+                {weeklyLoading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-16 rounded-full"></div>
+                ) : (
+                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    percentageChange >= 0 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {percentageChange >= 0 ? '+' : ''}{percentageChange}%
+                  </div>
+                )}
               </div>
               
               {/* Activity Bar Chart */}
-              <div className="flex items-end justify-between h-32 mb-4">
-                {weeklyData.map((day, index) => (
-                  <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
-                    <div className="flex-1 flex items-end w-full px-1">
-                      <div 
-                        className={`w-full rounded-t-md transition-all duration-300 ${
-                          index % 2 === 0 
-                            ? 'bg-gradient-to-t from-purple-400 to-purple-500' 
-                            : 'bg-gradient-to-t from-pink-400 to-pink-500'
-                        }`}
-                        style={{ 
-                          height: `${Math.max(8, day.percentage)}%`,
-                          minHeight: '8px'
-                        }}
-                      />
+              {weeklyLoading ? (
+                <div className="flex items-end justify-between h-32 mb-4">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <div key={i} className="flex-1 px-1">
+                      <div className="animate-pulse bg-gray-200 h-16 rounded-t-md mb-2"></div>
+                      <div className="animate-pulse bg-gray-200 h-3 rounded"></div>
                     </div>
-                    <span className="text-xs text-gray-500 font-medium">{day.day}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-end justify-between h-32 mb-4">
+                  {weeklyData.map((day, index) => {
+                    // Calculate bar height as percentage of max activity (max 100px)
+                    const maxMinutes = Math.max(...weeklyData.map(d => d.totalMinutes), 1);
+                    const heightPercentage = day.totalMinutes > 0 ? (day.totalMinutes / maxMinutes) * 100 : 0;
+                    
+                    return (
+                      <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
+                        <div className="flex-1 flex items-end w-full px-1">
+                          {day.totalMinutes > 0 ? (
+                            <div 
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                index % 2 === 0 
+                                  ? 'bg-gradient-to-t from-purple-400 to-purple-500' 
+                                  : 'bg-gradient-to-t from-pink-400 to-pink-500'
+                              }`}
+                              style={{ 
+                                height: `${Math.max(8, heightPercentage)}%`,
+                                minHeight: day.totalMinutes > 0 ? '8px' : '0px'
+                              }}
+                              title={`${day.totalMinutes} minutes, ${day.walks} walks`}
+                            />
+                          ) : (
+                            <div className="w-full h-0"></div>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">{day.day}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Total Activity Summary */}
+              <div className="text-center text-sm text-gray-600">
+                {weeklyLoading ? (
+                  <div className="animate-pulse bg-gray-200 h-4 w-32 mx-auto rounded"></div>
+                ) : (
+                  <span>
+                    {weeklyData.reduce((sum, day) => sum + day.totalMinutes, 0)} minutes this week
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>
