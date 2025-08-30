@@ -25,7 +25,15 @@ export const useSmartActivityData = () => {
   const [showWeekly, setShowWeekly] = useState(false);
 
   useEffect(() => {
+    console.log('🔄 useSmartActivityData effect triggered', {
+      selectedPet: selectedPet ? { id: selectedPet.id, name: selectedPet.name } : null
+    });
+
     if (!selectedPet) {
+      console.log('❌ No selectedPet, clearing data');
+      setTodayActivities([]);
+      setWeekActivities([]);
+      setShowWeekly(false);
       setLoading(false);
       return;
     }
@@ -34,17 +42,31 @@ export const useSmartActivityData = () => {
   }, [selectedPet]);
 
   const fetchActivities = async () => {
-    if (!selectedPet) return;
+    if (!selectedPet) {
+      console.log('❌ fetchActivities called without selectedPet');
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('📊 Starting to fetch activities for pet:', selectedPet.name);
+      
       const today = new Date();
       const todayStart = startOfDay(today);
       const todayEnd = endOfDay(today);
       const weekStart = startOfWeek(today, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
 
-      // Fetch today's activities
+      console.log('📅 Date ranges:', {
+        today: format(today, 'yyyy-MM-dd'),
+        todayStart: todayStart.toISOString(),
+        todayEnd: todayEnd.toISOString(),
+        weekStart: weekStart.toISOString(),
+        weekEnd: weekEnd.toISOString()
+      });
+
+      // Fetch today's activities with detailed logging
+      console.log('🔍 Fetching today\'s data...');
       const [walks, symptoms, healthReports, prescriptions] = await Promise.all([
         // Walks
         supabase
@@ -83,11 +105,26 @@ export const useSmartActivityData = () => {
           .order('created_at', { ascending: false })
       ]);
 
+      // Log query results
+      console.log('📊 Today\'s query results:', {
+        walks: { count: walks.data?.length || 0, error: walks.error },
+        symptoms: { count: symptoms.data?.length || 0, error: symptoms.error },
+        healthReports: { count: healthReports.data?.length || 0, error: healthReports.error },
+        prescriptions: { count: prescriptions.data?.length || 0, error: prescriptions.error }
+      });
+
+      // Check for errors
+      if (walks.error) console.error('❌ Walks query error:', walks.error);
+      if (symptoms.error) console.error('❌ Symptoms query error:', symptoms.error);
+      if (healthReports.error) console.error('❌ Health reports query error:', healthReports.error);
+      if (prescriptions.error) console.error('❌ Prescriptions query error:', prescriptions.error);
+
       // Transform today's data
       const todayItems: ActivityItem[] = [];
 
       // Add walks
       walks.data?.forEach(walk => {
+        console.log('🚶‍♂️ Processing walk:', walk.id, walk.created_at);
         todayItems.push({
           id: `walk-${walk.id}`,
           type: 'walk',
@@ -106,6 +143,7 @@ export const useSmartActivityData = () => {
 
       // Add symptom reports
       symptoms.data?.forEach(symptom => {
+        console.log('🩺 Processing symptom:', symptom.id, symptom.created_at);
         todayItems.push({
           id: `symptom-${symptom.id}`,
           type: 'symptom',
@@ -124,6 +162,7 @@ export const useSmartActivityData = () => {
 
       // Add health reports
       healthReports.data?.forEach(report => {
+        console.log('📋 Processing health report:', report.id, report.created_at);
         todayItems.push({
           id: `health-${report.id}`,
           type: 'health_report',
@@ -140,6 +179,7 @@ export const useSmartActivityData = () => {
 
       // Add prescriptions
       prescriptions.data?.forEach(prescription => {
+        console.log('💊 Processing prescription:', prescription.id, prescription.created_at);
         todayItems.push({
           id: `prescription-${prescription.id}`,
           type: 'medication',
@@ -149,18 +189,25 @@ export const useSmartActivityData = () => {
           icon: '💊',
           color: 'bg-purple-100',
           iconColor: 'text-purple-600',
-          route: '/report-symptoms',
+          route: '/care', // Fixed route mapping
           timestamp: new Date(prescription.created_at)
         });
       });
 
-      // Sort by timestamp
+      // Sort by timestamp (most recent first)
       todayItems.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+      console.log('✅ Today\'s activities processed:', {
+        totalCount: todayItems.length,
+        activities: todayItems.map(item => ({ id: item.id, type: item.type, title: item.title }))
+      });
 
       setTodayActivities(todayItems);
 
       // If no today activities, fetch week's activities
       if (todayItems.length === 0) {
+        console.log('📅 No today activities, fetching week\'s activities...');
+        
         const [weekWalks, weekSymptoms, weekHealthReports, weekPrescriptions] = await Promise.all([
           supabase
             .from('walks')
@@ -198,6 +245,13 @@ export const useSmartActivityData = () => {
             .order('created_at', { ascending: false })
             .limit(5)
         ]);
+
+        console.log('📊 Week\'s query results:', {
+          walks: { count: weekWalks.data?.length || 0, error: weekWalks.error },
+          symptoms: { count: weekSymptoms.data?.length || 0, error: weekSymptoms.error },
+          healthReports: { count: weekHealthReports.data?.length || 0, error: weekHealthReports.error },
+          prescriptions: { count: weekPrescriptions.data?.length || 0, error: weekPrescriptions.error }
+        });
 
         const weekItems: ActivityItem[] = [];
 
@@ -259,12 +313,18 @@ export const useSmartActivityData = () => {
             icon: '💊',
             color: 'bg-purple-100',
             iconColor: 'text-purple-600',
-            route: '/report-symptoms',
+            route: '/care', // Fixed route mapping
             timestamp: new Date(prescription.created_at)
           });
         });
 
         weekItems.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        
+        console.log('✅ Week\'s activities processed:', {
+          totalCount: weekItems.length,
+          displayCount: Math.min(4, weekItems.length)
+        });
+
         setWeekActivities(weekItems.slice(0, 4));
         setShowWeekly(true);
       } else {
@@ -272,9 +332,10 @@ export const useSmartActivityData = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      console.error('❌ Error fetching activities:', error);
     } finally {
       setLoading(false);
+      console.log('✅ fetchActivities completed');
     }
   };
 
