@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,6 +8,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PetProvider } from "@/contexts/PetContext";
 import { ChatCacheProvider } from "@/contexts/ChatCacheContext";
+import { AuthGuard } from "@/components/auth/AuthGuard";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { realtimeManager } from "@/lib/realtimeSubscriptionManager";
 import Index from "./pages/Index";
 import CareTab from "./pages/CareTab";
@@ -43,33 +46,37 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <PetProvider>
-              <ChatCacheProvider>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/care" element={<CareTab />} />
-                  <Route path="/assistant" element={<AssistantTab />} />
-                  <Route path="/activity" element={<ActivityTab />} />
-                  <Route path="/more" element={<MoreTab />} />
-                  <Route path="/pet/:petId" element={<PetProfile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/profile" element={<UserProfile />} />
-                  <Route path="/health" element={<Navigate to="/health/" replace />} />
-                  <Route path="/health/:petId?" element={<HealthRecords />} />
-                  <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
-                  <Route path="/report-symptoms" element={<ReportSymptoms />} />
-                  <Route path="/check-health" element={<CheckHealthStatus />} />
-                  <Route path="/prescriptions" element={<PrescriptionsTracker />} />
-                  <Route path="/weight" element={<WeightTracking />} />
-                  <Route path="/walks" element={<WalksTracker />} />
-                  <Route path="/activity-tracker" element={<ActivityTracker />} />
-                  <Route path="/daily-tracker" element={<DailyTracker />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </ChatCacheProvider>
-            </PetProvider>
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <AuthGuard>
+                <PetProvider>
+                  <ChatCacheProvider>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/care" element={<CareTab />} />
+                      <Route path="/assistant" element={<AssistantTab />} />
+                      <Route path="/activity" element={<ActivityTab />} />
+                      <Route path="/more" element={<MoreTab />} />
+                      <Route path="/pet/:petId" element={<PetProfile />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/profile" element={<UserProfile />} />
+                      <Route path="/health" element={<Navigate to="/health/" replace />} />
+                      <Route path="/health/:petId?" element={<HealthRecords />} />
+                      <Route path="/health-reports/:petId" element={<HealthReportsPage />} />
+                      <Route path="/report-symptoms" element={<ReportSymptoms />} />
+                      <Route path="/check-health" element={<CheckHealthStatus />} />
+                      <Route path="/prescriptions" element={<PrescriptionsTracker />} />
+                      <Route path="/weight" element={<WeightTracking />} />
+                      <Route path="/walks" element={<WalksTracker />} />
+                      <Route path="/activity-tracker" element={<ActivityTracker />} />
+                      <Route path="/daily-tracker" element={<DailyTracker />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ChatCacheProvider>
+                </PetProvider>
+              </AuthGuard>
+            </AuthProvider>
+          </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

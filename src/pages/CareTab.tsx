@@ -17,11 +17,39 @@ import { useNavigate } from 'react-router-dom';
 import CollapsibleConditionsSection from '@/components/health/CollapsibleConditionsSection';
 import QuickLogButton from '@/components/quick-actions/QuickLogButton';
 import { useHealthReports } from '@/hooks/useHealthReports';
+import { LoadingFallback } from '@/components/common/LoadingFallback';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
-const CareTab = () => {
-  const { selectedPet } = usePetContext();
+const CareTabContent = () => {
+  const { selectedPet, loading: petLoading, error: petError } = usePetContext();
   const navigate = useNavigate();
-  const { healthReports } = useHealthReports(selectedPet?.id);
+  const { healthReports, loading: reportsLoading } = useHealthReports(selectedPet?.id);
+
+  // Show loading state while pets are loading
+  if (petLoading) {
+    return <LoadingFallback message="Loading your pets..." />;
+  }
+
+  // Show error state if there's a pet error
+  if (petError) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-gray-900">Care</h1>
+            <PetSwitcher />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">Error loading pets: {petError}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+        <PetZoneNavigation />
+      </div>
+    );
+  }
 
   if (!selectedPet) {
     return (
@@ -43,9 +71,17 @@ const CareTab = () => {
     );
   }
 
-  // Smart button text and icon based on reports
+  // Smart button text and icon based on reports (with loading state)
   const getHealthReportsButton = () => {
-    if (healthReports.length === 0) {
+    if (reportsLoading) {
+      return {
+        text: "Loading Reports...",
+        icon: <FileText className="h-4 w-4 mr-2" />,
+        description: "Loading health reports..."
+      };
+    }
+    
+    if (!healthReports || healthReports.length === 0) {
       return {
         text: "Upload First Report",
         icon: <Plus className="h-4 w-4 mr-2" />,
@@ -101,6 +137,7 @@ const CareTab = () => {
               className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm"
               onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
               size="lg"
+              disabled={reportsLoading}
             >
               {healthReportsButton.icon}
               {healthReportsButton.text}
@@ -132,10 +169,12 @@ const CareTab = () => {
         </Card>
 
         {/* Health Conditions */}
-        <CollapsibleConditionsSection 
-          petId={selectedPet.id} 
-          petSpecies={selectedPet.type || 'dog'} 
-        />
+        <ErrorBoundary>
+          <CollapsibleConditionsSection 
+            petId={selectedPet.id} 
+            petSpecies={selectedPet.type || 'dog'} 
+          />
+        </ErrorBoundary>
 
         {/* Quick Health Actions */}
         <Card>
@@ -168,6 +207,14 @@ const CareTab = () => {
 
       <PetZoneNavigation />
     </div>
+  );
+};
+
+const CareTab = () => {
+  return (
+    <ErrorBoundary>
+      <CareTabContent />
+    </ErrorBoundary>
   );
 };
 
