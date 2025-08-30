@@ -110,10 +110,22 @@ export const useWeeklyActivityData = (): WeeklyActivityData => {
           return walkDate >= dayStart && walkDate <= dayEnd;
         }) || [];
 
-        // Calculate total minutes for the day
+        // Calculate total minutes for the day - use actual duration_minutes if available
         const totalMinutes = dayWalks.reduce((sum, walk) => {
-          return sum + (walk.duration_minutes || 30); // Default to 30 minutes if not specified
+          // Use the actual duration_minutes from the database if it exists, otherwise default to 30
+          const walkDuration = walk.duration_minutes || 30;
+          return sum + walkDuration;
         }, 0);
+
+        console.log(`📅 ${dayName} activity:`, {
+          walks: dayWalks.length,
+          totalMinutes,
+          walkDetails: dayWalks.map(w => ({ 
+            id: w.id, 
+            duration: w.duration_minutes || 30,
+            startTime: w.start_time 
+          }))
+        });
 
         return {
           day: dayName,
@@ -122,7 +134,7 @@ export const useWeeklyActivityData = (): WeeklyActivityData => {
         };
       });
 
-      // Calculate percentage change
+      // Calculate percentage change based on total minutes
       const currentWeekTotal = currentWeekData.reduce((sum, day) => sum + day.totalMinutes, 0);
       const previousWeekTotal = (previousWeekWalks || []).reduce((sum, walk) => {
         return sum + (walk.duration_minutes || 30);
@@ -136,9 +148,9 @@ export const useWeeklyActivityData = (): WeeklyActivityData => {
       }
 
       console.log('📈 Activity comparison:', {
-        currentWeekTotal,
-        previousWeekTotal,
-        percentageChange
+        currentWeekTotal: `${currentWeekTotal} minutes`,
+        previousWeekTotal: `${previousWeekTotal} minutes`,
+        percentageChange: `${percentageChange}%`
       });
 
       setData({

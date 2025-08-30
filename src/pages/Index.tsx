@@ -360,13 +360,13 @@ const Index = () => {
               ) : (
                 <div className="flex items-end justify-between h-32 mb-4">
                   {weeklyData.map((day, index) => {
-                    // Calculate bar height as percentage of max activity (max 100px)
+                    // Calculate bar height based on total minutes (max height 120px for better visibility)
                     const maxMinutes = Math.max(...weeklyData.map(d => d.totalMinutes), 1);
-                    const heightPercentage = day.totalMinutes > 0 ? (day.totalMinutes / maxMinutes) * 100 : 0;
+                    const heightPercentage = day.totalMinutes > 0 ? Math.max(8, (day.totalMinutes / maxMinutes) * 100) : 0;
                     
                     return (
                       <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
-                        <div className="flex-1 flex items-end w-full px-1">
+                        <div className="flex-1 flex items-end w-full px-1" style={{ height: '120px' }}>
                           {day.totalMinutes > 0 ? (
                             <div 
                               className={`w-full rounded-t-md transition-all duration-300 ${
@@ -375,10 +375,10 @@ const Index = () => {
                                   : 'bg-gradient-to-t from-pink-400 to-pink-500'
                               }`}
                               style={{ 
-                                height: `${Math.max(8, heightPercentage)}%`,
+                                height: `${heightPercentage}%`,
                                 minHeight: day.totalMinutes > 0 ? '8px' : '0px'
                               }}
-                              title={`${day.totalMinutes} minutes, ${day.walks} walks`}
+                              title={`${day.totalMinutes} minutes total (${day.walks} ${day.walks === 1 ? 'walk' : 'walks'})`}
                             />
                           ) : (
                             <div className="w-full h-0"></div>
