@@ -28,23 +28,23 @@ const HealthStatusCard = ({
     switch (healthStatus) {
       case 'good':
         return (
-          <Badge className="bg-green-100 text-green-800 border-green-200">
+          <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200 rounded-full">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Good Health
+            Healthy
           </Badge>
         );
       case 'attention':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+          <Badge className="bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800 border-orange-200 rounded-full">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Needs Attention
+            Needs Care
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+          <Badge className="bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-gray-200 rounded-full">
             <Heart className="h-3 w-3 mr-1" />
-            Status Unknown
+            Unknown
           </Badge>
         );
     }
@@ -58,53 +58,59 @@ const HealthStatusCard = ({
     }
   };
 
+  const getCardGradient = () => {
+    switch (healthStatus) {
+      case 'good': return 'from-green-50 via-emerald-50 to-teal-50 border-green-100';
+      case 'attention': return 'from-yellow-50 via-orange-50 to-red-50 border-orange-100';
+      default: return 'from-gray-50 via-slate-50 to-blue-50 border-gray-100';
+    }
+  };
+
   return (
-    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+    <Card className={`bg-gradient-to-br ${getCardGradient()} shadow-sm`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-green-900">
+          <CardTitle className="flex items-center gap-2 text-emerald-800">
             <Heart className="h-5 w-5" />
             Health Status
           </CardTitle>
           {getHealthBadge()}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-center">
-          <div className="text-4xl mb-2">{getHealthEmoji()}</div>
-          <p className="text-sm text-gray-600">
-            {petName}'s overall health
+      <CardContent className="space-y-6">
+        <div className="text-center py-2">
+          <div className="text-5xl mb-3">{getHealthEmoji()}</div>
+          <p className="text-sm text-gray-600 font-medium">
+            {petName}'s overall health looks {healthStatus === 'good' ? 'great' : healthStatus === 'attention' ? 'okay' : 'unclear'}!
           </p>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Health Reports</span>
-            <span className="font-semibold text-green-800">{recentReports}</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-emerald-700">{recentReports}</div>
+            <div className="text-xs text-gray-600">Health Reports</div>
           </div>
           
           {lastCheckup && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Last Checkup</span>
-              <span className="text-sm font-medium">{lastCheckup}</span>
-            </div>
-          )}
-          
-          {upcomingReminders > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                {upcomingReminders} upcoming reminder{upcomingReminders > 1 ? 's' : ''}
-              </span>
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 text-center">
+              <div className="text-xs text-gray-600 mb-1">Last Checkup</div>
+              <div className="text-sm font-medium text-gray-800">{lastCheckup}</div>
             </div>
           )}
         </div>
+        
+        {upcomingReminders > 0 && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <Calendar className="h-4 w-4 text-blue-600" />
+            <span className="text-sm text-blue-800 font-medium">
+              {upcomingReminders} upcoming reminder{upcomingReminders > 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
 
         <Button 
           onClick={() => navigate(`/health-reports/${petId}`)}
-          variant="outline"
-          size="sm"
-          className="w-full border-green-200 text-green-700 hover:bg-green-50"
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg rounded-full"
         >
           <FileText className="h-4 w-4 mr-2" />
           View Health Reports

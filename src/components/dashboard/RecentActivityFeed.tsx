@@ -32,38 +32,44 @@ const RecentActivityFeed = ({ activities, petName }: RecentActivityFeedProps) =>
 
   const getActivityColor = (type: string) => {
     switch (type) {
-      case 'walk': return 'bg-blue-50 border-blue-200';
-      case 'feeding': return 'bg-orange-50 border-orange-200';
-      case 'health': return 'bg-red-50 border-red-200';
-      case 'checkup': return 'bg-green-50 border-green-200';
-      default: return 'bg-gray-50 border-gray-200';
+      case 'walk': return 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-100';
+      case 'feeding': return 'bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-100';
+      case 'health': return 'bg-gradient-to-r from-red-50 to-pink-50 border-red-100';
+      case 'checkup': return 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100';
+      default: return 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-100';
     }
   };
 
   if (activities.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+      <Card className="bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border-purple-100 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-purple-900">
+          <CardTitle className="flex items-center gap-2 text-purple-800">
             <Clock className="h-5 w-5" />
             Recent Activity
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <div className="text-4xl mb-3">📱</div>
-          <h3 className="font-semibold text-gray-900 mb-2">No recent activity</h3>
-          <p className="text-sm text-gray-600 mb-4">
+        <CardContent className="text-center py-8">
+          <div className="text-6xl mb-4">📱</div>
+          <h3 className="font-semibold text-gray-900 mb-2 text-lg">No recent activity</h3>
+          <p className="text-sm text-gray-600 mb-6 max-w-xs mx-auto">
             Start logging {petName}'s activities to see them here
           </p>
+          <Button 
+            onClick={() => navigate('/activity')}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg rounded-full px-6"
+          >
+            Log Activity
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+    <Card className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-100 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-purple-900">
+        <CardTitle className="flex items-center gap-2 text-indigo-800">
           <Clock className="h-5 w-5" />
           Recent Activity
         </CardTitle>
@@ -73,9 +79,9 @@ const RecentActivityFeed = ({ activities, petName }: RecentActivityFeedProps) =>
           {activities.slice(0, 4).map((activity) => (
             <div 
               key={activity.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border ${getActivityColor(activity.type)}`}
+              className={`flex items-center gap-3 p-4 rounded-2xl border ${getActivityColor(activity.type)} backdrop-blur-sm`}
             >
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow-sm">
                 {getActivityIcon(activity.type)}
               </div>
               <div className="flex-1 min-w-0">
@@ -84,7 +90,7 @@ const RecentActivityFeed = ({ activities, petName }: RecentActivityFeedProps) =>
                 </p>
                 <p className="text-xs text-gray-600">{activity.time}</p>
               </div>
-              <div className="text-lg">{activity.icon}</div>
+              <div className="text-2xl">{activity.icon}</div>
             </div>
           ))}
         </div>
@@ -92,8 +98,7 @@ const RecentActivityFeed = ({ activities, petName }: RecentActivityFeedProps) =>
           <Button 
             onClick={() => navigate('/activity')}
             variant="outline"
-            size="sm"
-            className="w-full mt-4 border-purple-200 text-purple-700 hover:bg-purple-50"
+            className="w-full mt-4 border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-full"
           >
             View All Activity
           </Button>
