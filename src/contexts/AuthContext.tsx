@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const initAuth = async (skipCleanup = false) => {
     try {
@@ -42,18 +43,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔄 Initializing authentication...');
       
       if (!skipCleanup) {
-        // Clean up any stale auth state first
         cleanupAuthState();
-        
-        // Wait a moment for cleanup to complete
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Get initial session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
+        
+        // Handle specific error types more gracefully
+        if (sessionError.message?.includes('Invalid Refresh Token')) {
+          console.log('Invalid refresh token, clearing auth state...');
+          cleanupAuthState();
+          setUser(null);
+          setSession(null);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+        
         throw sessionError;
       }
       
@@ -61,13 +70,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setSession(session);
       setUser(session?.user ?? null);
+      setRetryCount(0); // Reset retry count on success
       
-      // Debug auth state
       await debugAuthState(supabase);
       
     } catch (error: any) {
       console.error('❌ Auth initialization error:', error);
-      setError(error.message || 'Authentication failed');
+      
+      // Don't show error for common cases that should be handled silently
+      const isRecoverableError = error.message?.includes('Invalid Refresh Token') ||
+                                error.message?.includes('session_not_found') ||
+                                error.message?.includes('network');
+      
+      if (!isRecoverableError || retryCount > 2) {
+        setError(error.message || 'Authentication failed');
+      }
+      
+      // Set user/session to null on auth errors
+      setUser(null);
+      setSession(null);
     } finally {
       setLoading(false);
     }
@@ -76,24 +97,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const forceReauth = async () => {
     console.log('🔄 Forcing reauthentication...');
     
-    // Clear everything and force a fresh start
     cleanupAuthState();
     
     try {
-      // Sign out globally first
       await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
       console.log('Sign out error (continuing):', error);
     }
     
-    // Force page reload to completely reset state
     window.location.reload();
   };
 
   useEffect(() => {
-    initAuth(true); // Skip cleanup on initial load
+    initAuth(true);
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state changed:', event, session?.user?.id || 'No user');
       
@@ -101,8 +118,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       setError(null);
+      setRetryCount(0);
       
-      // Debug when auth state changes
       if (event === 'SIGNED_IN' && session) {
         setTimeout(async () => {
           await debugAuthState(supabase);
@@ -117,7 +134,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('🚪 Signing out...');
       
-      // Clean up first
       cleanupAuthState();
       
       const { error } = await supabase.auth.signOut({ scope: 'global' });
@@ -127,7 +143,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(null);
       setError(null);
       
-      // Force page reload for clean state
       window.location.href = '/';
     } catch (error: any) {
       console.error('Error signing out:', error);
@@ -138,6 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const retry = () => {
     console.log('🔄 Retrying authentication...');
+    setRetryCount(prev => prev + 1);
     initAuth();
   };
 
