@@ -42,16 +42,19 @@ export const useImprovedHealthReports = (petId?: string) => {
     loadReports
   );
 
-  // Set up real-time subscription
+  // Set up real-time subscription - only one subscription per petId
   useHealthReportsRealtime(
     petId,
     (report) => {
+      console.log('📝 Real-time update received:', report.id);
       setHealthReports(prev => prev.map(r => r.id === report.id ? report : r));
     },
     (report) => {
+      console.log('➕ Real-time insert received:', report.id);
       setHealthReports(prev => [report, ...prev.filter(r => r.id !== report.id)]);
     },
     (reportId) => {
+      console.log('🗑️ Real-time delete received:', reportId);
       setHealthReports(prev => prev.filter(r => r.id !== reportId));
     }
   );
