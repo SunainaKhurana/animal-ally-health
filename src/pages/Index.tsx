@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { usePetContext } from "@/contexts/PetContext";
 import { useEffect, useState } from "react";
@@ -24,11 +23,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import PetLoader from "@/components/ui/PetLoader";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useSmartActivityData } from "@/hooks/useSmartActivityData";
 
 const Index = () => {
   const { user, session } = useAuth();
   const { pets, loading: petsLoading, error: petsError, selectedPet, setSelectedPet } = usePetContext();
   const { dashboardData, loading: dashboardLoading } = useDashboardData();
+  const { activities, loading: activitiesLoading, showWeekly } = useSmartActivityData();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -67,44 +68,6 @@ const Index = () => {
       return `${selectedPet.name} may need attention. Check recent health reports.`;
     }
     return `Here's ${selectedPet.name}'s health summary for today`;
-  };
-
-  // Mock activities data based on dashboard data
-  const getTodaysActivities = () => {
-    if (!selectedPet) return [];
-    
-    return [
-      {
-        id: 1,
-        title: "Heartworm medication",
-        time: "8:00 AM",
-        status: "Today",
-        icon: Pill,
-        color: "bg-green-100",
-        iconColor: "text-green-600",
-        type: "medication"
-      },
-      {
-        id: 2,
-        title: "Rabies vaccine", 
-        time: "10:30 AM",
-        status: "Tomorrow",
-        icon: Shield,
-        color: "bg-yellow-100",
-        iconColor: "text-yellow-600",
-        type: "vaccine"
-      },
-      {
-        id: 3,
-        title: "Morning walk",
-        time: "7:00 AM", 
-        status: "Today",
-        icon: Calendar,
-        color: "bg-blue-100",
-        iconColor: "text-blue-600",
-        type: "activity"
-      }
-    ];
   };
 
   // Transform weekly activity data for chart
@@ -176,8 +139,6 @@ const Index = () => {
       </div>
     );
   }
-
-  const activities = getTodaysActivities();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pb-20">
@@ -314,10 +275,12 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Today's Activities */}
+        {/* Smart Today's Activities */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-purple-800">Today's Activities</h2>
+            <h2 className="text-xl font-bold text-purple-800">
+              {showWeekly ? "This Week's Activities" : "Today's Activities"}
+            </h2>
             <Button 
               variant="ghost" 
               className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
@@ -327,26 +290,64 @@ const Index = () => {
             </Button>
           </div>
           
-          <div className="space-y-3">
-            {activities.map((activity) => (
-              <Card key={activity.id} className="bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90 transition-colors cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 ${activity.color} rounded-full flex items-center justify-center`}>
-                        <activity.icon className={`h-5 w-5 ${activity.iconColor}`} />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{activity.title}</h3>
-                        <p className="text-sm text-gray-600">{activity.time} · {activity.status}</p>
+          {activitiesLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="bg-white/80 backdrop-blur-sm border-white/20">
+                  <CardContent className="p-4">
+                    <div className="animate-pulse flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : activities.length === 0 ? (
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardContent className="p-8 text-center">
+                <div className="text-4xl mb-4">📱</div>
+                <h3 className="font-semibold text-gray-900 mb-2">No activities yet</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Start logging {selectedPet?.name}'s activities to see them here
+                </p>
+                <Button 
+                  onClick={() => navigate('/activity')}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                >
+                  Log Activity
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <Card 
+                  key={activity.id} 
+                  className="bg-white/80 backdrop-blur-sm border-white/20 hover:bg-white/90 transition-colors cursor-pointer"
+                  onClick={() => navigate(activity.route)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 ${activity.color} rounded-full flex items-center justify-center text-lg`}>
+                          {activity.icon}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 text-sm">{activity.title}</h3>
+                          <p className="text-xs text-gray-600">{activity.time} · {activity.status}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Health Insights Section */}
