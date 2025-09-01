@@ -16,7 +16,7 @@ const PetSwitcher = () => {
     return (
       <Button 
         onClick={() => navigate('/more')} 
-        className="bg-orange-500 hover:bg-orange-600"
+        className="bg-orange-500 hover:bg-orange-600 text-white"
       >
         <Plus className="h-4 w-4 mr-2" />
         Add Pet
@@ -26,14 +26,10 @@ const PetSwitcher = () => {
 
   if (pets.length === 1) {
     return (
-      <div className="flex items-center gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={selectedPet?.photo} alt={selectedPet?.name} />
-          <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
-            {selectedPet?.name.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <span className="font-medium text-gray-900">{selectedPet?.name}</span>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-white">
+          {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+        </h1>
       </div>
     );
   }
@@ -41,18 +37,14 @@ const PetSwitcher = () => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 p-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={selectedPet?.photo} alt={selectedPet?.name} />
-            <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
-              {selectedPet?.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium text-gray-900">{selectedPet?.name}</span>
-          <ChevronDown className="h-4 w-4 text-gray-500" />
+        <Button variant="ghost" className="flex items-center gap-2 p-0 text-white hover:bg-white/20">
+          <h1 className="text-lg font-semibold text-white">
+            {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+          </h1>
+          <ChevronDown className="h-4 w-4 text-white" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="top" className="h-auto">
+      <SheetContent side="top" className="h-auto bg-white">
         <SheetHeader>
           <SheetTitle>Select Pet</SheetTitle>
         </SheetHeader>

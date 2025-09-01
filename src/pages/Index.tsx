@@ -3,12 +3,13 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Bell, ChevronDown } from 'lucide-react';
+import { Plus, RefreshCw, Bell } from 'lucide-react';
 import { usePets } from '@/hooks/usePets';
 import { usePetContext } from '@/contexts/PetContext';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
+import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -100,10 +101,7 @@ const Index = () => {
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-white">
-              {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
-            </h1>
-            <ChevronDown className="h-4 w-4 text-white" />
+            <PetSwitcher />
           </div>
           <div className="flex items-center gap-3">
             <Bell className="h-5 w-5 text-white" />
