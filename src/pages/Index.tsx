@@ -40,7 +40,7 @@ const Index = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <p className="text-red-500 mb-4">Error loading pets: {error}</p>
-            <Button onClick={refetch}>Retry</Button>
+            <Button onClick={() => refetch()}>Retry</Button>
           </div>
         </div>
 
