@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Heart, RefreshCw } from "lucide-react";
+import { Plus, Heart, RefreshCw, Calendar, Pill, Shield } from "lucide-react";
 import { usePetContext } from "@/contexts/PetContext";
 import { useNavigate } from "react-router-dom";
 import PetLoader from "@/components/ui/PetLoader";
@@ -88,14 +88,11 @@ const PetDashboard = () => {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      {/* Pet Overview Card */}
-      <Card className="bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 text-white overflow-hidden relative shadow-lg">
-        <div className="absolute top-0 right-0 text-9xl opacity-20 transform rotate-12">
-          {selectedPet.type === 'dog' ? '🐕' : '🐱'}
-        </div>
-        <CardHeader className="relative">
+      {/* Pet Profile Card - Clean Design */}
+      <Card className="bg-white shadow-sm border border-gray-100">
+        <CardContent className="p-6">
           <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-3 border-white/30 shadow-lg">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
               {selectedPet.photo ? (
                 <img 
                   src={selectedPet.photo} 
@@ -103,37 +100,86 @@ const PetDashboard = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-3xl">
+                <span className="text-2xl">
                   {selectedPet.type === 'dog' ? '🐕' : '🐱'}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <CardTitle className="text-2xl font-bold drop-shadow-sm">{selectedPet.name}</CardTitle>
-              <div className="flex items-center space-x-4 text-sm text-white/95 mt-2">
-                <span className="capitalize bg-white/20 px-3 py-1 rounded-full">
-                  {selectedPet.breed || 'Mixed Breed'}
-                </span>
-                <span className="bg-white/20 px-3 py-1 rounded-full">
-                  {calculateAge(selectedPet.dateOfBirth)} years old
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-3">
-                <Heart className="h-4 w-4 text-pink-200" />
-                <span className="text-sm text-white/95 bg-white/20 px-3 py-1 rounded-full">
-                  {selectedPet.weight} {selectedPet.weightUnit || 'lbs'}
-                </span>
-                <span className="text-sm text-white/95 bg-white/20 px-3 py-1 rounded-full capitalize">
-                  {selectedPet.gender}
-                </span>
+              <h2 className="text-xl font-semibold text-gray-900">{selectedPet.name}</h2>
+              <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
+                <span>{selectedPet.breed || 'Mixed Breed'}</span>
+                <span>•</span>
+                <span>{calculateAge(selectedPet.dateOfBirth)} years old</span>
+                <span>•</span>
+                <span>{selectedPet.weight} {selectedPet.weightUnit || 'lbs'}</span>
               </div>
             </div>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
-      {/* Quick Actions Grid */}
-      <QuickActionsGrid petId={selectedPet.id} petType={selectedPet.type} />
+      {/* Quick Actions - Simplified 3 Cards */}
+      <Card className="bg-white shadow-sm border border-gray-100">
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-3 gap-3">
+            <Button
+              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
+              variant="outline"
+              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
+            >
+              <Heart className="h-5 w-5 text-red-500" />
+              <span className="text-xs text-gray-700">Health Record</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/care')}
+              variant="outline"
+              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
+            >
+              <Calendar className="h-5 w-5 text-blue-500" />
+              <span className="text-xs text-gray-700">Appointments</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/care')}
+              variant="outline"
+              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
+            >
+              <Pill className="h-5 w-5 text-purple-500" />
+              <span className="text-xs text-gray-700">Medications</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Large Action Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+          <CardContent className="p-4">
+            <Button
+              onClick={() => navigate('/care')}
+              variant="ghost"
+              className="w-full h-full flex flex-col items-center gap-2 text-white hover:bg-white/20 border-0"
+            >
+              <Pill className="h-8 w-8" />
+              <span className="text-sm font-medium">Add Medication</span>
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
+          <CardContent className="p-4">
+            <Button
+              onClick={() => navigate('/care')}
+              variant="ghost"
+              className="w-full h-full flex flex-col items-center gap-2 text-white hover:bg-white/20 border-0"
+            >
+              <Shield className="h-8 w-8" />
+              <span className="text-sm font-medium">Add Vaccine</span>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Activity Summary */}
       <ActivitySummaryCard 

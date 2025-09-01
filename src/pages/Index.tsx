@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Bell } from 'lucide-react';
 import { usePets } from '@/hooks/usePets';
+import { usePetContext } from '@/contexts/PetContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
@@ -13,6 +14,7 @@ import PetLoader from '@/components/ui/PetLoader';
 const Index = () => {
   const navigate = useNavigate();
   const { pets, loading, error, refetch } = usePets();
+  const { selectedPet } = usePetContext();
 
   useEffect(() => {
     document.title = 'PetZone';
@@ -32,10 +34,13 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-gray-900">PetZone</h1>
-            <PetSwitcher />
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
+          <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-white">PetZone</h1>
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-white" />
+              <Plus className="h-5 w-5 text-white" />
+            </div>
           </div>
         </div>
 
@@ -60,10 +65,13 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 pb-20">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-gray-900">PetZone</h1>
-            <PetSwitcher />
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
+          <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-white">PetZone</h1>
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-white" />
+              <Plus className="h-5 w-5 text-white" />
+            </div>
           </div>
         </div>
 
@@ -90,10 +98,37 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">PetZone</h1>
-          <PetSwitcher />
+      <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-white">
+            {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+          </h1>
+          <div className="flex items-center gap-3">
+            <Bell className="h-5 w-5 text-white" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 text-white hover:bg-white/20"
+              onClick={() => navigate('/more')}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+            {selectedPet && (
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                {selectedPet.photo ? (
+                  <img 
+                    src={selectedPet.photo} 
+                    alt={selectedPet.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-sm font-medium">
+                    {selectedPet.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
