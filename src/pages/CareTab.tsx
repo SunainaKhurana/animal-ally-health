@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,6 +18,7 @@ import QuickLogButton from '@/components/quick-actions/QuickLogButton';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import SymptomLogsList from '@/components/health/SymptomLogsList';
 
 const CareTabContent = () => {
   const { selectedPet, loading: petLoading, error: petError } = usePetContext();
@@ -120,6 +120,14 @@ const CareTabContent = () => {
             <QuickLogButton />
           </CardContent>
         </Card>
+
+        {/* Symptom Logs List */}
+        <ErrorBoundary>
+          <SymptomLogsList 
+            petId={selectedPet.id} 
+            petName={selectedPet.name}
+          />
+        </ErrorBoundary>
 
         {/* Health Reports Hub - Single Smart Button */}
         <Card className="border-2 border-blue-100 bg-blue-50/30">

@@ -10,7 +10,7 @@ const PetZoneNavigation = () => {
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'care', label: 'Care', icon: Heart, path: '/care' },
     { id: 'activity', label: 'Activity', icon: Activity, path: '/activity' },
-    { id: 'assistant', label: 'Assistant', icon: MessageCircle, path: '/assistant' },
+    { id: 'assistant', label: 'AI Assistant', icon: MessageCircle, path: '/assistant' },
     { id: 'more', label: 'More', icon: MoreHorizontal, path: '/more' },
   ];
 

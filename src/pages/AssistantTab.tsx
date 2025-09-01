@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
@@ -115,6 +114,15 @@ const AssistantTab = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* AI Disclaimer */}
+        <div className="px-4 pb-2">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-amber-800">
+              ⚠️ <strong>Disclaimer:</strong> AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.
+            </p>
+          </div>
         </div>
 
         {/* Chat Interface - takes remaining space with bottom padding */}

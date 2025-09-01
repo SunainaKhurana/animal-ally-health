@@ -148,6 +148,15 @@ const HealthReportsPageContent = () => {
 
       {/* Content */}
       <div className="px-4 pb-20">
+        {/* AI Disclaimer */}
+        <div className="mb-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-amber-800">
+              ⚠️ <strong>Disclaimer:</strong> AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.
+            </p>
+          </div>
+        </div>
+
         {/* Reports List */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
