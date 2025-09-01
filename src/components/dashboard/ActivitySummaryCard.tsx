@@ -45,37 +45,27 @@ const ActivitySummaryCard = ({ petName }: ActivitySummaryCardProps) => {
   return (
     <Card className="bg-white shadow-sm border border-gray-100">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-blue-500" />
-          Health Insights
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-500" />
+            <div>
+              <span className="text-lg font-semibold text-gray-900">Health Insights</span>
+              <p className="text-sm text-gray-500 font-normal">Weekly Activity</p>
+            </div>
+          </div>
+          {percentageChange > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+              <TrendingUp className="h-3 w-3" />
+              +{percentageChange}%
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="text-xs text-gray-500 mb-2">Last 7 days</div>
+        
         {hasAnyActivity ? (
           <>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {chartData.reduce((sum, day) => sum + day.minutes, 0)} min
-                </p>
-                <p className="text-sm text-gray-600">This week's activity</p>
-              </div>
-              {percentageChange !== 0 && (
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                  percentageChange > 0 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {percentageChange > 0 ? (
-                    <TrendingUp className="h-3 w-3" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3" />
-                  )}
-                  {Math.abs(percentageChange)}%
-                </div>
-              )}
-            </div>
-
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
@@ -89,7 +79,7 @@ const ActivitySummaryCard = ({ petName }: ActivitySummaryCardProps) => {
                     {chartData.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={entry.minutes > 0 ? '#8B5CF6' : '#E5E7EB'} 
+                        fill={entry.minutes > 0 ? (index % 2 === 0 ? '#8B5CF6' : '#EC4899') : '#E5E7EB'} 
                       />
                     ))}
                   </Bar>
@@ -97,8 +87,16 @@ const ActivitySummaryCard = ({ petName }: ActivitySummaryCardProps) => {
               </ResponsiveContainer>
             </div>
 
-            <div className="text-xs text-gray-500">
-              {chartData.filter(d => d.walks > 0).length} days with walks this week
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <span className="text-2xl font-bold text-gray-900">
+                  {chartData.reduce((sum, day) => sum + day.minutes, 0)}
+                </span>
+                <span className="text-gray-600 ml-1">min this week</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                {chartData.filter(d => d.walks > 0).length} days with activity
+              </div>
             </div>
           </>
         ) : (

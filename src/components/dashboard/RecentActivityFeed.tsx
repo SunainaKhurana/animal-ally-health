@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Plus } from "lucide-react";
+import { Clock, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useSmartActivityData } from "@/hooks/useSmartActivityData";
@@ -19,9 +19,11 @@ const RecentActivityFeed = ({ petName }: RecentActivityFeedProps) => {
     return (
       <Card className="bg-white shadow-sm border border-gray-100">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gray-500" />
-            Today's Activities
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-gray-500" />
+              Today's Activities
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -41,47 +43,65 @@ const RecentActivityFeed = ({ petName }: RecentActivityFeedProps) => {
     );
   }
 
+  // Map activity types to specific colors and icons
+  const getActivityIcon = (type: string, title: string) => {
+    if (type === 'medication' || title.toLowerCase().includes('medication')) {
+      return { icon: '💊', color: 'bg-green-100', textColor: 'text-green-700' };
+    }
+    if (type === 'health_report' || title.toLowerCase().includes('vaccine')) {
+      return { icon: '🛡️', color: 'bg-yellow-100', textColor: 'text-yellow-700' };
+    }
+    if (type === 'walk' || title.toLowerCase().includes('appointment')) {
+      return { icon: '📅', color: 'bg-green-100', textColor: 'text-green-700' };
+    }
+    // Default
+    return { icon: '📋', color: 'bg-blue-100', textColor: 'text-blue-700' };
+  };
+
   return (
     <Card className="bg-white shadow-sm border border-gray-100">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-gray-500" />
-          {showWeekly ? "This Week's Activities" : "Today's Activities"}
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-gray-500" />
+            <span className="text-lg font-semibold text-gray-900">
+              {showWeekly ? "This Week's Activities" : "Today's Activities"}
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-purple-600 hover:bg-purple-50 text-sm font-medium"
+            onClick={() => navigate('/activity')}
+          >
+            See All
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {activities.length > 0 ? (
-          <div className="space-y-4">
-            {activities.map((activity) => (
-              <div 
-                key={activity.id}
-                className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg -m-2"
-                onClick={() => navigate(activity.route)}
-              >
-                <div className={`w-10 h-10 rounded-full ${activity.color} flex items-center justify-center text-lg`}>
-                  {activity.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {activity.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-500">{activity.time}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs ${
-                        activity.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                        activity.status === 'Analyzed' ? 'bg-blue-100 text-blue-700' :
-                        activity.status === 'Active' ? 'bg-purple-100 text-purple-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {activity.status}
-                    </Badge>
+          <div className="space-y-3">
+            {activities.slice(0, 3).map((activity) => {
+              const activityStyle = getActivityIcon(activity.type, activity.title);
+              return (
+                <div 
+                  key={activity.id}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg -m-3 group"
+                  onClick={() => navigate(activity.route)}
+                >
+                  <div className={`w-10 h-10 rounded-full ${activityStyle.color} flex items-center justify-center text-lg`}>
+                    {activityStyle.icon}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {activity.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{activity.time}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8">

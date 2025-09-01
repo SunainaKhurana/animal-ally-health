@@ -3,10 +3,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Bell } from 'lucide-react';
+import { Plus, RefreshCw, Bell, ChevronDown } from 'lucide-react';
 import { usePets } from '@/hooks/usePets';
 import { usePetContext } from '@/contexts/PetContext';
-import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
@@ -23,7 +22,7 @@ const Index = () => {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
         <PetLoader type="chasing" size="md" />
       </div>
     );
@@ -32,7 +31,7 @@ const Index = () => {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
@@ -63,7 +62,7 @@ const Index = () => {
   // Show no pets state
   if (pets.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 pb-20">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 pb-20">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
@@ -96,13 +95,16 @@ const Index = () => {
 
   // Show rich dashboard content
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-white">
-            {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-white">
+              {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+            </h1>
+            <ChevronDown className="h-4 w-4 text-white" />
+          </div>
           <div className="flex items-center gap-3">
             <Bell className="h-5 w-5 text-white" />
             <Button 
@@ -114,7 +116,7 @@ const Index = () => {
               <Plus className="h-5 w-5" />
             </Button>
             {selectedPet && (
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden relative">
                 {selectedPet.photo ? (
                   <img 
                     src={selectedPet.photo} 
@@ -126,6 +128,7 @@ const Index = () => {
                     {selectedPet.name.charAt(0).toUpperCase()}
                   </span>
                 )}
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               </div>
             )}
           </div>

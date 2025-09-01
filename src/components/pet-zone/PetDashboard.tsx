@@ -1,14 +1,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Heart, RefreshCw, Calendar, Pill, Shield } from "lucide-react";
+import { Plus, Heart, RefreshCw, Calendar, Pill, Shield, Sun } from "lucide-react";
 import { usePetContext } from "@/contexts/PetContext";
 import { useNavigate } from "react-router-dom";
 import PetLoader from "@/components/ui/PetLoader";
 import ActivitySummaryCard from "@/components/dashboard/ActivitySummaryCard";
 import HealthStatusCard from "@/components/dashboard/HealthStatusCard";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
-import QuickActionsGrid from "@/components/dashboard/QuickActionsGrid";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 const PetDashboard = () => {
@@ -87,8 +86,21 @@ const PetDashboard = () => {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      {/* Pet Profile Card - Clean Design */}
+    <div className="p-4 space-y-4 pb-24">
+      {/* Good Afternoon Section */}
+      <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-100">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Sun className="h-5 w-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900">Good afternoon!</h3>
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {selectedPet.name} is in excellent health with all vitals in normal range
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Pet Profile Card */}
       <Card className="bg-white shadow-sm border border-gray-100">
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
@@ -119,39 +131,6 @@ const PetDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions - Simplified 3 Cards */}
-      <Card className="bg-white shadow-sm border border-gray-100">
-        <CardContent className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <Button
-              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
-            >
-              <Heart className="h-5 w-5 text-red-500" />
-              <span className="text-xs text-gray-700">Health Record</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/care')}
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
-            >
-              <Calendar className="h-5 w-5 text-blue-500" />
-              <span className="text-xs text-gray-700">Appointments</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/care')}
-              variant="outline"
-              className="h-20 flex flex-col items-center gap-2 bg-white border-gray-200 hover:bg-gray-50"
-            >
-              <Pill className="h-5 w-5 text-purple-500" />
-              <span className="text-xs text-gray-700">Medications</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Large Action Cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
@@ -159,7 +138,7 @@ const PetDashboard = () => {
             <Button
               onClick={() => navigate('/care')}
               variant="ghost"
-              className="w-full h-full flex flex-col items-center gap-2 text-white hover:bg-white/20 border-0"
+              className="w-full h-full flex flex-col items-center gap-3 text-white hover:bg-white/20 border-0 min-h-[100px]"
             >
               <Pill className="h-8 w-8" />
               <span className="text-sm font-medium">Add Medication</span>
@@ -167,12 +146,12 @@ const PetDashboard = () => {
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
+        <Card className="bg-gradient-to-br from-green-500 to-teal-500 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <Button
               onClick={() => navigate('/care')}
               variant="ghost"
-              className="w-full h-full flex flex-col items-center gap-2 text-white hover:bg-white/20 border-0"
+              className="w-full h-full flex flex-col items-center gap-3 text-white hover:bg-white/20 border-0 min-h-[100px]"
             >
               <Shield className="h-8 w-8" />
               <span className="text-sm font-medium">Add Vaccine</span>
@@ -180,6 +159,12 @@ const PetDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Activity Feed */}
+      <RecentActivityFeed 
+        activities={dashboardData.recentActivities}
+        petName={selectedPet.name}
+      />
 
       {/* Activity Summary */}
       <ActivitySummaryCard 
@@ -196,12 +181,6 @@ const PetDashboard = () => {
         lastCheckup={dashboardData.lastCheckup}
         healthStatus={dashboardData.healthStatus}
         upcomingReminders={dashboardData.upcomingReminders}
-      />
-
-      {/* Recent Activity Feed */}
-      <RecentActivityFeed 
-        activities={dashboardData.recentActivities}
-        petName={selectedPet.name}
       />
     </div>
   );
