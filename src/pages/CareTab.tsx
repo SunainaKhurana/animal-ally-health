@@ -14,7 +14,6 @@ import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
 import CollapsibleConditionsSection from '@/components/health/CollapsibleConditionsSection';
-import QuickLogButton from '@/components/quick-actions/QuickLogButton';
 import { useHealthReports } from '@/hooks/useHealthReports';
 import { LoadingFallback } from '@/components/common/LoadingFallback';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -108,19 +107,6 @@ const CareTabContent = () => {
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-6">
-        {/* Quick Log Action */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Health Log</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Notice something about {selectedPet.name}? Log it quickly for your vet or AI assistant.
-            </p>
-            <QuickLogButton />
-          </CardContent>
-        </Card>
-
         {/* Health Logs Entry Point */}
         <Card>
           <CardHeader>
