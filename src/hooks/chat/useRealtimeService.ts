@@ -1,37 +1,47 @@
 
-import { useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SymptomReport } from '@/hooks/useSymptomReports';
+import { useEffect, useRef } from 'react';
+import { usePollingService } from './usePollingService';
+import { realtimeManager } from '@/lib/realtimeSubscriptionManager';
+
+interface SymptomReport {
+  id: number;
+  pet_id: string;
+  symptoms: string[] | null;
+  notes?: string | null;
+  ai_response: string | null;
+  diagnosis: string | null;
+  created_at: string;
+}
 
 export const useRealtimeService = (
   petId: string | undefined,
   onResponseReceived: (report: SymptomReport) => void,
-  lastPollTime: number,
-  startPolling: () => void,
-  pendingReportsCount: number
+  pendingResponsesCount: number
 ) => {
-  const channelRefs = useRef<any[]>([]);
+  const lastActivityRef = useRef(Date.now());
+  const { startAggressivePolling } = usePollingService(onResponseReceived);
 
-  const handleRealtimeUpdate = useCallback((payload: any) => {
-    console.log('Real-time UPDATE received:', payload.new?.id);
+  const handleRealtimeUpdate = (payload: any) => {
+    console.log('Real-time UPDATE received:', payload);
+    lastActivityRef.current = Date.now();
     
-    if (!payload.new || !payload.new.id) {
+    if (payload.eventType !== 'UPDATE' || !payload.new) {
       console.warn('Invalid real-time update payload:', payload);
       return;
     }
 
     const updatedReport = payload.new;
-    
     if (updatedReport.diagnosis || updatedReport.ai_response) {
       console.log('Real-time update contains response for report:', updatedReport.id);
       onResponseReceived(updatedReport);
     }
-  }, [onResponseReceived]);
+  };
 
-  const handleRealtimeInsert = useCallback((payload: any) => {
-    console.log('Real-time INSERT received:', payload.new?.id);
+  const handleRealtimeInsert = (payload: any) => {
+    console.log('Real-time INSERT received:', payload);
+    lastActivityRef.current = Date.now();
     
-    if (!payload.new || !payload.new.id) {
+    if (payload.eventType !== 'INSERT' || !payload.new) {
       console.warn('Invalid real-time insert payload:', payload);
       return;
     }
@@ -41,15 +51,15 @@ export const useRealtimeService = (
       console.log('Real-time insert contains response for report:', newReport.id);
       onResponseReceived(newReport);
     }
-  }, [onResponseReceived]);
+  };
 
-  const handleBackupUpdate = useCallback((payload: any) => {
-    console.log('Backup real-time UPDATE received:', payload.new?.id);
+  const handleBackupUpdate = (payload: any) => {
+    console.log('Backup real-time UPDATE received:', payload);
     
-    // Only process if primary channel hasn't handled it recently
-    const timeSinceLastPoll = Date.now() - lastPollTime;
-    if (timeSinceLastPoll > 1000) {
-      if (!payload.new || !payload.new.id) {
+    // Only process if primary channel hasn't been active recently
+    const timeSinceActivity = Date.now() - lastActivityRef.current;
+    if (timeSinceActivity > 2000) {
+      if (payload.eventType !== 'UPDATE' || !payload.new) {
         console.warn('Invalid backup real-time payload:', payload);
         return;
       }
@@ -62,85 +72,54 @@ export const useRealtimeService = (
     } else {
       console.log('Skipping backup processing - primary channel recently active');
     }
-  }, [onResponseReceived, lastPollTime]);
+  };
 
   useEffect(() => {
-    if (!petId) {
-      console.log('No petId provided, skipping real-time setup');
-      return;
-    }
+    if (!petId) return;
 
-    // Clean up existing channels
-    channelRefs.current.forEach(channel => {
-      console.log('Cleaning up existing symptom channel');
-      supabase.removeChannel(channel);
-    });
-    channelRefs.current = [];
-
-    console.log('Setting up real-time channels for pet:', petId);
-
-    // Primary channel for updates
-    const updateChannel = supabase
-      .channel(`symptom-reports-updates-${petId}-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'symptom_reports',
-          filter: `pet_id=eq.${petId}`
-        },
-        handleRealtimeUpdate
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'symptom_reports',
-          filter: `pet_id=eq.${petId}`
-        },
-        handleRealtimeInsert
-      )
-      .subscribe((status) => {
-        console.log('Primary real-time channel status:', status);
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('Primary channel failed, falling back to polling');
-          // Fallback to aggressive polling
-          if (pendingReportsCount > 0) {
-            startPolling();
-          }
-        } else if (status === 'SUBSCRIBED') {
-          console.log('Primary real-time channel connected successfully');
+    console.log('Setting up realtime subscription for pet:', petId);
+    
+    // Use the centralized realtime manager for better performance
+    const unsubscribe = realtimeManager.subscribe(
+      'symptom_reports',
+      (payload) => {
+        console.log('Realtime symptom_reports change:', payload);
+        
+        if (payload.eventType === 'UPDATE') {
+          handleRealtimeUpdate(payload);
+        } else if (payload.eventType === 'INSERT') {
+          handleRealtimeInsert(payload);
         }
-      });
+      },
+      `pet_id=eq.${petId}`
+    );
 
-    // Secondary backup channel for redundancy
-    const backupChannel = supabase
-      .channel(`symptom-backup-${petId}-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'symptom_reports',
-          filter: `pet_id=eq.${petId}`
-        },
-        handleBackupUpdate
-      )
-      .subscribe((status) => {
-        console.log('Backup real-time channel status:', status);
-      });
+    // Create backup subscription for redundancy
+    const backupUnsubscribe = realtimeManager.subscribe(
+      'symptom_reports',
+      (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          handleBackupUpdate(payload);
+        }
+      },
+      `pet_id=eq.${petId}`
+    );
 
-    // Store channel references for cleanup
-    channelRefs.current = [updateChannel, backupChannel];
+    // Set up fallback polling for critical scenarios
+    const fallbackTimer = setInterval(() => {
+      const timeSinceActivity = Date.now() - lastActivityRef.current;
+      if (timeSinceActivity > 30000 && pendingResponsesCount > 0) {
+        console.log('No realtime activity for 30s, starting aggressive polling');
+        startAggressivePolling();
+      }
+    }, 15000);
 
+    // Cleanup function
     return () => {
-      console.log('Cleaning up real-time channels for pet:', petId);
-      channelRefs.current.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
-      channelRefs.current = [];
+      console.log('Cleaning up realtime subscriptions');
+      unsubscribe();
+      backupUnsubscribe();
+      clearInterval(fallbackTimer);
     };
-  }, [petId, handleRealtimeUpdate, handleRealtimeInsert, handleBackupUpdate, startPolling, pendingReportsCount]);
+  }, [petId, pendingResponsesCount, startAggressivePolling]);
 };

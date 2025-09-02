@@ -1,13 +1,23 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
-import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { useChatCache } from '@/contexts/ChatCacheContext';
 
 export const useChatLogic = (selectedPetId?: string) => {
   const { toast } = useToast();
   const { addSymptomReport } = useSymptomReports();
-  const { messages, addMessage, addProcessingMessage, connectionHealth, pendingResponsesCount } = useChatMessages(selectedPetId);
+  const { 
+    getCachedMessages, 
+    addMessage, 
+    updateMessage 
+  } = useChatCache();
+  const { 
+    messages, 
+    connectionHealth, 
+    pendingResponsesCount
+  } = useChatMessages(selectedPetId);
   
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
@@ -15,13 +25,13 @@ export const useChatLogic = (selectedPetId?: string) => {
   const [lastFailedMessage, setLastFailedMessage] = useState<{ message: string; imageFile?: File } | null>(null);
   
   // Use ref to track the current pet ID to prevent race conditions
-  const currentPetIdRef = useRef(selectedPetId);
+  const selectedPetIdRef = useRef(selectedPetId);
 
   // Reset states when pet changes
   useEffect(() => {
-    if (currentPetIdRef.current !== selectedPetId) {
+    if (selectedPetIdRef.current !== selectedPetId) {
       console.log('Pet changed in chat logic, resetting states');
-      currentPetIdRef.current = selectedPetId;
+      selectedPetIdRef.current = selectedPetId;
       
       // Reset all states
       setIsLoading(false);
@@ -31,109 +41,83 @@ export const useChatLogic = (selectedPetId?: string) => {
     }
   }, [selectedPetId]);
 
-  const handleSendMessage = async (message: string, imageFile?: File, isRetry: boolean = false) => {
-    // Check if pet is still the same (prevent race conditions)
-    const petIdAtStart = selectedPetId;
+  const handleSendMessage = useCallback(async (message: string, imageFile?: File, isRetry: boolean = false) => {
+    if (!selectedPetId) return;
     
-    if (!message.trim() && !imageFile || !petIdAtStart) {
-      console.log('No message/image or pet ID, aborting');
-      return;
-    }
-
-    console.log('Attempting to send message:', { message: message.substring(0, 50), hasImage: !!imageFile, isRetry, petId: petIdAtStart });
-
+    // Prevent duplicate requests
     if (isLoading && !isRetry) {
-      console.log('Already loading, ignoring duplicate request');
+      console.log('Already processing a message, skipping duplicate request');
       return;
     }
-
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      content: message || "Shared an image",
-      timestamp: new Date(),
-      hasImage: !!imageFile
-    };
-
-    if (!isRetry) {
-      addMessage(userMessage);
-    }
-    
-    setIsLoading(true);
-    setShowQuickSuggestions(true);
 
     try {
-      console.log('Submitting symptom report...');
+      setIsLoading(true);
+      setShowQuickSuggestions(false);
       
-      const report = await addSymptomReport(
-        petIdAtStart,
-        [],
-        message,
-        imageFile
-      );
-
-      // Check if pet is still the same after async operation
-      if (currentPetIdRef.current !== petIdAtStart) {
-        console.log('Pet changed during submission, aborting');
-        return;
+      // Reset retry state if this is a new message (not a retry)
+      if (!isRetry) {
+        setRetryCount(0);
+        setLastFailedMessage(null);
       }
 
-      console.log('Symptom report created successfully:', report?.id);
-
-      if (report?.id) {
-        addProcessingMessage(report.id, 'Vet Assistant is reviewing... hang tight.');
-      }
-
-      setRetryCount(0);
-      setLastFailedMessage(null);
-
-      toast({
-        title: "Question Submitted",
-        description: "Your question is being processed by our vet assistant.",
+      // Get current chat history for context
+      const chatHistory = getCachedMessages(selectedPetId);
+      
+      const userMessage = addMessage(selectedPetId, {
+        text: message,
+        sender: 'user',
+        imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
+        status: 'processing'
       });
 
-    } catch (error: any) {
-      console.error('Failed to send message:', error);
+      // Add a placeholder AI message
+      const aiMessage = addMessage(selectedPetId, {
+        text: '',
+        sender: 'assistant',
+        isLoading: true,
+        status: 'processing'
+      });
+
+      // Convert symptoms string to array and submit to symptom reports with chat context
+      const symptoms = message.split(',').map(s => s.trim()).filter(s => s.length > 0);
       
-      // Check if pet is still the same after error
-      if (currentPetIdRef.current !== petIdAtStart) {
-        console.log('Pet changed during error handling, aborting');
+      console.log('Submitting symptoms to report system with chat context:', symptoms);
+      const reportData = await addSymptomReport(selectedPetId, symptoms, message, imageFile, chatHistory);
+      
+      console.log('Symptom report created:', reportData);
+      
+      // Update user message status and link to report
+      updateMessage(selectedPetId, userMessage.id, { 
+        status: 'delivered',
+        reportId: reportData.id 
+      });
+      
+      // Update AI message with report ID for tracking
+      updateMessage(selectedPetId, aiMessage.id, { 
+        reportId: reportData.id 
+      });
+      
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      
+      // Check if pet ID changed during the async operation
+      if (selectedPetIdRef.current !== selectedPetId) {
+        console.log('Pet ID changed during operation, ignoring error');
         return;
       }
       
       setLastFailedMessage({ message, imageFile });
       
-      const shouldAllowRetry = retryCount < 3 && !error.message?.includes('Authentication');
-      
-      if (shouldAllowRetry) {
-        setRetryCount(prev => prev + 1);
-        
-        toast({
-          title: "Send Failed",
-          description: `Message failed to send. Tap retry to try again. (Attempt ${retryCount + 1}/3)`,
-          variant: "destructive",
-        });
-      } else {
-        setRetryCount(0);
-        setLastFailedMessage(null);
-        
-        let errorMessage = "Failed to submit your question. Please try again.";
-        if (error.message?.includes('Authentication')) {
-          errorMessage = "Please sign in again to submit your question.";
-        } else if (error.message?.includes('network')) {
-          errorMessage = "Network error. Please check your connection.";
-        }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+      // Show error toast
+      toast({
+        title: "Message Failed",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedPetId, isLoading, addMessage, updateMessage, getCachedMessages, addSymptomReport, toast]);
 
   const handleRetry = () => {
     if (lastFailedMessage) {
@@ -147,39 +131,55 @@ export const useChatLogic = (selectedPetId?: string) => {
     await handleSendMessage(question);
   };
 
-  const handleSymptomSubmit = async (symptoms: string[], notes: string, image?: File) => {
+  const handleSymptomSubmit = useCallback(async (symptoms: string[], notes: string, image?: File) => {
     if (!selectedPetId) return;
-
-    const symptomMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      content: `Symptoms reported: ${symptoms.join(', ')}${notes ? `\n\nNotes: ${notes}` : ''}`,
-      timestamp: new Date(),
-      hasImage: !!image
-    };
-
-    addMessage(symptomMessage);
-    setShowQuickSuggestions(true);
-
+    
     try {
-      const report = await addSymptomReport(selectedPetId, symptoms, notes, image);
-
-      if (report?.id) {
-        addProcessingMessage(report.id, 'Vet Assistant is analyzing the symptoms... hang tight.');
-      }
-
-      toast({
-        title: "Symptoms Logged",
-        description: "Your symptom report is being analyzed by our vet assistant.",
+      setIsLoading(true);
+      
+      // Get current chat history for context
+      const chatHistory = getCachedMessages(selectedPetId);
+      
+      // Add user message to chat
+      const userMessage = addMessage(selectedPetId, {
+        text: `Symptoms: ${symptoms.join(', ')}${notes ? `\nNotes: ${notes}` : ''}`,
+        sender: 'user',
+        imageUrl: image ? URL.createObjectURL(image) : undefined,
+        status: 'processing'
       });
-    } catch (error) {
+
+      // Add placeholder AI message
+      const aiMessage = addMessage(selectedPetId, {
+        text: '',
+        sender: 'assistant',
+        isLoading: true,
+        status: 'processing'
+      });
+
+      // Submit symptom report with chat context
+      const reportData = await addSymptomReport(selectedPetId, symptoms, notes, image, chatHistory);
+      
+      // Update message statuses and link to report
+      updateMessage(selectedPetId, userMessage.id, { 
+        status: 'delivered',
+        reportId: reportData.id 
+      });
+      
+      updateMessage(selectedPetId, aiMessage.id, { 
+        reportId: reportData.id 
+      });
+      
+    } catch (error: any) {
+      console.error('Error submitting symptoms:', error);
       toast({
         title: "Error",
-        description: "Failed to log symptoms. Please try again.",
+        description: error.message || "Failed to submit symptoms. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [selectedPetId, getCachedMessages, addMessage, updateMessage, addSymptomReport, toast]);
 
   return {
     messages,

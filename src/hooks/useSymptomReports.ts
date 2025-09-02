@@ -61,7 +61,8 @@ export const useSymptomReports = (petId?: string) => {
     petId: string,
     symptoms: string[],
     notes?: string,
-    photo?: File
+    photo?: File,
+    chatContext?: any[]
   ) => {
     console.log('Starting symptom report submission...', { petId, symptoms: symptoms.length, hasNotes: !!notes, hasPhoto: !!photo });
     
@@ -202,8 +203,8 @@ export const useSymptomReports = (petId?: string) => {
 
       console.log('Symptom report submitted successfully:', data.id);
 
-      // Trigger AI analysis for severity and recurring check
-      await triggerAIAnalysis(data.id, petId, symptoms, notes);
+      // Send to Make.com webhook for AI analysis
+      await sendToMakeWebhook(data.id, petId, symptoms, notes, photoUrl, chatContext);
 
       toast({
         title: "Success",
@@ -237,64 +238,79 @@ export const useSymptomReports = (petId?: string) => {
     }
   };
 
-  const triggerAIAnalysis = async (reportId: number, petId: string, symptoms: string[], notes?: string) => {
+  const sendToMakeWebhook = async (
+    reportId: number,
+    petId: string,
+    symptoms: string[],
+    notes?: string,
+    photoUrl?: string | null,
+    chatContext?: any[]
+  ) => {
     try {
-      // Check for similar symptoms in the past
-      const { data: pastReports } = await supabase
+      console.log('Sending to Make.com webhook for report:', reportId);
+      
+      // Get pet details for context
+      const { data: pet } = await supabase
+        .from('pets')
+        .select('name, breed, species, age_years, age_months, weight_kg, gender, pre_existing_conditions')
+        .eq('id', petId)
+        .single();
+
+      // Get recent health reports for additional context
+      const { data: recentReports } = await supabase
+        .from('health_reports')
+        .select('report_type, ai_diagnosis, key_findings, report_date')
+        .eq('pet_id', petId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Get recent symptom reports for pattern analysis
+      const { data: recentSymptoms } = await supabase
         .from('symptom_reports')
-        .select('*')
+        .select('symptoms, diagnosis, reported_on')
         .eq('pet_id', petId)
         .neq('id', reportId)
-        .order('reported_on', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-      let recurringNote = '';
-      let severityLevel: 'mild' | 'moderate' | 'severe' = 'mild';
-
-      // Simple AI logic for severity assessment
-      const severityKeywords = {
-        severe: ['seizure', 'blood', 'collapse', 'difficulty breathing', 'unconscious', 'emergency'],
-        moderate: ['vomiting', 'diarrhea', 'fever', 'limping', 'not eating', 'lethargic'],
-        mild: ['scratching', 'sneezing', 'restless', 'mild cough']
+      const payload = {
+        reportId,
+        petId,
+        symptoms,
+        notes: notes || '',
+        photoUrl,
+        petProfile: pet,
+        recentHealthReports: recentReports || [],
+        recentSymptomReports: recentSymptoms || [],
+        chatContext: chatContext || [],
+        timestamp: new Date().toISOString()
       };
 
-      const allText = [...symptoms, notes || ''].join(' ').toLowerCase();
-      
-      if (severityKeywords.severe.some(keyword => allText.includes(keyword))) {
-        severityLevel = 'severe';
-      } else if (severityKeywords.moderate.some(keyword => allText.includes(keyword))) {
-        severityLevel = 'moderate';
+      console.log('Make.com webhook payload:', payload);
+
+      const response = await fetch('https://hook.eu2.make.com/es5jhdfotkr146ihy2ll02vjyuq75wdv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Make.com webhook failed: ${response.status} ${response.statusText}`);
       }
 
-      // Check for recurring symptoms
-      if (pastReports && pastReports.length > 0) {
-        const similarReports = pastReports.filter(report => {
-          if (!report.symptoms) return false;
-          return symptoms.some(symptom => 
-            report.symptoms.some((pastSymptom: string) => 
-              symptom.toLowerCase().includes(pastSymptom.toLowerCase()) ||
-              pastSymptom.toLowerCase().includes(symptom.toLowerCase())
-            )
-          );
-        });
-
-        if (similarReports.length > 0) {
-          const lastOccurrence = new Date(similarReports[0].reported_on);
-          recurringNote = `Similar symptoms were reported on ${lastOccurrence.toLocaleDateString()}. This appears to be a recurring issue.`;
-        }
-      }
-
-      // Update the report with AI analysis
+      console.log('Successfully sent to Make.com webhook');
+    } catch (error) {
+      console.error('Error sending to Make.com webhook:', error);
+      // Update report with error status
       await supabase
         .from('symptom_reports')
         .update({
-          severity_level: severityLevel,
-          ai_severity_analysis: `Assessed as ${severityLevel} based on reported symptoms.`,
-          recurring_note: recurringNote || null
+          ai_response: 'AI analysis is currently unavailable. Please try again later.',
+          severity_level: 'Unknown',
         })
         .eq('id', reportId);
-
-    } catch (error) {
-      console.error('Error in AI analysis:', error);
     }
   };
 
