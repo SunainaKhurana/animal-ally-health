@@ -3,18 +3,13 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useChatMessages } from '@/hooks/useChatMessages';
-import { useChatCache } from '@/contexts/ChatCacheContext';
 
 export const useChatLogic = (selectedPetId?: string) => {
   const { toast } = useToast();
   const { addSymptomReport } = useSymptomReports();
   const { 
-    getCachedMessages, 
-    addMessage, 
-    updateMessage 
-  } = useChatCache();
-  const { 
     messages, 
+    addMessage,
     connectionHealth, 
     pendingResponsesCount
   } = useChatMessages(selectedPetId);
@@ -60,34 +55,20 @@ export const useChatLogic = (selectedPetId?: string) => {
         setLastFailedMessage(null);
       }
 
-      // Get current chat history for context
-      const chatHistory = getCachedMessages(selectedPetId);
-      
-      const userMessage = addMessage(selectedPetId, {
+      // Add user message
+      const userMessage = addMessage({
         type: 'user',
         content: message,
         hasImage: !!imageFile
       });
 
-      // Add a placeholder AI message
-      const aiMessage = addMessage(selectedPetId, {
-        type: 'processing',
-        content: 'AI is thinking...',
-        isProcessing: true
-      });
-
       // Convert symptoms string to array and submit to symptom reports with chat context
       const symptoms = message.split(',').map(s => s.trim()).filter(s => s.length > 0);
       
-      console.log('Submitting symptoms to report system with chat context:', symptoms);
-      const reportData = await addSymptomReport(selectedPetId, symptoms, message, imageFile, chatHistory);
+      console.log('Submitting symptoms to report system:', symptoms);
+      const reportData = await addSymptomReport(selectedPetId, symptoms, message, imageFile, messages);
       
       console.log('Symptom report created:', reportData);
-      
-      // Update AI message with report ID for tracking
-      updateMessage(selectedPetId, aiMessage.id, { 
-        reportId: reportData.id 
-      });
       
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -109,7 +90,7 @@ export const useChatLogic = (selectedPetId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPetId, isLoading, addMessage, updateMessage, getCachedMessages, addSymptomReport, toast]);
+  }, [selectedPetId, isLoading, addMessage, messages, addSymptomReport, toast]);
 
   const handleRetry = () => {
     if (lastFailedMessage) {
@@ -129,30 +110,17 @@ export const useChatLogic = (selectedPetId?: string) => {
     try {
       setIsLoading(true);
       
-      // Get current chat history for context
-      const chatHistory = getCachedMessages(selectedPetId);
-      
       // Add user message to chat
-      const userMessage = addMessage(selectedPetId, {
+      const userMessage = addMessage({
         type: 'user',
         content: `Symptoms: ${symptoms.join(', ')}${notes ? `\nNotes: ${notes}` : ''}`,
         hasImage: !!image
       });
 
-      // Add placeholder AI message
-      const aiMessage = addMessage(selectedPetId, {
-        type: 'processing',
-        content: 'Analyzing symptoms...',
-        isProcessing: true
-      });
-
       // Submit symptom report with chat context
-      const reportData = await addSymptomReport(selectedPetId, symptoms, notes, image, chatHistory);
+      const reportData = await addSymptomReport(selectedPetId, symptoms, notes, image, messages);
       
-      // Update AI message with report ID for tracking
-      updateMessage(selectedPetId, aiMessage.id, { 
-        reportId: reportData.id 
-      });
+      console.log('Symptom report created:', reportData);
       
     } catch (error: any) {
       console.error('Error submitting symptoms:', error);
@@ -164,7 +132,7 @@ export const useChatLogic = (selectedPetId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPetId, getCachedMessages, addMessage, updateMessage, addSymptomReport, toast]);
+  }, [selectedPetId, addMessage, messages, addSymptomReport, toast]);
 
   return {
     messages,
