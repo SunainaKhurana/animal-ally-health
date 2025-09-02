@@ -48,7 +48,7 @@ export const useChatMessages = (petId?: string) => {
     });
   });
 
-  // Use real-time service
+// Use real-time service
   useRealtimeService(
     petId,
     (report) => {
@@ -68,8 +68,6 @@ export const useChatMessages = (petId?: string) => {
         isProcessing: false
       });
     },
-    pollingService.lastPollTime,
-    pollingService.startAggressivePolling,
     pollingService.pendingResponsesCount
   );
 

@@ -64,18 +64,16 @@ export const useChatLogic = (selectedPetId?: string) => {
       const chatHistory = getCachedMessages(selectedPetId);
       
       const userMessage = addMessage(selectedPetId, {
-        text: message,
-        sender: 'user',
-        imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
-        status: 'processing'
+        type: 'user',
+        content: message,
+        hasImage: !!imageFile
       });
 
       // Add a placeholder AI message
       const aiMessage = addMessage(selectedPetId, {
-        text: '',
-        sender: 'assistant',
-        isLoading: true,
-        status: 'processing'
+        type: 'processing',
+        content: 'AI is thinking...',
+        isProcessing: true
       });
 
       // Convert symptoms string to array and submit to symptom reports with chat context
@@ -85,12 +83,6 @@ export const useChatLogic = (selectedPetId?: string) => {
       const reportData = await addSymptomReport(selectedPetId, symptoms, message, imageFile, chatHistory);
       
       console.log('Symptom report created:', reportData);
-      
-      // Update user message status and link to report
-      updateMessage(selectedPetId, userMessage.id, { 
-        status: 'delivered',
-        reportId: reportData.id 
-      });
       
       // Update AI message with report ID for tracking
       updateMessage(selectedPetId, aiMessage.id, { 
@@ -142,29 +134,22 @@ export const useChatLogic = (selectedPetId?: string) => {
       
       // Add user message to chat
       const userMessage = addMessage(selectedPetId, {
-        text: `Symptoms: ${symptoms.join(', ')}${notes ? `\nNotes: ${notes}` : ''}`,
-        sender: 'user',
-        imageUrl: image ? URL.createObjectURL(image) : undefined,
-        status: 'processing'
+        type: 'user',
+        content: `Symptoms: ${symptoms.join(', ')}${notes ? `\nNotes: ${notes}` : ''}`,
+        hasImage: !!image
       });
 
       // Add placeholder AI message
       const aiMessage = addMessage(selectedPetId, {
-        text: '',
-        sender: 'assistant',
-        isLoading: true,
-        status: 'processing'
+        type: 'processing',
+        content: 'Analyzing symptoms...',
+        isProcessing: true
       });
 
       // Submit symptom report with chat context
       const reportData = await addSymptomReport(selectedPetId, symptoms, notes, image, chatHistory);
       
-      // Update message statuses and link to report
-      updateMessage(selectedPetId, userMessage.id, { 
-        status: 'delivered',
-        reportId: reportData.id 
-      });
-      
+      // Update AI message with report ID for tracking
       updateMessage(selectedPetId, aiMessage.id, { 
         reportId: reportData.id 
       });

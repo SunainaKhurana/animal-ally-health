@@ -2,16 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { usePollingService } from './usePollingService';
 import { realtimeManager } from '@/lib/realtimeSubscriptionManager';
-
-interface SymptomReport {
-  id: number;
-  pet_id: string;
-  symptoms: string[] | null;
-  notes?: string | null;
-  ai_response: string | null;
-  diagnosis: string | null;
-  created_at: string;
-}
+import { SymptomReport } from '@/hooks/useSymptomReports';
 
 export const useRealtimeService = (
   petId: string | undefined,

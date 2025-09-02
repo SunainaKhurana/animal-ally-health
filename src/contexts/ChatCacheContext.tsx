@@ -1,22 +1,14 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-
-interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'assistant';
-  timestamp: Date;
-  isLoading?: boolean;
-  imageUrl?: string;
-  reportId?: number;
-  status?: 'sent' | 'processing' | 'delivered' | 'failed';
-}
+import { ChatMessage } from '@/hooks/chat/types';
 
 interface ChatCache {
   [petId: string]: {
     messages: ChatMessage[];
     lastUpdated: number;
     version: string;
+    pendingReports: Set<number>;
+    lastFetch: number;
   };
 }
 
@@ -29,6 +21,11 @@ interface ChatCacheContextType {
   getCacheSize: () => number;
   invalidateCache: (petId: string) => void;
   isCacheValid: (petId: string) => boolean;
+  getPendingReports: (petId: string) => Set<number>;
+  addPendingReport: (petId: string, reportId: number) => void;
+  removePendingReport: (petId: string, reportId: number) => void;
+  getLastFetch: (petId: string) => number;
+  setLastFetch: (petId: string, timestamp: number) => void;
 }
 
 const ChatCacheContext = createContext<ChatCacheContextType | undefined>(undefined);
@@ -61,7 +58,13 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
         if (data && typeof data === 'object' && 'version' in data && data.version === CACHE_VERSION) {
           const cacheAge = Date.now() - (data.lastUpdated || 0);
           if (cacheAge < CACHE_EXPIRY) {
-            validatedCache[petId] = data;
+            validatedCache[petId] = {
+              messages: data.messages || [],
+              lastUpdated: data.lastUpdated || Date.now(),
+              version: CACHE_VERSION,
+              pendingReports: new Set(data.pendingReports || []),
+              lastFetch: data.lastFetch || 0
+            };
           }
         }
       });
@@ -77,7 +80,19 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       try {
-        localStorage.setItem('petChatCache', JSON.stringify(cache));
+        const cacheToStore = Object.fromEntries(
+          Object.entries(cache).map(([petId, data]) => [
+            petId,
+            {
+              messages: data.messages,
+              lastUpdated: data.lastUpdated,
+              version: data.version,
+              pendingReports: Array.from(data.pendingReports),
+              lastFetch: data.lastFetch
+            }
+          ])
+        );
+        localStorage.setItem('petChatCache', JSON.stringify(cacheToStore));
       } catch (error) {
         console.error('Error saving chat cache:', error);
         // If storage is full, clear oldest entries
@@ -103,7 +118,9 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
       [petId]: {
         messages: messages.slice(-MAX_CACHE_SIZE), // Limit cache size
         lastUpdated: Date.now(),
-        version: CACHE_VERSION
+        version: CACHE_VERSION,
+        pendingReports: prev[petId]?.pendingReports || new Set(),
+        lastFetch: prev[petId]?.lastFetch || Date.now()
       }
     }));
   }, []);
@@ -112,8 +129,7 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
     const newMessage: ChatMessage = {
       ...message,
       id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
-      status: message.sender === 'user' ? 'sent' : 'delivered'
+      timestamp: new Date()
     };
 
     setCache(prev => {
@@ -125,7 +141,9 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
         [petId]: {
           messages: updatedMessages,
           lastUpdated: Date.now(),
-          version: CACHE_VERSION
+          version: CACHE_VERSION,
+          pendingReports: prev[petId]?.pendingReports || new Set(),
+          lastFetch: prev[petId]?.lastFetch || Date.now()
         }
       };
     });
@@ -151,6 +169,60 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
         }
       };
     });
+  }, []);
+
+  const getPendingReports = useCallback((petId: string): Set<number> => {
+    return cache[petId]?.pendingReports || new Set();
+  }, [cache]);
+
+  const addPendingReport = useCallback((petId: string, reportId: number) => {
+    setCache(prev => ({
+      ...prev,
+      [petId]: {
+        ...prev[petId],
+        messages: prev[petId]?.messages || [],
+        lastUpdated: prev[petId]?.lastUpdated || Date.now(),
+        version: CACHE_VERSION,
+        pendingReports: new Set([...(prev[petId]?.pendingReports || []), reportId]),
+        lastFetch: prev[petId]?.lastFetch || Date.now()
+      }
+    }));
+  }, []);
+
+  const removePendingReport = useCallback((petId: string, reportId: number) => {
+    setCache(prev => {
+      const petCache = prev[petId];
+      if (!petCache) return prev;
+      
+      const newPendingReports = new Set(petCache.pendingReports);
+      newPendingReports.delete(reportId);
+      
+      return {
+        ...prev,
+        [petId]: {
+          ...petCache,
+          pendingReports: newPendingReports
+        }
+      };
+    });
+  }, []);
+
+  const getLastFetch = useCallback((petId: string): number => {
+    return cache[petId]?.lastFetch || 0;
+  }, [cache]);
+
+  const setLastFetch = useCallback((petId: string, timestamp: number) => {
+    setCache(prev => ({
+      ...prev,
+      [petId]: {
+        ...prev[petId],
+        messages: prev[petId]?.messages || [],
+        lastUpdated: prev[petId]?.lastUpdated || Date.now(),
+        version: CACHE_VERSION,
+        pendingReports: prev[petId]?.pendingReports || new Set(),
+        lastFetch: timestamp
+      }
+    }));
   }, []);
 
   const clearCache = useCallback((petId?: string) => {
@@ -202,6 +274,11 @@ export const ChatCacheProvider = ({ children }: ChatCacheProviderProps) => {
     getCacheSize,
     invalidateCache,
     isCacheValid,
+    getPendingReports,
+    addPendingReport,
+    removePendingReport,
+    getLastFetch,
+    setLastFetch
   };
 
   return (
