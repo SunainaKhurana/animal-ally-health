@@ -176,19 +176,38 @@ const HealthLogsPage = () => {
                       <span className="text-xs text-gray-500">Has notes</span>
                     )}
                   </div>
-                  {!report.is_resolved && (
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        markAsResolved(report.id);
+                        const symptoms = report.symptoms?.join(', ') || '';
+                        const notes = report.notes || '';
+                        const content = `I'd like to ask about these health concerns for my pet:\n\nSymptoms: ${symptoms}\n${notes ? `\nAdditional notes: ${notes}` : ''}`;
+                        
+                        // Navigate to assistant with pre-filled content
+                        navigate(`/assistant?prefill=${encodeURIComponent(content)}`);
                       }}
-                      className="text-xs h-7"
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-7 px-2"
                     >
-                      Mark Resolved
+                      <MessageCircle className="h-3 w-3 mr-1" />
+                      <span className="text-xs font-medium">Ask AI</span>
                     </Button>
-                  )}
+                    {!report.is_resolved && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsResolved(report.id);
+                        }}
+                        className="text-xs h-7"
+                      >
+                        Mark Resolved
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
