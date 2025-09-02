@@ -54,7 +54,7 @@ const HealthLogsPage = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/care')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-lg font-semibold">Health Logs</h1>
@@ -72,21 +72,13 @@ const HealthLogsPage = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/care')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Health Logs</h1>
             <p className="text-sm text-gray-600">{selectedPet?.name}</p>
           </div>
-          <Button 
-            onClick={() => setShowSymptomLogger(true)}
-            size="sm"
-            className="bg-orange-500 hover:bg-orange-600"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Log
-          </Button>
         </div>
       </div>
 

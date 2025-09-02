@@ -121,13 +121,27 @@ const CareTabContent = () => {
           </CardContent>
         </Card>
 
-        {/* Symptom Logs List */}
-        <ErrorBoundary>
-          <SymptomLogsList 
-            petId={selectedPet.id} 
-            petName={selectedPet.name}
-          />
-        </ErrorBoundary>
+        {/* Health Logs Entry Point */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Stethoscope className="h-5 w-5 text-orange-500" />
+              Health Logs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              View and manage all health logs for {selectedPet.name}.
+            </p>
+            <Button 
+              className="w-full bg-orange-500 hover:bg-orange-600"
+              onClick={() => navigate(`/health-logs/${selectedPet.id}`)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View All Health Logs
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Health Reports Hub - Single Smart Button */}
         <Card className="border-2 border-blue-100 bg-blue-50/30">
