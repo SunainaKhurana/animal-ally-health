@@ -1,12 +1,11 @@
 
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Eye, MessageSquare, Camera } from 'lucide-react';
+import { Calendar, Eye, MessageSquare, Camera, ArrowRight } from 'lucide-react';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SymptomLogsListProps {
   petId: string;
@@ -15,7 +14,7 @@ interface SymptomLogsListProps {
 
 const SymptomLogsList = ({ petId, petName }: SymptomLogsListProps) => {
   const { reports, loading } = useSymptomReports(petId);
-  const [selectedReport, setSelectedReport] = useState(null);
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -31,144 +30,118 @@ const SymptomLogsList = ({ petId, petName }: SymptomLogsListProps) => {
     return (
       <Card>
         <CardContent className="p-4 text-center">
-          <p className="text-sm text-gray-500 mb-2">No symptom logs yet</p>
+          <p className="text-sm text-gray-500 mb-2">No health logs yet</p>
           <p className="text-xs text-gray-400">
-            Use the "Quick Health Log" button above to report symptoms for {petName}
+            Use the "Quick Health Log" button above to start tracking {petName}'s health
           </p>
         </CardContent>
       </Card>
     );
   }
 
+  const getSeverityColor = (severity?: string) => {
+    switch (severity) {
+      case 'severe': return 'bg-red-100 text-red-800';
+      case 'moderate': return 'bg-yellow-100 text-yellow-800';
+      case 'mild': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <>
-      <Card>
-        <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5 text-blue-600" />
-            Symptom Logs ({reports.length})
+            Recent Health Logs
           </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {reports.slice(0, 3).map((report) => (
-            <div 
-              key={report.id} 
-              className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              onClick={() => setSelectedReport(report)}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    {format(new Date(report.reported_on), 'MMM dd, yyyy')}
-                  </span>
-                </div>
-                <Button variant="ghost" size="sm" className="h-6 px-2">
-                  <Eye className="h-3 w-3" />
-                </Button>
-              </div>
-              
-              {report.symptoms && report.symptoms.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {report.symptoms.slice(0, 2).map((symptom, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {symptom}
-                    </Badge>
-                  ))}
-                  {report.symptoms.length > 2 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{report.symptoms.length - 2} more
-                    </Badge>
-                  )}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {report.photo_url && (
-                    <Camera className="h-4 w-4 text-gray-400" />
-                  )}
-                  {report.notes && (
-                    <span className="text-xs text-gray-500">Has notes</span>
-                  )}
-                </div>
-                {report.ai_response && (
-                  <Badge className="text-xs bg-green-100 text-green-800">
-                    AI Analyzed
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate(`/health-logs/${petId}`)}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {reports.slice(0, 3).map((report) => (
+          <div 
+            key={report.id} 
+            className={`border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors ${report.is_resolved ? 'opacity-75' : ''}`}
+            onClick={() => navigate(`/health-logs/${petId}`)}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-600">
+                  {format(new Date(report.reported_on), 'MMM dd, yyyy')}
+                </span>
+                {report.is_resolved && (
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    Resolved
                   </Badge>
                 )}
               </div>
+              <Button variant="ghost" size="sm" className="h-6 px-2">
+                <Eye className="h-3 w-3" />
+              </Button>
             </div>
-          ))}
-          
-          {reports.length > 3 && (
-            <Button variant="outline" className="w-full mt-3">
-              View All {reports.length} Logs
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Detail Modal */}
-      {selectedReport && (
-        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>
-                Symptom Log - {format(new Date(selectedReport.reported_on), 'MMM dd, yyyy')}
-              </DialogTitle>
-            </DialogHeader>
             
-            <div className="space-y-4">
-              {selectedReport.symptoms && selectedReport.symptoms.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Symptoms:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedReport.symptoms.map((symptom, index) => (
-                      <Badge key={index} variant="secondary">
-                        {symptom}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedReport.notes && (
-                <div>
-                  <h4 className="font-medium mb-2">Additional Notes:</h4>
-                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                    {selectedReport.notes}
-                  </p>
-                </div>
-              )}
-
-              {selectedReport.photo_url && (
-                <div>
-                  <h4 className="font-medium mb-2">Photo:</h4>
-                  <img 
-                    src={selectedReport.photo_url} 
-                    alt="Symptom photo"
-                    className="w-full rounded-lg border"
-                  />
-                </div>
-              )}
-
-              {selectedReport.ai_response && (
-                <div>
-                  <h4 className="font-medium mb-2">AI Analysis:</h4>
-                  <div className="text-sm text-gray-700 bg-blue-50 p-3 rounded border">
-                    {selectedReport.ai_response}
-                  </div>
-                  <p className="text-xs text-amber-600 mt-2">
-                    ⚠️ This is AI analysis only. Consult a veterinarian for professional advice.
-                  </p>
-                </div>
+            <div className="flex items-center gap-2 mb-2">
+              {report.severity_level && (
+                <Badge className={`text-xs ${getSeverityColor(report.severity_level)}`}>
+                  {report.severity_level.charAt(0).toUpperCase() + report.severity_level.slice(1)}
+                </Badge>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+
+            {report.symptoms && report.symptoms.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {report.symptoms.slice(0, 2).map((symptom, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {symptom}
+                  </Badge>
+                ))}
+                {report.symptoms.length > 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{report.symptoms.length - 2} more
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {report.photo_url && (
+                  <Camera className="h-4 w-4 text-gray-400" />
+                )}
+                {report.notes && (
+                  <span className="text-xs text-gray-500">Has notes</span>
+                )}
+              </div>
+              {report.recurring_note && (
+                <Badge className="text-xs bg-amber-100 text-amber-800">
+                  Recurring
+                </Badge>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        {reports.length > 3 && (
+          <Button 
+            variant="outline" 
+            className="w-full mt-3"
+            onClick={() => navigate(`/health-logs/${petId}`)}
+          >
+            View All {reports.length} Logs
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

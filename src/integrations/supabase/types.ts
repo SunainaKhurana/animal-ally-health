@@ -542,35 +542,50 @@ export type Database = {
       symptom_reports: {
         Row: {
           ai_response: string | null
+          ai_severity_analysis: string | null
           created_at: string | null
           diagnosis: string | null
           id: number
+          is_resolved: boolean | null
           notes: string | null
           pet_id: string | null
           photo_url: string | null
+          recurring_note: string | null
           reported_on: string
+          resolved_at: string | null
+          severity_level: string | null
           symptoms: string[] | null
         }
         Insert: {
           ai_response?: string | null
+          ai_severity_analysis?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: number
+          is_resolved?: boolean | null
           notes?: string | null
           pet_id?: string | null
           photo_url?: string | null
+          recurring_note?: string | null
           reported_on?: string
+          resolved_at?: string | null
+          severity_level?: string | null
           symptoms?: string[] | null
         }
         Update: {
           ai_response?: string | null
+          ai_severity_analysis?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: number
+          is_resolved?: boolean | null
           notes?: string | null
           pet_id?: string | null
           photo_url?: string | null
+          recurring_note?: string | null
           reported_on?: string
+          resolved_at?: string | null
+          severity_level?: string | null
           symptoms?: string[] | null
         }
         Relationships: [

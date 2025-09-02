@@ -13,6 +13,11 @@ export interface SymptomReport {
   created_at: string;
   diagnosis?: string;
   ai_response?: string;
+  severity_level?: 'mild' | 'moderate' | 'severe';
+  is_resolved?: boolean;
+  resolved_at?: string;
+  ai_severity_analysis?: string;
+  recurring_note?: string;
 }
 
 export const useSymptomReports = (petId?: string) => {
@@ -197,6 +202,9 @@ export const useSymptomReports = (petId?: string) => {
 
       console.log('Symptom report submitted successfully:', data.id);
 
+      // Trigger AI analysis for severity and recurring check
+      await triggerAIAnalysis(data.id, petId, symptoms, notes);
+
       toast({
         title: "Success",
         description: "Your request has been submitted successfully",
@@ -229,10 +237,100 @@ export const useSymptomReports = (petId?: string) => {
     }
   };
 
+  const triggerAIAnalysis = async (reportId: number, petId: string, symptoms: string[], notes?: string) => {
+    try {
+      // Check for similar symptoms in the past
+      const { data: pastReports } = await supabase
+        .from('symptom_reports')
+        .select('*')
+        .eq('pet_id', petId)
+        .neq('id', reportId)
+        .order('reported_on', { ascending: false });
+
+      let recurringNote = '';
+      let severityLevel: 'mild' | 'moderate' | 'severe' = 'mild';
+
+      // Simple AI logic for severity assessment
+      const severityKeywords = {
+        severe: ['seizure', 'blood', 'collapse', 'difficulty breathing', 'unconscious', 'emergency'],
+        moderate: ['vomiting', 'diarrhea', 'fever', 'limping', 'not eating', 'lethargic'],
+        mild: ['scratching', 'sneezing', 'restless', 'mild cough']
+      };
+
+      const allText = [...symptoms, notes || ''].join(' ').toLowerCase();
+      
+      if (severityKeywords.severe.some(keyword => allText.includes(keyword))) {
+        severityLevel = 'severe';
+      } else if (severityKeywords.moderate.some(keyword => allText.includes(keyword))) {
+        severityLevel = 'moderate';
+      }
+
+      // Check for recurring symptoms
+      if (pastReports && pastReports.length > 0) {
+        const similarReports = pastReports.filter(report => {
+          if (!report.symptoms) return false;
+          return symptoms.some(symptom => 
+            report.symptoms.some((pastSymptom: string) => 
+              symptom.toLowerCase().includes(pastSymptom.toLowerCase()) ||
+              pastSymptom.toLowerCase().includes(symptom.toLowerCase())
+            )
+          );
+        });
+
+        if (similarReports.length > 0) {
+          const lastOccurrence = new Date(similarReports[0].reported_on);
+          recurringNote = `Similar symptoms were reported on ${lastOccurrence.toLocaleDateString()}. This appears to be a recurring issue.`;
+        }
+      }
+
+      // Update the report with AI analysis
+      await supabase
+        .from('symptom_reports')
+        .update({
+          severity_level: severityLevel,
+          ai_severity_analysis: `Assessed as ${severityLevel} based on reported symptoms.`,
+          recurring_note: recurringNote || null
+        })
+        .eq('id', reportId);
+
+    } catch (error) {
+      console.error('Error in AI analysis:', error);
+    }
+  };
+
+  const markAsResolved = async (reportId: number) => {
+    try {
+      const { error } = await supabase
+        .from('symptom_reports')
+        .update({
+          is_resolved: true,
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Health log marked as resolved",
+      });
+
+      fetchReports();
+    } catch (error) {
+      console.error('Error marking as resolved:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update health log",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     reports,
     loading,
     addSymptomReport,
+    markAsResolved,
     refetch: fetchReports
   };
 };
