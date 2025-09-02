@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Camera } from 'lucide-react';
@@ -8,12 +8,20 @@ import { useToast } from '@/hooks/use-toast';
 interface ChatInputProps {
   onSendMessage: (message: string, imageFile?: File) => void;
   isLoading: boolean;
+  initialMessage?: string;
 }
 
-const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
+const ChatInput = ({ onSendMessage, isLoading, initialMessage }: ChatInputProps) => {
   const [inputMessage, setInputMessage] = useState('');
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const { toast } = useToast();
+
+  // Set initial message when provided
+  useEffect(() => {
+    if (initialMessage) {
+      setInputMessage(initialMessage);
+    }
+  }, [initialMessage]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

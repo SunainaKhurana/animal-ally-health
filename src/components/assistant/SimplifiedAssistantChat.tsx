@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { usePetContext } from '@/contexts/PetContext';
 import { useChatLogic } from '@/hooks/chat/useChatLogic';
 import SymptomLogger from './SymptomLogger';
@@ -10,6 +11,22 @@ import ChatHeader from './ChatHeader';
 const SimplifiedAssistantChat = () => {
   const { selectedPet } = usePetContext();
   const [showSymptomLogger, setShowSymptomLogger] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initialMessage, setInitialMessage] = useState<string>('');
+  
+  // Check for prefilled content from URL params
+  useEffect(() => {
+    const prefillContent = searchParams.get('prefill');
+    if (prefillContent) {
+      setInitialMessage(decodeURIComponent(prefillContent));
+      // Remove the prefill param from URL after using it
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('prefill');
+        return newParams;
+      });
+    }
+  }, [searchParams, setSearchParams]);
   
   const {
     messages,
@@ -58,7 +75,11 @@ const SimplifiedAssistantChat = () => {
         showQuickSuggestions={showQuickSuggestions}
       />
 
-      <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+      <ChatInput 
+        onSendMessage={handleSendMessage} 
+        isLoading={isLoading}
+        initialMessage={initialMessage}
+      />
     </div>
   );
 };

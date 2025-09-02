@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Calendar, Camera, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Camera, CheckCircle, AlertTriangle, Info, MessageCircle } from 'lucide-react';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { usePetContext } from '@/contexts/PetContext';
 import SymptomLogger from '@/components/assistant/SymptomLogger';
@@ -302,7 +302,22 @@ const HealthLogsPage = () => {
               )}
 
               {!selectedReport.is_resolved && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-3">
+                  <Button
+                    onClick={() => {
+                      const symptoms = selectedReport.symptoms?.join(', ') || '';
+                      const notes = selectedReport.notes || '';
+                      const content = `I'd like to ask about these health concerns for my pet:\n\nSymptoms: ${symptoms}\n${notes ? `\nAdditional notes: ${notes}` : ''}`;
+                      
+                      // Navigate to assistant with pre-filled content
+                      navigate(`/assistant?prefill=${encodeURIComponent(content)}`);
+                    }}
+                    variant="outline"
+                    className="w-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Ask AI About This
+                  </Button>
                   <Button
                     onClick={() => {
                       markAsResolved(selectedReport.id);
