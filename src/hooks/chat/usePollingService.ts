@@ -58,10 +58,15 @@ export const usePollingService = (
 
         console.log('Polling results:', reports?.length || 0, 'reports');
 
-        reports?.forEach((report: SymptomReport) => {
+        reports?.forEach((report: any) => {
           if (report.diagnosis || report.ai_response) {
             console.log('Found response during polling for report:', report.id);
-            onResponseReceived(report);
+            // Cast the report to SymptomReport with proper types
+            const typedReport: SymptomReport = {
+              ...report,
+              severity_level: report.severity_level as 'mild' | 'moderate' | 'severe' | undefined
+            };
+            onResponseReceived(typedReport);
           }
         });
 

@@ -26,7 +26,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PetProvider } from "./contexts/PetContext";
 import { ChatCacheProvider } from "./contexts/ChatCacheContext";
-import AuthGuard from "./components/auth/AuthGuard";
+import { AuthGuard } from "./components/auth/AuthGuard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
