@@ -90,7 +90,7 @@ const HealthLogsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto p-4 space-y-4 pb-24">
+      <div className="max-w-lg mx-auto p-4 space-y-6 pb-24">
         {reports.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -111,107 +111,177 @@ const HealthLogsPage = () => {
             </CardContent>
           </Card>
         ) : (
-          reports.map((report) => (
-            <Card 
-              key={report.id} 
-              className={`cursor-pointer transition-all ${report.is_resolved ? 'opacity-75' : ''}`}
-              onClick={() => setSelectedReport(report)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        {format(new Date(report.reported_on), 'MMM dd, yyyy')}
-                      </span>
-                      {report.is_resolved && (
-                        <Badge className="bg-green-100 text-green-800 text-xs">
-                          Resolved
-                        </Badge>
-                      )}
-                    </div>
-                    {report.severity_level && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className={`text-xs flex items-center gap-1 ${getSeverityColor(report.severity_level)}`}>
-                          {getSeverityIcon(report.severity_level)}
-                          {report.severity_level.charAt(0).toUpperCase() + report.severity_level.slice(1)}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {report.symptoms && report.symptoms.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {report.symptoms.slice(0, 3).map((symptom, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {symptom}
-                      </Badge>
-                    ))}
-                    {report.symptoms.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{report.symptoms.length - 3} more
-                      </Badge>
-                    )}
-                  </div>
-                )}
-
-                {report.recurring_note && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                    <p className="text-xs text-amber-800 flex items-start gap-2">
-                      <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      {report.recurring_note}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {report.photo_url && (
-                      <Camera className="h-4 w-4 text-gray-400" />
-                    )}
-                    {report.notes && (
-                      <span className="text-xs text-gray-500">Has notes</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const symptoms = report.symptoms?.join(', ') || '';
-                        const notes = report.notes || '';
-                        const content = `I'd like to ask about these health concerns for my pet:\n\nSymptoms: ${symptoms}\n${notes ? `\nAdditional notes: ${notes}` : ''}`;
-                        
-                        // Navigate to assistant with pre-filled content
-                        navigate(`/assistant?prefill=${encodeURIComponent(content)}`);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-7 px-2"
+          <>
+            {/* Active Health Logs */}
+            {reports.filter(report => !report.is_resolved).length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900">Active Health Logs</h2>
+                {reports
+                  .filter(report => !report.is_resolved)
+                  .map((report) => (
+                    <Card 
+                      key={report.id} 
+                      className="cursor-pointer transition-all"
+                      onClick={() => setSelectedReport(report)}
                     >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      <span className="text-xs font-medium">Ask AI</span>
-                    </Button>
-                    {!report.is_resolved && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsResolved(report.id);
-                        }}
-                        className="text-xs h-7"
-                      >
-                        Mark Resolved
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm text-gray-600">
+                                {format(new Date(report.reported_on), 'MMM dd, yyyy')}
+                              </span>
+                            </div>
+                            {report.severity_level && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge className={`text-xs flex items-center gap-1 ${getSeverityColor(report.severity_level)}`}>
+                                  {getSeverityIcon(report.severity_level)}
+                                  {report.severity_level.charAt(0).toUpperCase() + report.severity_level.slice(1)}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {report.symptoms && report.symptoms.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {report.symptoms.slice(0, 3).map((symptom, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {symptom}
+                              </Badge>
+                            ))}
+                            {report.symptoms.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{report.symptoms.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {report.recurring_note && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                            <p className="text-xs text-amber-800 flex items-start gap-2">
+                              <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                              {report.recurring_note}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {report.photo_url && (
+                              <Camera className="h-4 w-4 text-gray-400" />
+                            )}
+                            {report.notes && (
+                              <span className="text-xs text-gray-500">Has notes</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const symptoms = report.symptoms?.join(', ') || '';
+                                const notes = report.notes || '';
+                                const content = `I'd like to ask about these health concerns for my pet:\n\nSymptoms: ${symptoms}\n${notes ? `\nAdditional notes: ${notes}` : ''}`;
+                                
+                                // Navigate to assistant with pre-filled content
+                                navigate(`/assistant?prefill=${encodeURIComponent(content)}`);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-7 px-2"
+                            >
+                              <MessageCircle className="h-3 w-3 mr-1" />
+                              <span className="text-xs font-medium">Ask AI</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsResolved(report.id);
+                              }}
+                              className="text-xs h-7"
+                            >
+                              Mark Resolved
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+
+            {/* Resolved Health Logs */}
+            {reports.filter(report => report.is_resolved).length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-600">Resolved Symptoms</h2>
+                {reports
+                  .filter(report => report.is_resolved)
+                  .map((report) => (
+                    <Card 
+                      key={report.id} 
+                      className="cursor-pointer transition-all opacity-75"
+                      onClick={() => setSelectedReport(report)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm text-gray-600">
+                                {format(new Date(report.reported_on), 'MMM dd, yyyy')}
+                              </span>
+                              <Badge className="bg-green-100 text-green-800 text-xs">
+                                Resolved
+                              </Badge>
+                            </div>
+                            {report.severity_level && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge className={`text-xs flex items-center gap-1 ${getSeverityColor(report.severity_level)}`}>
+                                  {getSeverityIcon(report.severity_level)}
+                                  {report.severity_level.charAt(0).toUpperCase() + report.severity_level.slice(1)}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {report.symptoms && report.symptoms.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {report.symptoms.slice(0, 3).map((symptom, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {symptom}
+                              </Badge>
+                            ))}
+                            {report.symptoms.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{report.symptoms.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {report.photo_url && (
+                              <Camera className="h-4 w-4 text-gray-400" />
+                            )}
+                            {report.notes && (
+                              <span className="text-xs text-gray-500">Has notes</span>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
