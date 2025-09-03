@@ -27,6 +27,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { PetProvider } from "./contexts/PetContext";
 import { ChatCacheProvider } from "./contexts/ChatCacheContext";
 import { AuthGuard } from "./components/auth/AuthGuard";
+import AuthForm from "./components/auth/AuthForm";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,8 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+                <Route path="/login" element={<AuthForm />} />
+                <Route path="/auth" element={<AuthForm />} />
                 <Route path="/care" element={<AuthGuard><CareTab /></AuthGuard>} />
                 <Route path="/activity" element={<AuthGuard><ActivityTab /></AuthGuard>} />
                 <Route path="/assistant" element={<AuthGuard><AssistantTab /></AuthGuard>} />
