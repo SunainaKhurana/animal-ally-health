@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserOnboarding } from './UserOnboarding';
@@ -16,12 +16,26 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect authenticated users away from auth pages
-  useEffect(() => {
-    if (user && !loading && (location.pathname === '/login' || location.pathname === '/auth')) {
+  // Stable navigation function
+  const handleNavigation = useCallback(() => {
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/auth';
+    
+    if (user && !loading && isAuthPage) {
+      // Authenticated user on auth page - redirect to home
       navigate('/', { replace: true });
+      return;
     }
-  }, [user, loading, location.pathname, navigate]);
+    
+    if (!user && !loading && !error && !isAuthPage) {
+      // Unauthenticated user on protected page - redirect to login
+      navigate('/login', { replace: true });
+      return;
+    }
+  }, [user, loading, error, location.pathname, navigate]);
+
+  useEffect(() => {
+    handleNavigation();
+  }, [handleNavigation]);
 
   if (loading || profileStatus.loading) {
     return (
@@ -81,15 +95,13 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
-  // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (!user && !loading && !error) {
-      navigate('/login', { replace: true });
-    }
-  }, [user, loading, error, navigate]);
+  // Don't render anything if user needs to be redirected
+  if (!user && !loading && !error) {
+    return null; // Will redirect via useEffect
+  }
 
   if (!user) {
-    return null; // Will redirect via useEffect
+    return null; // Still loading or has error, handled above
   }
 
   // Show onboarding if not completed
