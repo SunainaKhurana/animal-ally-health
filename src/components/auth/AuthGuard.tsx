@@ -1,7 +1,7 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import AuthForm from './AuthForm';
 import { UserOnboarding } from './UserOnboarding';
 import { useProfileStatus } from '@/hooks/useProfileStatus';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,15 @@ interface AuthGuardProps {
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, loading, error, retry, forceReauth } = useAuth();
   const profileStatus = useProfileStatus();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect authenticated users away from auth pages
+  useEffect(() => {
+    if (user && !loading && (location.pathname === '/login' || location.pathname === '/auth')) {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
 
   if (loading || profileStatus.loading) {
     return (
@@ -72,8 +81,15 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
+  // Redirect unauthenticated users to login
+  useEffect(() => {
+    if (!user && !loading && !error) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, loading, error, navigate]);
+
   if (!user) {
-    return <AuthForm />;
+    return null; // Will redirect via useEffect
   }
 
   // Show onboarding if not completed
