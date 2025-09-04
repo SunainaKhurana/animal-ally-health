@@ -2,7 +2,7 @@
 import { ReactNode, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserOnboarding } from './UserOnboarding';
+
 import { useProfileStatus } from '@/hooks/useProfileStatus';
 import { Button } from '@/components/ui/button';
 
@@ -104,9 +104,17 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     return null; // Still loading or has error, handled above
   }
 
-  // Show onboarding if not completed
-  if (!profileStatus.onboardingCompleted) {
-    return <UserOnboarding />;
+  // Mark onboarding as completed for new users to skip separate onboarding screen
+  if (!profileStatus.onboardingCompleted && user) {
+    // Auto-complete onboarding to go directly to the main app
+    import('@/integrations/supabase/client').then(({ supabase }) => {
+      supabase.auth.updateUser({
+        data: { 
+          onboarding_completed: true,
+          onboarding_step: 'complete'
+        }
+      });
+    });
   }
 
   return <>{children}</>;

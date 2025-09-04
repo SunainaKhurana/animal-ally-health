@@ -10,6 +10,7 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
+import welcomePetsJourney from '@/assets/welcome-pets-journey.png';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -37,9 +38,6 @@ const Index = () => {
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-white">PetZone</h1>
-          <div className="flex items-center gap-3">
-            <Plus className="h-5 w-5 text-white" />
-          </div>
         </div>
         </div>
 
@@ -67,20 +65,26 @@ const Index = () => {
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-white">PetZone</h1>
-          <div className="flex items-center gap-3">
-            <Plus className="h-5 w-5 text-white" />
-          </div>
         </div>
         </div>
 
         {/* No pets content */}
         <div className="max-w-lg mx-auto p-4 space-y-6">
           <Card>
-            <CardContent className="text-center py-8">
-              <h2 className="text-xl font-semibold mb-4">No Pets Added Yet</h2>
-              <p className="text-gray-600 mb-4">Get started by adding your first pet.</p>
-              <Button onClick={() => navigate('/settings/add-pet')}>
-                <Plus className="h-4 w-4 mr-2" />
+            <CardContent className="text-center py-12">
+              <div className="flex justify-center mb-6">
+                <img 
+                  src={welcomePetsJourney} 
+                  alt="Welcome to your pet care journey"
+                  className="w-64 h-40 object-contain opacity-90"
+                />
+              </div>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">Get started on the journey to track your pet's health</h2>
+              <Button 
+                onClick={() => navigate('/settings/add-pet')}
+                className="bg-orange-500 hover:bg-orange-600 px-8 py-3 text-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
                 Add New Pet
               </Button>
             </CardContent>
