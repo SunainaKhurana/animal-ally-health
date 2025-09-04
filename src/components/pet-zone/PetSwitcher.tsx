@@ -26,22 +26,43 @@ const PetSwitcher = () => {
 
   if (pets.length === 1) {
     return (
-      <div className="flex items-center gap-2">
-        <h1 className="text-lg font-semibold text-white">
-          {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
-        </h1>
-      </div>
+      <Button 
+        variant="ghost" 
+        className="flex items-center gap-2 p-2 text-gray-900 hover:bg-gray-100 rounded-lg"
+        onClick={() => navigate('/more')}
+      >
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={selectedPet?.photo} alt={selectedPet?.name} />
+            <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
+              {selectedPet?.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm font-medium">
+            {selectedPet ? `${selectedPet.name}` : 'PetZone'}
+          </span>
+          <Plus className="h-4 w-4 text-gray-400" />
+        </div>
+      </Button>
     );
   }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 p-0 text-white hover:bg-white/20">
-          <h1 className="text-lg font-semibold text-white">
-            {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
-          </h1>
-          <ChevronDown className="h-4 w-4 text-white" />
+        <Button variant="ghost" className="flex items-center gap-2 p-2 text-gray-900 hover:bg-gray-100 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={selectedPet?.photo} alt={selectedPet?.name} />
+              <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
+                {selectedPet?.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">
+              {selectedPet ? `${selectedPet.name}` : 'PetZone'}
+            </span>
+            <ChevronDown className="h-4 w-4 text-gray-400" />
+          </div>
         </Button>
       </SheetTrigger>
       <SheetContent side="top" className="h-auto bg-white">
