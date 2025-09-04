@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,19 +10,25 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
-import { FlexibleEmptyState } from '@/components/common/FlexibleEmptyState';
-import { useGuestMode } from '@/contexts/GuestModeContext';
+import AddPetDialog from '@/components/pets/AddPetDialog';
 import welcomePetsJourney from '@/assets/welcome-pets-journey.png';
 
 const Index = () => {
   const navigate = useNavigate();
   const { pets, loading, error, refetch } = usePets();
-  const { selectedPet } = usePetContext();
-  const { setGuestMode } = useGuestMode();
+  const { selectedPet, addPet } = usePetContext();
+  const [showAddPet, setShowAddPet] = useState(false);
 
   useEffect(() => {
     document.title = 'PetZone';
   }, []);
+
+  const handleAddPet = async (petData: any) => {
+    const newPet = await addPet(petData);
+    if (newPet) {
+      setShowAddPet(false);
+    }
+  };
 
   // Show loading state
   if (loading) {
@@ -73,26 +79,40 @@ const Index = () => {
 
         {/* No pets content */}
         <div className="max-w-lg mx-auto p-4 space-y-6">
-          <FlexibleEmptyState
-            title="Get started on the journey to track your pet's health"
-            description="Add your first pet to unlock personalized health tracking, AI-powered insights, and comprehensive care management."
-            illustration={welcomePetsJourney}
-            primaryAction={{
-              label: "Add New Pet",
-              onClick: () => navigate('/settings/add-pet')
-            }}
-            exploreAction={{
-              label: "Explore App Features",
-              description: "Take a tour of PetZone's features without adding a pet yet",
-              onClick: () => {
-                setGuestMode(true);
-                navigate('/care');
-              }
-            }}
-          />
+          <Card className="border-orange-200 bg-orange-50/30">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <img 
+                  src={welcomePetsJourney} 
+                  alt="Get started on the journey to track your pet's health"
+                  className="w-32 h-32 object-contain opacity-80"
+                />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Get started on the journey to track your pet's health
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+                Add your first pet to unlock personalized health tracking, AI-powered insights, and comprehensive care management.
+              </p>
+              <Button 
+                onClick={() => setShowAddPet(true)}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Pet
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <PetZoneNavigation />
+
+        {/* Add Pet Dialog */}
+        <AddPetDialog
+          open={showAddPet}
+          onOpenChange={setShowAddPet}
+          onAddPet={handleAddPet}
+        />
       </div>
     );
   }

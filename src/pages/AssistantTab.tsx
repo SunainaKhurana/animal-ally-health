@@ -1,8 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { usePetContext } from '@/contexts/PetContext';
-import { useGuestMode } from '@/contexts/GuestModeContext';
+
 import { useAuth } from '@/contexts/AuthContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
@@ -10,10 +11,8 @@ import SimplifiedAssistantChat from '@/components/assistant/SimplifiedAssistantC
 
 const AssistantTab = () => {
   const { selectedPet, loading: petsLoading, error: petsError, retry: retryPets } = usePetContext();
-  const { isGuestMode, guestPetName } = useGuestMode();
   const { user, loading: authLoading, error: authError, retry: retryAuth } = useAuth();
-
-  const effectivePet = selectedPet || (isGuestMode ? { id: 'guest', name: guestPetName } : null);
+  const navigate = useNavigate();
 
   // Show loading state while authentication is being checked
   if (authLoading) {
@@ -71,7 +70,7 @@ const AssistantTab = () => {
   }
 
   // Show no pet selected state
-  if (!effectivePet && !petsLoading) {
+  if (!selectedPet && !petsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
@@ -80,11 +79,25 @@ const AssistantTab = () => {
             <PetSwitcher />
           </div>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">Please select a pet to get health assistance</p>
-            <PetSwitcher />
-          </div>
+        <div className="max-w-lg mx-auto p-4 space-y-6">
+          <Card className="border-orange-200 bg-orange-50/30">
+            <CardContent className="p-8 text-center">
+              <MessageCircle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Add a pet to ask questions about it
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+                Get personalized health advice, symptom analysis, and AI-powered insights for your pet's wellbeing.
+              </p>
+              <Button 
+                onClick={() => navigate('/')}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Pet
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <PetZoneNavigation />
       </div>
@@ -112,9 +125,9 @@ const AssistantTab = () => {
                   <MessageCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">AI Health Assistant for {effectivePet?.name}</h3>
+                  <h3 className="font-semibold">AI Health Assistant for {selectedPet?.name}</h3>
                   <p className="text-sm text-gray-600">
-                    {isGuestMode ? 'Experience AI health assistance in demo mode' : 'Get personalized health advice and report symptoms'}
+                    Get personalized health advice and report symptoms
                   </p>
                 </div>
               </div>
@@ -126,7 +139,7 @@ const AssistantTab = () => {
         <div className="px-4 pb-2">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-xs text-amber-800">
-              ⚠️ <strong>Disclaimer:</strong> {isGuestMode ? 'This is a demo of AI analysis. In the full version, this would provide real health insights.' : 'AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.'}
+              ⚠️ <strong>Disclaimer:</strong> AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.
             </p>
           </div>
         </div>
@@ -135,39 +148,7 @@ const AssistantTab = () => {
         <div className="flex-1 px-4 pb-24">
           <Card className="h-full">
             <CardContent className="p-0 h-full">
-              {isGuestMode ? (
-                <div className="p-6 text-center space-y-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <MessageCircle className="h-8 w-8 text-blue-600 mx-auto mb-3" />
-                    <h4 className="font-semibold text-gray-900 mb-2">AI Assistant Demo</h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      In the full version, you would chat with an AI assistant that provides personalized health advice for {effectivePet?.name}.
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-2">
-                      <p>Example features:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        <li>Symptom analysis and recommendations</li>
-                        <li>Health report interpretation</li>
-                        <li>Medication reminders</li>
-                        <li>Emergency guidance</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-3">Sample conversation:</p>
-                    <div className="space-y-2 text-left">
-                      <div className="bg-white p-2 rounded text-xs">
-                        <strong>You:</strong> "{effectivePet?.name} seems lethargic today"
-                      </div>
-                      <div className="bg-blue-100 p-2 rounded text-xs">
-                        <strong>AI:</strong> "I understand your concern about {effectivePet?.name}'s lethargy. Let me help you assess this..."
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <SimplifiedAssistantChat />
-              )}
+              <SimplifiedAssistantChat />
             </CardContent>
           </Card>
         </div>

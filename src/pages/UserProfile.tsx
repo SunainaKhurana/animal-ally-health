@@ -111,7 +111,7 @@ const UserProfile = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-orange-100">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/more')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-bold text-gray-900">Profile</h1>

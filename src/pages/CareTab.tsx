@@ -10,7 +10,6 @@ import {
   Plus
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
-import { useGuestMode } from '@/contexts/GuestModeContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
@@ -22,11 +21,8 @@ import SymptomLogsList from '@/components/health/SymptomLogsList';
 
 const CareTabContent = () => {
   const { selectedPet, loading: petLoading, error: petError } = usePetContext();
-  const { isGuestMode, guestPetName } = useGuestMode();
   const navigate = useNavigate();
   const { healthReports, loading: reportsLoading } = useHealthReports(selectedPet?.id);
-
-  const effectivePet = selectedPet || (isGuestMode ? { id: 'guest', name: guestPetName } : null);
 
   // Show loading state while pets are loading
   if (petLoading) {
@@ -54,7 +50,7 @@ const CareTabContent = () => {
     );
   }
 
-  if (!effectivePet) {
+  if (!selectedPet) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
@@ -63,11 +59,25 @@ const CareTabContent = () => {
             <PetSwitcher />
           </div>
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">Please select a pet to manage their care</p>
-            <PetSwitcher />
-          </div>
+        <div className="max-w-lg mx-auto p-4 space-y-6">
+          <Card className="border-orange-200 bg-orange-50/30">
+            <CardContent className="p-8 text-center">
+              <Stethoscope className="h-12 w-12 mx-auto mb-4 text-orange-500" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Add your pet to track their health
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+                Upload and manage health reports, track symptoms, and monitor your pet's health conditions.
+              </p>
+              <Button 
+                onClick={() => navigate('/')}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Pet
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <PetZoneNavigation />
       </div>
@@ -75,15 +85,7 @@ const CareTabContent = () => {
   }
 
   // Smart button text and icon based on reports (with loading state)
-  const getHealthReportsButton = () => {
-    if (isGuestMode) {
-      return {
-        text: "Try Health Reports (Demo)",
-        icon: <FileText className="h-4 w-4 mr-2" />,
-        description: "Explore how AI analyzes health reports with demo data."
-      };
-    }
-    
+  const getHealthReportsButton = () => {    
     if (reportsLoading) {
       return {
         text: "Loading Reports...",
@@ -100,9 +102,9 @@ const CareTabContent = () => {
       };
     }
     return {
-      text: `All ${effectivePet.name}'s Health Reports`,
+      text: `All ${selectedPet.name}'s Health Reports`,
       icon: <FileText className="h-4 w-4 mr-2" />,
-      description: `View and manage ${effectivePet.name}'s ${healthReports.length} health reports.`
+      description: `View and manage ${selectedPet.name}'s ${healthReports.length} health reports.`
     };
   };
 
@@ -129,21 +131,14 @@ const CareTabContent = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              View and manage all health logs for {effectivePet.name}.
+              View and manage all health logs for {selectedPet.name}.
             </p>
             <Button 
               className="w-full bg-orange-500 hover:bg-orange-600"
-              onClick={() => {
-                if (isGuestMode) {
-                  // Show demo notification
-                  alert('In guest mode - this would show your pet\'s health logs');
-                } else {
-                  navigate(`/health-logs/${effectivePet.id}`);
-                }
-              }}
+              onClick={() => navigate(`/health-logs/${selectedPet.id}`)}
             >
               <FileText className="h-4 w-4 mr-2" />
-              {isGuestMode ? 'View Demo Health Logs' : 'View All Health Logs'}
+              View All Health Logs
             </Button>
           </CardContent>
         </Card>
@@ -162,13 +157,7 @@ const CareTabContent = () => {
             </p>
             <Button 
               className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm"
-              onClick={() => {
-                if (isGuestMode) {
-                  alert('In guest mode - this would show health reports upload and analysis');
-                } else {
-                  navigate(`/health-reports/${effectivePet.id}`);
-                }
-              }}
+              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
               size="lg"
               disabled={reportsLoading}
             >
@@ -188,7 +177,7 @@ const CareTabContent = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Chat with AI about {effectivePet.name}'s health and get personalized advice.
+              Chat with AI about {selectedPet.name}'s health and get personalized advice.
             </p>
             <Button 
               className="w-full" 
@@ -202,39 +191,13 @@ const CareTabContent = () => {
         </Card>
 
         {/* Health Conditions */}
-        {!isGuestMode && selectedPet && (
+        {selectedPet && (
           <ErrorBoundary>
             <CollapsibleConditionsSection 
               petId={selectedPet.id} 
               petSpecies={selectedPet.type || 'dog'} 
             />
           </ErrorBoundary>
-        )}
-
-        {isGuestMode && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Stethoscope className="h-5 w-5 text-blue-500" />
-                Health Conditions (Demo)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                In the full version, this section would show your pet's health conditions and tracking.
-              </p>
-              <div className="space-y-2">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium text-sm">Example: Hip Dysplasia</p>
-                  <p className="text-xs text-gray-600">Being monitored</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium text-sm">Example: Seasonal Allergies</p>
-                  <p className="text-xs text-gray-600">Managed with medication</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Quick Health Actions */}

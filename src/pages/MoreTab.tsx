@@ -152,25 +152,6 @@ const MoreTab = () => {
           </CardContent>
         </Card>
 
-        {/* Support */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-blue-500" />
-              Support & Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full justify-start" variant="outline">
-              <Phone className="h-4 w-4 mr-2" />
-              Emergency Vet Contacts
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Info className="h-4 w-4 mr-2" />
-              Help & FAQ
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       <PetZoneNavigation />

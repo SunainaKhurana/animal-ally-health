@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, User, LogOut, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, User, LogOut, Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
@@ -37,9 +37,15 @@ const Settings = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b">
         <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <SettingsIcon className="h-6 w-6 text-orange-500" />
-            <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/more')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <SettingsIcon className="h-6 w-6 text-orange-500" />
+              <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+            </div>
+            <div></div>
           </div>
         </div>
       </div>
