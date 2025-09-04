@@ -124,23 +124,10 @@ const Index = () => {
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-white">
+              {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+            </h1>
             <PetSwitcher />
-            {selectedPet && (
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden relative">
-                {selectedPet.photo ? (
-                  <img 
-                    src={selectedPet.photo} 
-                    alt={selectedPet.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-sm font-medium">
-                    {selectedPet.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -116,7 +116,7 @@ const AssistantTab = () => {
 
       {/* Main Content - takes remaining height */}
       <div className="flex-1 flex flex-col max-w-lg mx-auto w-full">
-        {/* Pet Context Card */}
+        {/* Combined Header and Disclaimer */}
         <div className="p-4 pb-2">
           <Card>
             <CardContent className="p-4">
@@ -131,17 +131,13 @@ const AssistantTab = () => {
                   </p>
                 </div>
               </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                <p className="text-xs text-amber-800">
+                  ⚠️ <strong>Disclaimer:</strong> AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.
+                </p>
+              </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* AI Disclaimer */}
-        <div className="px-4 pb-2">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-xs text-amber-800">
-              ⚠️ <strong>Disclaimer:</strong> AI analysis is for informational purposes only. Always consult with a qualified veterinarian for professional medical advice.
-            </p>
-          </div>
         </div>
 
         {/* Chat Interface - takes remaining space with bottom padding */}
