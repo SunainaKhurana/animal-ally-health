@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Bell } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { usePets } from '@/hooks/usePets';
 import { usePetContext } from '@/contexts/PetContext';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
@@ -35,13 +35,12 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
-          <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-white">PetZone</h1>
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-white" />
-              <Plus className="h-5 w-5 text-white" />
-            </div>
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-white">PetZone</h1>
+          <div className="flex items-center gap-3">
+            <Plus className="h-5 w-5 text-white" />
           </div>
+        </div>
         </div>
 
         <div className="flex items-center justify-center h-64">
@@ -66,13 +65,12 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 pb-20">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
-          <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-white">PetZone</h1>
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-white" />
-              <Plus className="h-5 w-5 text-white" />
-            </div>
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-white">PetZone</h1>
+          <div className="flex items-center gap-3">
+            <Plus className="h-5 w-5 text-white" />
           </div>
+        </div>
         </div>
 
         {/* No pets content */}
@@ -100,19 +98,8 @@ const Index = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PetSwitcher />
-          </div>
           <div className="flex items-center gap-3">
-            <Bell className="h-5 w-5 text-white" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={() => navigate('/more')}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+            <PetSwitcher />
             {selectedPet && (
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden relative">
                 {selectedPet.photo ? (

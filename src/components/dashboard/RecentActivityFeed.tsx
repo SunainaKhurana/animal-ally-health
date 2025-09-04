@@ -72,7 +72,7 @@ const RecentActivityFeed = ({ petName }: RecentActivityFeedProps) => {
             variant="ghost" 
             size="sm" 
             className="text-purple-600 hover:bg-purple-50 text-sm font-medium"
-            onClick={() => navigate('/activity')}
+            onClick={() => navigate('/health-activity')}
           >
             See All
           </Button>

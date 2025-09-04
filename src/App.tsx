@@ -22,6 +22,7 @@ import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 import HealthReportsPage from "./pages/HealthReportsPage";
 import HealthLogsPage from "./pages/HealthLogsPage";
+import HealthActivityDetails from "./pages/HealthActivityDetails";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PetProvider } from "./contexts/PetContext";
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/health/:petId" element={<AuthGuard><HealthRecords /></AuthGuard>} />
                 <Route path="/health-reports/:petId" element={<AuthGuard><HealthReportsPage /></AuthGuard>} />
                 <Route path="/health-logs/:petId" element={<AuthGuard><HealthLogsPage /></AuthGuard>} />
+                <Route path="/health-activity" element={<AuthGuard><HealthActivityDetails /></AuthGuard>} />
                 <Route path="/weight/:petId" element={<AuthGuard><WeightTracking /></AuthGuard>} />
                 <Route path="/walks/:petId" element={<AuthGuard><WalksTracker /></AuthGuard>} />
                 <Route path="/daily-tracker" element={<AuthGuard><DailyTracker /></AuthGuard>} />
