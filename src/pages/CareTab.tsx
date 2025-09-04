@@ -10,6 +10,7 @@ import {
   Plus
 } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
+import { useGuestMode } from '@/contexts/GuestModeContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useNavigate } from 'react-router-dom';
@@ -21,8 +22,11 @@ import SymptomLogsList from '@/components/health/SymptomLogsList';
 
 const CareTabContent = () => {
   const { selectedPet, loading: petLoading, error: petError } = usePetContext();
+  const { isGuestMode, guestPetName } = useGuestMode();
   const navigate = useNavigate();
   const { healthReports, loading: reportsLoading } = useHealthReports(selectedPet?.id);
+
+  const effectivePet = selectedPet || (isGuestMode ? { id: 'guest', name: guestPetName } : null);
 
   // Show loading state while pets are loading
   if (petLoading) {
@@ -50,7 +54,7 @@ const CareTabContent = () => {
     );
   }
 
-  if (!selectedPet) {
+  if (!effectivePet) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
@@ -72,6 +76,14 @@ const CareTabContent = () => {
 
   // Smart button text and icon based on reports (with loading state)
   const getHealthReportsButton = () => {
+    if (isGuestMode) {
+      return {
+        text: "Try Health Reports (Demo)",
+        icon: <FileText className="h-4 w-4 mr-2" />,
+        description: "Explore how AI analyzes health reports with demo data."
+      };
+    }
+    
     if (reportsLoading) {
       return {
         text: "Loading Reports...",
@@ -88,9 +100,9 @@ const CareTabContent = () => {
       };
     }
     return {
-      text: `All ${selectedPet.name}'s Health Reports`,
+      text: `All ${effectivePet.name}'s Health Reports`,
       icon: <FileText className="h-4 w-4 mr-2" />,
-      description: `View and manage ${selectedPet.name}'s ${healthReports.length} health reports.`
+      description: `View and manage ${effectivePet.name}'s ${healthReports.length} health reports.`
     };
   };
 
@@ -117,14 +129,21 @@ const CareTabContent = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              View and manage all health logs for {selectedPet.name}.
+              View and manage all health logs for {effectivePet.name}.
             </p>
             <Button 
               className="w-full bg-orange-500 hover:bg-orange-600"
-              onClick={() => navigate(`/health-logs/${selectedPet.id}`)}
+              onClick={() => {
+                if (isGuestMode) {
+                  // Show demo notification
+                  alert('In guest mode - this would show your pet\'s health logs');
+                } else {
+                  navigate(`/health-logs/${effectivePet.id}`);
+                }
+              }}
             >
               <FileText className="h-4 w-4 mr-2" />
-              View All Health Logs
+              {isGuestMode ? 'View Demo Health Logs' : 'View All Health Logs'}
             </Button>
           </CardContent>
         </Card>
@@ -143,7 +162,13 @@ const CareTabContent = () => {
             </p>
             <Button 
               className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm"
-              onClick={() => navigate(`/health-reports/${selectedPet.id}`)}
+              onClick={() => {
+                if (isGuestMode) {
+                  alert('In guest mode - this would show health reports upload and analysis');
+                } else {
+                  navigate(`/health-reports/${effectivePet.id}`);
+                }
+              }}
               size="lg"
               disabled={reportsLoading}
             >
@@ -163,7 +188,7 @@ const CareTabContent = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Chat with AI about {selectedPet.name}'s health and get personalized advice.
+              Chat with AI about {effectivePet.name}'s health and get personalized advice.
             </p>
             <Button 
               className="w-full" 
@@ -177,12 +202,40 @@ const CareTabContent = () => {
         </Card>
 
         {/* Health Conditions */}
-        <ErrorBoundary>
-          <CollapsibleConditionsSection 
-            petId={selectedPet.id} 
-            petSpecies={selectedPet.type || 'dog'} 
-          />
-        </ErrorBoundary>
+        {!isGuestMode && selectedPet && (
+          <ErrorBoundary>
+            <CollapsibleConditionsSection 
+              petId={selectedPet.id} 
+              petSpecies={selectedPet.type || 'dog'} 
+            />
+          </ErrorBoundary>
+        )}
+
+        {isGuestMode && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Stethoscope className="h-5 w-5 text-blue-500" />
+                Health Conditions (Demo)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                In the full version, this section would show your pet's health conditions and tracking.
+              </p>
+              <div className="space-y-2">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-sm">Example: Hip Dysplasia</p>
+                  <p className="text-xs text-gray-600">Being monitored</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-sm">Example: Seasonal Allergies</p>
+                  <p className="text-xs text-gray-600">Managed with medication</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Health Actions */}
         <Card>

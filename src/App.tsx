@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PetProvider } from "./contexts/PetContext";
 import { ChatCacheProvider } from "./contexts/ChatCacheContext";
+import { GuestModeProvider } from "./contexts/GuestModeContext";
 import { AuthGuard } from "./components/auth/AuthGuard";
 import AuthForm from "./components/auth/AuthForm";
 
@@ -43,38 +43,40 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <PetProvider>
-          <ChatCacheProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
-                <Route path="/login" element={<AuthForm />} />
-                <Route path="/auth" element={<AuthForm />} />
-                <Route path="/care" element={<AuthGuard><CareTab /></AuthGuard>} />
-                <Route path="/activity" element={<AuthGuard><ActivityTab /></AuthGuard>} />
-                <Route path="/assistant" element={<AuthGuard><AssistantTab /></AuthGuard>} />
-                <Route path="/more" element={<AuthGuard><MoreTab /></AuthGuard>} />
-                <Route path="/pet/:petId" element={<AuthGuard><PetProfile /></AuthGuard>} />
-                <Route path="/health/:petId" element={<AuthGuard><HealthRecords /></AuthGuard>} />
-                <Route path="/health-reports/:petId" element={<AuthGuard><HealthReportsPage /></AuthGuard>} />
-                <Route path="/health-logs/:petId" element={<AuthGuard><HealthLogsPage /></AuthGuard>} />
-                <Route path="/health-activity" element={<AuthGuard><HealthActivityDetails /></AuthGuard>} />
-                <Route path="/weight/:petId" element={<AuthGuard><WeightTracking /></AuthGuard>} />
-                <Route path="/walks/:petId" element={<AuthGuard><WalksTracker /></AuthGuard>} />
-                <Route path="/daily-tracker" element={<AuthGuard><DailyTracker /></AuthGuard>} />
-                <Route path="/activity-tracker" element={<AuthGuard><ActivityTracker /></AuthGuard>} />
-                <Route path="/check-health" element={<AuthGuard><CheckHealthStatus /></AuthGuard>} />
-                <Route path="/report-symptoms" element={<AuthGuard><ReportSymptoms /></AuthGuard>} />
-                <Route path="/prescriptions" element={<AuthGuard><PrescriptionsTracker /></AuthGuard>} />
-                <Route path="/profile" element={<AuthGuard><UserProfile /></AuthGuard>} />
-                <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </ChatCacheProvider>
-        </PetProvider>
+        <GuestModeProvider>
+          <PetProvider>
+            <ChatCacheProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+                  <Route path="/login" element={<AuthForm />} />
+                  <Route path="/auth" element={<AuthForm />} />
+                  <Route path="/care" element={<AuthGuard><CareTab /></AuthGuard>} />
+                  <Route path="/activity" element={<AuthGuard><ActivityTab /></AuthGuard>} />
+                  <Route path="/assistant" element={<AuthGuard><AssistantTab /></AuthGuard>} />
+                  <Route path="/more" element={<AuthGuard><MoreTab /></AuthGuard>} />
+                  <Route path="/pet/:petId" element={<AuthGuard><PetProfile /></AuthGuard>} />
+                  <Route path="/health/:petId" element={<AuthGuard><HealthRecords /></AuthGuard>} />
+                  <Route path="/health-reports/:petId" element={<AuthGuard><HealthReportsPage /></AuthGuard>} />
+                  <Route path="/health-logs/:petId" element={<AuthGuard><HealthLogsPage /></AuthGuard>} />
+                  <Route path="/health-activity" element={<AuthGuard><HealthActivityDetails /></AuthGuard>} />
+                  <Route path="/weight/:petId" element={<AuthGuard><WeightTracking /></AuthGuard>} />
+                  <Route path="/walks/:petId" element={<AuthGuard><WalksTracker /></AuthGuard>} />
+                  <Route path="/daily-tracker" element={<AuthGuard><DailyTracker /></AuthGuard>} />
+                  <Route path="/activity-tracker" element={<AuthGuard><ActivityTracker /></AuthGuard>} />
+                  <Route path="/check-health" element={<AuthGuard><CheckHealthStatus /></AuthGuard>} />
+                  <Route path="/report-symptoms" element={<AuthGuard><ReportSymptoms /></AuthGuard>} />
+                  <Route path="/prescriptions" element={<AuthGuard><PrescriptionsTracker /></AuthGuard>} />
+                  <Route path="/profile" element={<AuthGuard><UserProfile /></AuthGuard>} />
+                  <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ChatCacheProvider>
+          </PetProvider>
+        </GuestModeProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

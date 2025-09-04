@@ -10,12 +10,15 @@ import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import PetDashboard from '@/components/pet-zone/PetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
+import { FlexibleEmptyState } from '@/components/common/FlexibleEmptyState';
+import { useGuestMode } from '@/contexts/GuestModeContext';
 import welcomePetsJourney from '@/assets/welcome-pets-journey.png';
 
 const Index = () => {
   const navigate = useNavigate();
   const { pets, loading, error, refetch } = usePets();
   const { selectedPet } = usePetContext();
+  const { setGuestMode } = useGuestMode();
 
   useEffect(() => {
     document.title = 'PetZone';
@@ -70,25 +73,23 @@ const Index = () => {
 
         {/* No pets content */}
         <div className="max-w-lg mx-auto p-4 space-y-6">
-          <Card>
-            <CardContent className="text-center py-12">
-              <div className="flex justify-center mb-6">
-                <img 
-                  src={welcomePetsJourney} 
-                  alt="Welcome to your pet care journey"
-                  className="w-64 h-40 object-contain opacity-90"
-                />
-              </div>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-900">Get started on the journey to track your pet's health</h2>
-              <Button 
-                onClick={() => navigate('/settings/add-pet')}
-                className="bg-orange-500 hover:bg-orange-600 px-8 py-3 text-lg"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Add New Pet
-              </Button>
-            </CardContent>
-          </Card>
+          <FlexibleEmptyState
+            title="Get started on the journey to track your pet's health"
+            description="Add your first pet to unlock personalized health tracking, AI-powered insights, and comprehensive care management."
+            illustration={welcomePetsJourney}
+            primaryAction={{
+              label: "Add New Pet",
+              onClick: () => navigate('/settings/add-pet')
+            }}
+            exploreAction={{
+              label: "Explore App Features",
+              description: "Take a tour of PetZone's features without adding a pet yet",
+              onClick: () => {
+                setGuestMode(true);
+                navigate('/care');
+              }
+            }}
+          />
         </div>
 
         <PetZoneNavigation />

@@ -1,8 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Activity, Timer, TrendingUp } from 'lucide-react';
 import { usePetContext } from '@/contexts/PetContext';
+import { useGuestMode } from '@/contexts/GuestModeContext';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
 import { useWalks } from '@/hooks/useWalks';
@@ -10,9 +12,15 @@ import QuickWalkLogger from '@/components/quick-actions/QuickWalkLogger';
 
 const ActivityTab = () => {
   const { selectedPet } = usePetContext();
+  const { isGuestMode, guestPetName } = useGuestMode();
   const { walks, loading } = useWalks(selectedPet?.id);
 
-  const todayWalks = walks.filter(walk => {
+  const effectivePet = selectedPet || (isGuestMode ? { id: 'guest', name: guestPetName, breed: 'Mixed Breed' } : null);
+
+  const todayWalks = isGuestMode ? [
+    { id: 'demo1', start_time: new Date().toISOString(), duration_minutes: 25, notes: 'Morning walk in the park' },
+    { id: 'demo2', start_time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), duration_minutes: 15, notes: 'Quick bathroom break' }
+  ] : walks.filter(walk => {
     const walkDate = new Date(walk.start_time).toDateString();
     const today = new Date().toDateString();
     return walkDate === today;
@@ -36,7 +44,7 @@ const ActivityTab = () => {
     return `${breed}s benefit from regular daily walks. Most dogs need 30-60 minutes of activity per day. You've logged ${totalMinutes} minutes today.`;
   };
 
-  if (!selectedPet) {
+  if (!effectivePet) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
@@ -74,9 +82,19 @@ const ActivityTab = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Log walks for {selectedPet.name} or multiple pets together.
+              {isGuestMode ? 'Experience how walk logging works (demo mode)' : `Log walks for ${effectivePet.name} or multiple pets together.`}
             </p>
-            <QuickWalkLogger />
+            {isGuestMode ? (
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                <p className="text-sm text-gray-600 mb-3">Demo: Walk Logger Interface</p>
+                <Button className="w-full" variant="outline" disabled>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Start Walk (Demo Mode)
+                </Button>
+              </div>
+            ) : (
+              <QuickWalkLogger />
+            )}
           </CardContent>
         </Card>
 
@@ -127,37 +145,65 @@ const ActivityTab = () => {
         </Card>
 
         {/* Recent Activities */}
-        {walks.length > todayWalks.length && (
+        {((!isGuestMode && walks.length > todayWalks.length) || isGuestMode) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Recent Walks
+                Recent Walks {isGuestMode && '(Demo)'}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {loading && !isGuestMode ? (
                 <p className="text-center text-gray-600">Loading...</p>
               ) : (
                 <div className="space-y-3">
-                  {walks.slice(0, 5).filter(walk => !todayWalks.includes(walk)).map((walk) => (
-                    <div key={walk.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Timer className="h-4 w-4 text-gray-500" />
-                        <div>
-                          <p className="font-medium text-sm">
-                            {new Date(walk.start_time).toLocaleDateString()}
-                          </p>
-                          {walk.duration_minutes && (
-                            <p className="text-xs text-gray-600">{walk.duration_minutes} minutes</p>
-                          )}
-                          {walk.notes && (
-                            <p className="text-xs text-gray-600">{walk.notes}</p>
-                          )}
+                  {isGuestMode ? (
+                    // Demo recent walks
+                    [
+                      { id: 'demo3', start_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, notes: 'Park adventure' },
+                      { id: 'demo4', start_time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 20, notes: 'Neighborhood stroll' }
+                    ].map((walk) => (
+                      <div key={walk.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Timer className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {new Date(walk.start_time).toLocaleDateString()}
+                            </p>
+                            {walk.duration_minutes && (
+                              <p className="text-xs text-gray-600">{walk.duration_minutes} minutes</p>
+                            )}
+                            {walk.notes && (
+                              <p className="text-xs text-gray-600">{walk.notes}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                   ) : (
+                     walks.slice(0, 5).filter(walk => {
+                       if (isGuestMode) return true;
+                       return !todayWalks.some(todayWalk => todayWalk.id === walk.id);
+                     }).map((walk) => (
+                      <div key={walk.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Timer className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {new Date(walk.start_time).toLocaleDateString()}
+                            </p>
+                            {walk.duration_minutes && (
+                              <p className="text-xs text-gray-600">{walk.duration_minutes} minutes</p>
+                            )}
+                            {walk.notes && (
+                              <p className="text-xs text-gray-600">{walk.notes}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </CardContent>
@@ -165,14 +211,17 @@ const ActivityTab = () => {
         )}
 
         {/* Exercise Recommendations */}
-        {selectedPet.breed && (
+        {effectivePet.breed && (
           <Card>
             <CardHeader>
-              <CardTitle>Exercise Guidelines for {selectedPet.name}</CardTitle>
+              <CardTitle>Exercise Guidelines for {effectivePet.name}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-700 leading-relaxed">
-                {getBreedRecommendation(selectedPet.breed, todayWalks.length, todayTotalMinutes)}
+                {isGuestMode ? 
+                  `Mixed breeds typically need 30-60 minutes of exercise daily. You've logged ${todayTotalMinutes} minutes today in this demo.` :
+                  getBreedRecommendation(effectivePet.breed, todayWalks.length, todayTotalMinutes)
+                }
               </p>
             </CardContent>
           </Card>
