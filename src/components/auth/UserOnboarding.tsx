@@ -4,14 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { LogOut, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AddPetDialog from '@/components/pets/AddPetDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const UserOnboarding = () => {
   const [loading, setLoading] = useState(false);
   const [showAddPet, setShowAddPet] = useState(false);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handlePetAdded = async () => {
     console.log('Pet added successfully during onboarding');
@@ -60,46 +63,77 @@ export const UserOnboarding = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-blue-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="text-8xl mb-6">🐾</div>
-          <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to PetZone!
-          </CardTitle>
-          <CardDescription className="text-lg">
-            Start tracking your pet's health more effectively with personalized care insights and reminders.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center space-x-4">
-              <div className="text-4xl">🏥</div>
-              <div className="text-4xl">📊</div>
-              <div className="text-4xl">💊</div>
-              <div className="text-4xl">🚶‍♂️</div>
-            </div>
-            <p className="text-sm text-gray-600">
-              Health reports • Activity tracking • Medication reminders • Vet appointments
-            </p>
-          </div>
-          
-          <Button 
-            onClick={() => setShowAddPet(true)}
-            className="w-full bg-orange-500 hover:bg-orange-600 h-14 text-lg"
-            disabled={loading}
-          >
-            {loading ? 'Setting up...' : 'Add Your First Pet 🐕🐱'}
-          </Button>
+  const handleExploreApp = async () => {
+    await completeOnboarding();
+  };
 
-          <AddPetDialog 
-            open={showAddPet}
-            onOpenChange={setShowAddPet}
-            onAddPet={handlePetAdded}
-          />
-        </CardContent>
-      </Card>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4">
+        <div className="text-lg font-semibold text-gray-900">PetZone</div>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={signOut}
+          className="text-gray-600 hover:text-gray-800"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign Out
+        </Button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="text-8xl mb-6">🐾</div>
+            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome to PetZone!
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Start tracking your pet's health more effectively with personalized care insights and reminders.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center space-x-4">
+                <div className="text-4xl">🏥</div>
+                <div className="text-4xl">📊</div>
+                <div className="text-4xl">💊</div>
+                <div className="text-4xl">🚶‍♂️</div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Health reports • Activity tracking • Medication reminders • Vet appointments
+              </p>
+            </div>
+            
+            <Button 
+              onClick={() => setShowAddPet(true)}
+              className="w-full bg-orange-500 hover:bg-orange-600 h-14 text-lg"
+              disabled={loading}
+            >
+              {loading ? 'Setting up...' : 'Add Your First Pet 🐕🐱'}
+            </Button>
+
+            <Button 
+              onClick={handleExploreApp}
+              variant="outline"
+              className="w-full h-12 text-base"
+              disabled={loading}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Explore App First
+            </Button>
+
+            <AddPetDialog 
+              open={showAddPet}
+              onOpenChange={setShowAddPet}
+              onAddPet={handlePetAdded}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
