@@ -46,13 +46,16 @@ const RecentActivityFeed = ({ petName }: RecentActivityFeedProps) => {
   // Map activity types to specific colors and icons
   const getActivityIcon = (type: string, title: string) => {
     if (type === 'medication' || title.toLowerCase().includes('medication')) {
-      return { icon: '💊', color: 'bg-green-100', textColor: 'text-green-700' };
+      return { icon: '💊', color: 'bg-purple-100', textColor: 'text-purple-700' };
     }
-    if (type === 'health_report' || title.toLowerCase().includes('vaccine')) {
-      return { icon: '🛡️', color: 'bg-yellow-100', textColor: 'text-yellow-700' };
+    if (type === 'symptom' || title.toLowerCase().includes('symptom')) {
+      return { icon: '🩺', color: 'bg-red-100', textColor: 'text-red-700' };
     }
-    if (type === 'walk' || title.toLowerCase().includes('appointment')) {
-      return { icon: '📅', color: 'bg-green-100', textColor: 'text-green-700' };
+    if (type === 'health_report' || title.toLowerCase().includes('vaccine') || title.toLowerCase().includes('report')) {
+      return { icon: '📋', color: 'bg-green-100', textColor: 'text-green-700' };
+    }
+    if (type === 'walk' || title.toLowerCase().includes('walk')) {
+      return { icon: '🚶‍♂️', color: 'bg-blue-100', textColor: 'text-blue-700' };
     }
     // Default
     return { icon: '📋', color: 'bg-blue-100', textColor: 'text-blue-700' };

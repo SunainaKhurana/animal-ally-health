@@ -277,7 +277,9 @@ export const useSmartActivityData = () => {
           weekItems.push({
             id: `symptom-${symptom.id}`,
             type: 'symptom',
-            title: 'Symptoms reported',
+            title: symptom.symptoms?.length 
+              ? `Symptoms: ${symptom.symptoms.slice(0, 2).join(', ')}${symptom.symptoms.length > 2 ? '...' : ''}`
+              : 'Symptoms reported',
             time: format(new Date(symptom.created_at), 'MMM dd'),
             status: symptom.ai_response ? 'Analyzed' : 'Processing',
             icon: '🩺',
