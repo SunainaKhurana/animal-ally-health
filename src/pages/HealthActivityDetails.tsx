@@ -14,6 +14,7 @@ interface HealthActivity {
   details: string;
   date: string;
   time: string;
+  timestamp: Date;
   icon: string;
   color: string;
 }
@@ -52,15 +53,16 @@ const HealthActivityDetails = () => {
 
       if (walks) {
         walks.forEach(walk => {
-          const date = new Date(walk.start_time);
+          const timestamp = new Date(walk.start_time);
           const duration = walk.duration_minutes || 0;
           activities.push({
             id: `walk-${walk.id}`,
             type: 'walk',
             title: 'Walk Completed',
             details: `Duration: ${duration} minutes${walk.distance_meters ? ` • Distance: ${Math.round(walk.distance_meters)}m` : ''}`,
-            date: date.toLocaleDateString(),
-            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: timestamp.toLocaleDateString(),
+            time: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp,
             icon: '🚶‍♂️',
             color: 'bg-green-100 text-green-700'
           });
@@ -77,15 +79,16 @@ const HealthActivityDetails = () => {
 
       if (symptoms) {
         symptoms.forEach(symptom => {
-          const date = new Date(symptom.created_at);
+          const timestamp = new Date(symptom.created_at);
           const symptomsList = symptom.symptoms?.join(', ') || 'Health log entry';
           activities.push({
             id: `symptom-${symptom.id}`,
             type: 'symptom',
             title: 'Symptom Reported',
             details: `Symptoms: ${symptomsList}${symptom.severity_level ? ` • Severity: ${symptom.severity_level}` : ''}`,
-            date: date.toLocaleDateString(),
-            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: timestamp.toLocaleDateString(),
+            time: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp,
             icon: '🩺',
             color: 'bg-red-100 text-red-700'
           });
@@ -102,14 +105,15 @@ const HealthActivityDetails = () => {
 
       if (reports) {
         reports.forEach(report => {
-          const date = new Date(report.created_at);
+          const timestamp = new Date(report.created_at);
           activities.push({
             id: `report-${report.id}`,
             type: 'report',
             title: 'Health Report Scanned',
             details: `Report: ${report.title}${report.report_type ? ` • Type: ${report.report_type}` : ''}`,
-            date: date.toLocaleDateString(),
-            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: timestamp.toLocaleDateString(),
+            time: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp,
             icon: '📋',
             color: 'bg-blue-100 text-blue-700'
           });
@@ -125,26 +129,23 @@ const HealthActivityDetails = () => {
 
       if (medications) {
         medications.forEach(med => {
-          const date = new Date(med.given_at);
+          const timestamp = new Date(med.given_at);
           activities.push({
             id: `medication-${med.id}`,
             type: 'medication',
             title: 'Medication Given',
             details: `Medicine: ${med.medication_name}${med.notes ? ` • ${med.notes}` : ''}`,
-            date: date.toLocaleDateString(),
-            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: timestamp.toLocaleDateString(),
+            time: timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp,
             icon: '💊',
             color: 'bg-purple-100 text-purple-700'
           });
         });
       }
 
-      // Sort all activities by date/time
-      activities.sort((a, b) => {
-        const dateA = new Date(`${a.date} ${a.time}`);
-        const dateB = new Date(`${b.date} ${b.time}`);
-        return dateB.getTime() - dateA.getTime();
-      });
+      // Sort all activities by timestamp (newest first)
+      activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
       setActivities(activities);
     } catch (error) {
