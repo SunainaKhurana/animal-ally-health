@@ -39,7 +39,9 @@ const HealthActivityDetails = () => {
     try {
       const now = new Date();
       const daysBack = timeframe === 'week' ? 7 : 30;
+      // Set start date to beginning of the day to include all activities from that day
       const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+      startDate.setHours(0, 0, 0, 0);
 
       const activities: HealthActivity[] = [];
 
