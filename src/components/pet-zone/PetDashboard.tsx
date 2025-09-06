@@ -97,7 +97,7 @@ const PetDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900">Good afternoon!</h3>
           </div>
           <p className="text-sm text-gray-700 leading-relaxed">
-            {selectedPet.name} is in excellent health with all vitals in normal range
+            {selectedPet.name} {dashboardData.healthStatus === 'good' ? 'is in excellent health with all vitals in normal range' : dashboardData.healthStatus === 'attention' ? 'needs some attention - please review recent health reports' : 'health status is being monitored'}
           </p>
         </CardContent>
       </Card>

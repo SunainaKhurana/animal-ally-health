@@ -23,39 +23,71 @@ export const useRealHealthStatus = (petId?: string) => {
   const analyzeHealthStatus = (reports: HealthReport[]): 'good' | 'attention' | 'unknown' => {
     if (reports.length === 0) return 'unknown';
 
-    // Get recent reports (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Filter for recent reports (last 2 weeks for most concerns, 4 weeks for persistent issues)
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
     
     const recentReports = reports.filter(report => 
-      new Date(report.report_date) >= thirtyDaysAgo
+      new Date(report.report_date) >= twoWeeksAgo
+    );
+    
+    const recentAndMediumReports = reports.filter(report => 
+      new Date(report.report_date) >= fourWeeksAgo
     );
 
-    if (recentReports.length === 0) return 'unknown';
-
-    // Check for concerning conditions in recent reports
+    // Check for concerning keywords in recent reports
     const concerningKeywords = [
-      'infection', 'bacterial', 'viral', 'parasite', 'abnormal', 'elevated',
-      'decreased', 'deficiency', 'disease', 'disorder', 'inflammation',
-      'tumor', 'mass', 'lesion', 'injury', 'fracture', 'diarrhea',
-      'vomiting', 'fever', 'pain', 'seizure', 'emergency', 'urgent',
-      'critical', 'severe', 'moderate concern', 'follow-up required'
+      'abnormal', 'elevated', 'high', 'low', 'infection', 'bacterial', 'viral',
+      'inflammation', 'pain', 'tumor', 'mass', 'growth', 'disease', 'disorder',
+      'emergency', 'urgent', 'critical', 'severe', 'concerning', 'worrying'
     ];
 
-    const hasHealthConcerns = recentReports.some(report => {
-      const textToAnalyze = [
+    // Persistent condition keywords that may require longer monitoring
+    const persistentKeywords = [
+      'chronic', 'arthritis', 'diabetes', 'kidney', 'heart', 'liver', 'cancer',
+      'thyroid', 'epilepsy', 'allergies'
+    ];
+
+    // Check recent reports (2 weeks) for any concerning findings
+    for (const report of recentReports) {
+      const textToSearch = [
         report.ai_analysis,
-        report.ai_diagnosis, 
+        report.ai_diagnosis,
         report.vet_diagnosis,
         report.key_findings
       ].filter(Boolean).join(' ').toLowerCase();
 
-      return concerningKeywords.some(keyword => 
-        textToAnalyze.includes(keyword.toLowerCase())
-      );
-    });
+      // Check if any concerning keywords are present
+      if (concerningKeywords.some(keyword => textToSearch.includes(keyword))) {
+        return 'attention';
+      }
+    }
 
-    return hasHealthConcerns ? 'attention' : 'good';
+    // For persistent conditions, check 4-week window
+    for (const report of recentAndMediumReports) {
+      const textToSearch = [
+        report.ai_analysis,
+        report.ai_diagnosis,
+        report.vet_diagnosis,
+        report.key_findings
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      // Only flag persistent conditions if they're still showing up in the 4-week window
+      if (persistentKeywords.some(keyword => textToSearch.includes(keyword))) {
+        return 'attention';
+      }
+    }
+
+    // If we have recent reports but no concerning findings, status is good
+    if (recentReports.length > 0) {
+      return 'good';
+    }
+
+    // If no recent reports, status is unknown
+    return 'unknown';
   };
 
   const extractConcerns = (reports: HealthReport[]): string[] => {
