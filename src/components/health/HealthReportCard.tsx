@@ -480,12 +480,30 @@ const HealthReportCard = ({
       )}
 
       {/* Full Report - OCR Parameters */}
-      {report.ocr_parameters && (
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Full Report</h3>
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Full Report</h3>
+        {report.ocr_parameters ? (
           <OCRParametersDisplay ocrParameters={report.ocr_parameters} />
-        </div>
-      )}
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <p className="text-gray-600">
+                  {report.status === 'processing' ? 
+                    'Parameter extraction in progress...' : 
+                    'No detailed parameters extracted from this report yet.'
+                  }
+                </p>
+                {report.status === 'completed' && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    This may be because the report doesn't contain structured lab data, or the analysis is still processing.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* No Analysis Available - Only Show When Actually Processing */}
       {!hasFindings && !hasAIAnalysis && !report.ocr_parameters && (
