@@ -126,6 +126,7 @@ const Index = () => {
           <h1 className="text-lg font-semibold text-white">
             {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
           </h1>
+          <PetSwitcher />
         </div>
       </div>
 
