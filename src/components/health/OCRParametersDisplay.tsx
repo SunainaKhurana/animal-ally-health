@@ -1,13 +1,10 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 interface OCRParameter {
   name: string;
   value: string | number;
   unit?: string;
   reference_range?: string;
-  status?: 'normal' | 'high' | 'low' | 'abnormal';
 }
 
 interface OCRParametersDisplayProps {
@@ -61,8 +58,7 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
             name: param.parameter || param.name || 'Unknown Parameter',
             value: param.actual_value || param.value || param.result || 'N/A',
             unit: param.unit || '',
-            reference_range: param.reference_range || param.normal_range || '',
-            status: param.status || 'normal'
+            reference_range: param.reference_range || param.normal_range || ''
           }));
         }
         
@@ -81,19 +77,17 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
           name: param.parameter || param.name || 'Unknown Parameter',
           value: param.actual_value || param.value || param.result || 'N/A',
           unit: param.unit || '',
-          reference_range: param.reference_range || param.normal_range || '',
-          status: param.status || 'normal'
+          reference_range: param.reference_range || param.normal_range || ''
         }));
       }
 
       // Handle object format
       if (typeof params === 'object') {
         return Object.entries(params).map(([key, value]: [string, any]) => ({
-          name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          name: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
           value: typeof value === 'object' ? value.value || JSON.stringify(value) : value,
           unit: typeof value === 'object' ? value.unit || '' : '',
-          reference_range: typeof value === 'object' ? value.reference_range || '' : '',
-          status: typeof value === 'object' ? value.status || 'normal' : 'normal'
+          reference_range: typeof value === 'object' ? value.reference_range || ''
         }));
       }
 
@@ -117,19 +111,6 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'high':
-        return <Badge variant="destructive" className="text-xs">High</Badge>;
-      case 'low':
-        return <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">Low</Badge>;
-      case 'abnormal':
-        return <Badge variant="destructive" className="text-xs">Abnormal</Badge>;
-      default:
-        return <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">Normal</Badge>;
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -144,7 +125,6 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
                 <th className="text-left p-3 font-medium text-gray-900">Value</th>
                 <th className="text-left p-3 font-medium text-gray-900">Unit</th>
                 <th className="text-left p-3 font-medium text-gray-900">Reference Range</th>
-                <th className="text-left p-3 font-medium text-gray-900">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +134,6 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
                   <td className="p-3 font-semibold text-gray-900">{param.value}</td>
                   <td className="p-3 text-gray-600">{param.unit || '-'}</td>
                   <td className="p-3 text-gray-600">{param.reference_range || '-'}</td>
-                  <td className="p-3">{getStatusBadge(param.status)}</td>
                 </tr>
               ))}
             </tbody>
