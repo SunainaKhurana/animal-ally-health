@@ -81,7 +81,7 @@ const HealthStatusCard = ({
         <div className="text-center py-2">
           <div className="text-5xl mb-3">{getHealthEmoji()}</div>
           <p className="text-sm text-gray-600 font-medium">
-            {petName}'s overall health looks {healthStatus === 'good' ? 'great' : healthStatus === 'attention' ? 'okay' : 'unclear'}!
+            {petName}'s overall health {healthStatus === 'good' ? 'looks great' : healthStatus === 'attention' ? 'needs some attention' : 'status is unclear'}!
           </p>
         </div>
 
