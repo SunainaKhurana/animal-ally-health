@@ -16,6 +16,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { usePrescriptions } from '@/hooks/usePrescriptions';
+import { useAuth } from '@/contexts/AuthContext';
 
 const medicationSchema = z.object({
   name: z.string().min(1, 'Medication name is required'),
@@ -33,6 +35,7 @@ interface AddMedicationDialogProps {
   onOpenChange: (open: boolean) => void;
   petId: string;
   petName: string;
+  onMedicationAdded?: () => void;
 }
 
 const frequencyOptions = [
@@ -49,8 +52,11 @@ export const AddMedicationDialog: React.FC<AddMedicationDialogProps> = ({
   onOpenChange,
   petId,
   petName,
+  onMedicationAdded,
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { uploadPrescription } = usePrescriptions();
   const [uploadMode, setUploadMode] = useState<'manual' | 'photo'>('manual');
   const [isUploading, setIsUploading] = useState(false);
 
@@ -91,9 +97,33 @@ export const AddMedicationDialog: React.FC<AddMedicationDialogProps> = ({
   };
 
   const onSubmit = async (data: MedicationFormData) => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to add medications.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
-      // TODO: Implement medication creation
-      console.log('Creating medication:', data);
+      const medicationData = {
+        title: data.name,
+        prescribedDate: data.nextDueDate ? data.nextDueDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        medications: [{
+          name: data.name,
+          dosage: data.dosage,
+          frequency: data.frequency,
+          nextDueDate: data.nextDueDate,
+          refills: data.refills || 0,
+          notes: data.notes || ''
+        }]
+      };
+
+      // Create a dummy file for the prescription record
+      const dummyFile = new File(['medication-record'], 'medication.txt', { type: 'text/plain' });
+      
+      await uploadPrescription(dummyFile, petId, medicationData);
       
       toast({
         title: 'Medication Added',
@@ -101,11 +131,11 @@ export const AddMedicationDialog: React.FC<AddMedicationDialogProps> = ({
       });
       
       reset();
-      onOpenChange(false);
-    } catch (error) {
+      onMedicationAdded?.();
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to add medication. Please try again.',
+        description: error.message || 'Failed to add medication. Please try again.',
         variant: 'destructive',
       });
     }

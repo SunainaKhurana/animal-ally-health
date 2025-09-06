@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, Pill, Camera, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
-import { usePets } from '@/hooks/usePets';
+import { usePetContext } from '@/contexts/PetContext';
 import { AddMedicationDialog } from '@/components/medications/AddMedicationDialog';
 import { MedicationCard } from '@/components/medications/MedicationCard';
 
@@ -12,11 +12,25 @@ import { MedicationCard } from '@/components/medications/MedicationCard';
 export const MedicationsPage = () => {
   const { petId } = useParams();
   const navigate = useNavigate();
-  const { pets } = usePets();
-  const { prescriptions, loading } = usePrescriptions(petId);
+  const { pets, loading: petsLoading } = usePetContext();
+  const { prescriptions, loading: prescriptionsLoading, refetch } = usePrescriptions(petId);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const selectedPet = pets.find(pet => pet.id === petId);
+
+  // Show loading while pets are being fetched
+  if (petsLoading) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Loading...</h1>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedPet) {
     return (
@@ -66,7 +80,7 @@ export const MedicationsPage = () => {
       </Card>
 
       {/* Medications List */}
-      {loading ? (
+      {prescriptionsLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -101,6 +115,10 @@ export const MedicationsPage = () => {
         onOpenChange={setShowAddDialog}
         petId={petId!}
         petName={selectedPet.name}
+        onMedicationAdded={() => {
+          refetch();
+          setShowAddDialog(false);
+        }}
       />
     </div>
   );
