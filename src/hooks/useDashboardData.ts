@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePetContext } from '@/contexts/PetContext';
+import { useRealHealthStatus } from '@/hooks/useRealHealthStatus';
 
 interface ActivityData {
   day: string;
@@ -29,13 +30,14 @@ interface DashboardData {
 
 export const useDashboardData = () => {
   const { selectedPet } = usePetContext();
+  const { healthAnalysis, loading: healthLoading } = useRealHealthStatus(selectedPet?.id);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     weeklyActivity: [],
     hasActivity: false,
     recentActivities: [],
     healthReports: 0,
     lastCheckup: null,
-    healthStatus: 'good',
+    healthStatus: 'unknown',
     upcomingReminders: 0
   });
   const [loading, setLoading] = useState(true);
@@ -46,8 +48,8 @@ export const useDashboardData = () => {
       return;
     }
 
-    // Generate mock data for the dashboard
-    const generateMockData = (): DashboardData => {
+    // Generate mock data for activity (will be replaced with real data later)
+    const generateMockActivityData = () => {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const weeklyActivity: ActivityData[] = days.map(day => ({
         day,
@@ -78,30 +80,32 @@ export const useDashboardData = () => {
         {
           id: '3',
           type: 'health',
-          title: 'Symptom report uploaded',
+          title: 'Health report uploaded',
           time: '1 day ago',
           icon: '🩺'
         }
       ] : [];
 
-      return {
-        weeklyActivity,
-        hasActivity,
-        recentActivities,
-        healthReports: Math.floor(Math.random() * 5) + 1,
-        lastCheckup: '2 weeks ago',
-        healthStatus: 'good',
-        upcomingReminders: Math.floor(Math.random() * 3)
-      };
+      return { weeklyActivity, hasActivity, recentActivities };
     };
 
-    // Simulate loading
+    // Simulate loading for activity data
     setTimeout(() => {
-      setDashboardData(generateMockData());
+      const activityData = generateMockActivityData();
+      
+      setDashboardData(prev => ({
+        ...prev,
+        ...activityData,
+        // Use real health data from the hook
+        healthReports: healthAnalysis.recentReports,
+        lastCheckup: healthAnalysis.lastCheckup,
+        healthStatus: healthAnalysis.healthStatus,
+        upcomingReminders: healthAnalysis.upcomingReminders
+      }));
       setLoading(false);
     }, 500);
 
-  }, [selectedPet]);
+  }, [selectedPet, healthAnalysis]);
 
-  return { dashboardData, loading };
+  return { dashboardData, loading: loading || healthLoading };
 };
