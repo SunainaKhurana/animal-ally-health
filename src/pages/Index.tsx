@@ -123,12 +123,9 @@ const Index = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-white">
-              {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
-            </h1>
-            <PetSwitcher />
-          </div>
+          <h1 className="text-lg font-semibold text-white">
+            {selectedPet ? `${selectedPet.name}'s Zone` : 'PetZone'}
+          </h1>
         </div>
       </div>
 
