@@ -64,7 +64,7 @@ const PetProviderInner = ({ children }: PetProviderProps) => {
     });
   }, [user, pets, selectedPet, loading, error, initializationComplete]);
 
-  // Auto-select first pet if none selected and pets are available
+  // Auto-select first pet if none selected and pets are available - but preserve user selection
   useEffect(() => {
     if (!user || loading || initializationComplete) return;
 
@@ -75,6 +75,8 @@ const PetProviderInner = ({ children }: PetProviderProps) => {
       firstPet: pets[0] ? { id: pets[0].id, name: pets[0].name } : null
     });
 
+    // Only auto-select if no pet is selected AND we have pets available
+    // This preserves user's manual selection
     if (!selectedPet && pets.length > 0) {
       console.log('✅ Auto-selecting first pet:', pets[0].name);
       setSelectedPet(pets[0]);
@@ -83,7 +85,7 @@ const PetProviderInner = ({ children }: PetProviderProps) => {
     setInitializationComplete(true);
   }, [pets, selectedPet, user, loading, initializationComplete]);
 
-  // If selected pet is deleted or no longer exists, select first available pet
+  // Only reselect if the current selected pet no longer exists
   useEffect(() => {
     if (!user || loading || !initializationComplete) return;
 
@@ -93,10 +95,9 @@ const PetProviderInner = ({ children }: PetProviderProps) => {
         console.log('⚠️ Selected pet no longer exists, selecting new pet');
         setSelectedPet(pets.length > 0 ? pets[0] : null);
       }
-    } else if (!selectedPet && pets.length > 0) {
-      // Ensure we have a selected pet if pets are available
-      setSelectedPet(pets[0]);
     }
+    // Removed the auto-reselection when selectedPet is null but pets exist
+    // This preserves user's choice to not have a pet selected
   }, [pets, selectedPet, user, loading, initializationComplete]);
 
   // Clear selected pet when user logs out

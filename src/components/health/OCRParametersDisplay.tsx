@@ -23,18 +23,14 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
     );
   }
 
-  // Parse OCR parameters - handle different formats from Make.com
   const parseParameters = (params: any): OCRParameter[] => {
     try {
       console.log('🔍 Raw params type:', typeof params, params);
       
-      // If it's a string, try to parse as JSON or handle comma-separated format
       if (typeof params === 'string') {
-        // Handle comma-separated JSON objects format
         if (params.includes('{"parameter"')) {
-          // Split by }, { and add back the braces
           const jsonObjects = params
-            .replace(/^"|"$/g, '') // Remove outer quotes if present
+            .replace(/^"|"$/g, '')
             .split('}, {')
             .map((obj, index, array) => {
               if (index === 0 && !obj.startsWith('{')) obj = '{' + obj;
@@ -62,7 +58,6 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
           }));
         }
         
-        // Try to parse as regular JSON
         try {
           params = JSON.parse(params);
         } catch (e) {
@@ -71,7 +66,6 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
         }
       }
 
-      // Handle array format
       if (Array.isArray(params)) {
         return params.map(param => ({
           name: param.parameter || param.name || 'Unknown Parameter',
@@ -81,14 +75,21 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
         }));
       }
 
-      // Handle object format
       if (typeof params === 'object') {
-        return Object.entries(params).map(([key, value]: [string, any]) => ({
-          name: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-          value: typeof value === 'object' ? value.value || JSON.stringify(value) : value,
-          unit: typeof value === 'object' ? value.unit || '' : '',
-          reference_range: typeof value === 'object' ? value.reference_range || ''
-        }));
+        const entries = Object.entries(params);
+        const results: OCRParameter[] = [];
+        
+        for (const [key, value] of entries) {
+          const parameter: OCRParameter = {
+            name: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+            value: typeof value === 'object' ? (value as any).value || JSON.stringify(value) : value,
+            unit: typeof value === 'object' ? (value as any).unit || '' : '',
+            reference_range: typeof value === 'object' ? (value as any).reference_range || '' : ''
+          };
+          results.push(parameter);
+        }
+        
+        return results;
       }
 
       return [];
