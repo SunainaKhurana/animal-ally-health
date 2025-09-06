@@ -75,23 +75,15 @@ export const useHealthReportsData = (petId?: string) => {
       setLoading(true);
       setError(null);
       
-      // Check cache first
+      // Check cache first - but always refresh for real-time updates
       const cachedReports = healthReportCache.get(petId);
       const cachedPreviews = healthReportCache.getCachedPreviews(petId);
       
       if (cachedReports && cachedReports.length > 0) {
-        console.log('✅ Using cached reports');
+        console.log('✅ Using cached reports while fetching fresh data');
         setHealthReports(cachedReports);
         setLoading(false);
-        
-        // Background refresh if not recently fetched
-        if (!supabaseFetched) {
-          fetchFreshReports().catch(console.warn);
-        }
-        return;
-      }
-      
-      if (cachedPreviews.length > 0) {
+      } else if (cachedPreviews.length > 0) {
         console.log('✅ Converting cached previews to reports');
         const reportsFromPreviews = cachedPreviews.map(preview => ({
           id: preview.id,
@@ -115,19 +107,23 @@ export const useHealthReportsData = (petId?: string) => {
         
         setHealthReports(reportsFromPreviews);
         setLoading(false);
-        
-        // Background refresh
-        fetchFreshReports().catch(console.warn);
-        return;
       }
 
-      // No cache, fetch from database
-      await fetchFreshReports();
+      // Always fetch fresh data to ensure we get the latest updates
+      try {
+        await fetchFreshReports();
+      } catch (error) {
+        if (!cachedReports && cachedPreviews.length === 0) {
+          throw error; // Only throw if no fallback data
+        } else {
+          console.warn('⚠️ Fresh fetch failed, using cached data:', error);
+        }
+      }
     } catch (error) {
       console.error('❌ Error loading reports:', error);
       handleLoadingError(error);
     }
-  }, [petId, supabaseFetched, fetchFreshReports, handleLoadingError]);
+  }, [petId, fetchFreshReports, handleLoadingError]);
 
   return {
     healthReports,

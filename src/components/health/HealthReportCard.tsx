@@ -266,20 +266,15 @@ const HealthReportCard = ({
                 </div>
               )}
 
-              {/* Summary Section - Improved Logic */}
+              {/* Summary Section - Single Line Display */}
               {hasFindings ? (
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-blue-900">Summary</span>
                   </div>
-                  <ul className="space-y-1">
-                    {keyFindings.map((finding, index) => (
-                      <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
-                        <span className="text-blue-600 mt-1">•</span>
-                        <span>{finding}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-sm text-blue-800">
+                    {keyFindings.join(' • ')}
+                  </p>
                 </div>
               ) : hasAIAnalysis ? (
                 <div className="bg-green-50 p-3 rounded border border-green-200">
@@ -448,20 +443,15 @@ const HealthReportCard = ({
         </div>
       )}
 
-      {/* Report Summary - Improved Display */}
+      {/* Report Summary - Single Line Display */}
       {hasFindings && (
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">Report Summary</h3>
           <Card>
             <CardContent className="pt-6">
-              <ul className="space-y-2">
-                {keyFindings.map((finding, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-blue-600 mt-1">•</span>
-                    <span className="text-gray-700">{finding}</span>
-                  </li>
-                ))}
-              </ul>
+              <p className="text-gray-700 leading-relaxed">
+                {keyFindings.join(' • ')}
+              </p>
             </CardContent>
           </Card>
         </div>

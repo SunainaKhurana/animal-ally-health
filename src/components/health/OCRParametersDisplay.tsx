@@ -85,31 +85,33 @@ const OCRParametersDisplay = ({ ocrParameters }: OCRParametersDisplayProps) => {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Test Parameters</CardTitle>
+      <CardHeader>
+        <CardTitle className="text-lg">Laboratory Results</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {parameters.map((param, index) => (
-            <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-              <div className="flex-1">
-                <p className="font-medium text-gray-900">{param.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-lg font-semibold text-gray-800">
-                    {param.value} {param.unit}
-                  </span>
-                  {param.reference_range && (
-                    <span className="text-sm text-gray-500">
-                      (Ref: {param.reference_range})
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="ml-4">
-                {getStatusBadge(param.status)}
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-3 font-medium text-gray-900">Parameter</th>
+                <th className="text-left p-3 font-medium text-gray-900">Value</th>
+                <th className="text-left p-3 font-medium text-gray-900">Unit</th>
+                <th className="text-left p-3 font-medium text-gray-900">Reference Range</th>
+                <th className="text-left p-3 font-medium text-gray-900">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parameters.map((param, index) => (
+                <tr key={index} className="border-b hover:bg-gray-50">
+                  <td className="p-3 font-medium text-gray-900">{param.name}</td>
+                  <td className="p-3 font-semibold text-gray-900">{param.value}</td>
+                  <td className="p-3 text-gray-600">{param.unit || '-'}</td>
+                  <td className="p-3 text-gray-600">{param.reference_range || '-'}</td>
+                  <td className="p-3">{getStatusBadge(param.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>
