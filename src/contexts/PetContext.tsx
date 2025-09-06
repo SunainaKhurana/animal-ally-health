@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePets } from '@/hooks/usePets';
+import { useOptimizedPets } from '@/hooks/useOptimizedPets';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 interface Pet {
@@ -48,7 +48,7 @@ interface PetProviderProps {
 
 const PetProviderInner = ({ children }: PetProviderProps) => {
   const { user, session } = useAuth();
-  const { pets, loading, addPet, updatePet, deletePet, refetch, error } = usePets();
+  const { pets, loading, addPet, updatePet, deletePet, refetch, error } = useOptimizedPets();
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [initializationComplete, setInitializationComplete] = useState(false);
 

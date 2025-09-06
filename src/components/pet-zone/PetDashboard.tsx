@@ -9,10 +9,12 @@ import ActivitySummaryCard from "@/components/dashboard/ActivitySummaryCard";
 import HealthStatusCard from "@/components/dashboard/HealthStatusCard";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useOptimizedActivityData } from '@/hooks/useOptimizedActivityData';
 
 const PetDashboard = () => {
   const { selectedPet, pets, loading, error, retry } = usePetContext();
   const { dashboardData, loading: dashboardLoading } = useDashboardData();
+  const { activities, loading: activitiesLoading, showWeekly, refresh } = useOptimizedActivityData();
   const navigate = useNavigate();
 
   if (loading) {
@@ -162,7 +164,7 @@ const PetDashboard = () => {
 
       {/* Recent Activity Feed */}
       <RecentActivityFeed 
-        activities={dashboardData.recentActivities}
+        activities={activities.length > 0 ? activities : dashboardData.recentActivities}
         petName={selectedPet.name}
       />
 
