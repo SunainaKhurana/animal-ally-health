@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import HealthReportsPage from "./pages/HealthReportsPage";
 import HealthLogsPage from "./pages/HealthLogsPage";
 import HealthActivityDetails from "./pages/HealthActivityDetails";
+import { MedicationsPage } from "./pages/MedicationsPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PetProvider } from "./contexts/PetContext";
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="/check-health" element={<AuthGuard><CheckHealthStatus /></AuthGuard>} />
                 <Route path="/report-symptoms" element={<AuthGuard><ReportSymptoms /></AuthGuard>} />
                 <Route path="/prescriptions" element={<AuthGuard><PrescriptionsTracker /></AuthGuard>} />
+                <Route path="/pets/:petId/medications" element={<AuthGuard><MedicationsPage /></AuthGuard>} />
                 <Route path="/profile" element={<AuthGuard><UserProfile /></AuthGuard>} />
                 <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />

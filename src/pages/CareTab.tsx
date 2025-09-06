@@ -221,9 +221,13 @@ const CareTabContent = () => {
               <Calendar className="h-4 w-4 mr-2" />
               Schedule Vaccination
             </Button>
-            <Button className="w-full" variant="outline">
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => navigate(`/pets/${selectedPet?.id}/medications`)}
+            >
               <Pill className="h-4 w-4 mr-2" />
-              Add Medication
+              Medications
             </Button>
           </CardContent>
         </Card>

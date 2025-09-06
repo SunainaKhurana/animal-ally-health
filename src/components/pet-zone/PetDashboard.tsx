@@ -138,12 +138,12 @@ const PetDashboard = () => {
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <Button
-              onClick={() => navigate('/care')}
+              onClick={() => navigate(`/pets/${selectedPet.id}/medications`)}
               variant="ghost"
               className="w-full h-full flex flex-col items-center gap-3 text-white hover:bg-white/20 border-0 min-h-[100px]"
             >
               <Pill className="h-8 w-8" />
-              <span className="text-sm font-medium">Add Medication</span>
+              <span className="text-sm font-medium">Medications</span>
             </Button>
           </CardContent>
         </Card>
