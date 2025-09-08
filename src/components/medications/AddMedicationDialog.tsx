@@ -277,7 +277,6 @@ export const AddMedicationDialog: React.FC<AddMedicationDialogProps> = ({
                   mode="single"
                   selected={nextDueDate}
                   onSelect={(date) => setValue('nextDueDate', date)}
-                  disabled={(date) => date < new Date()}
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />
