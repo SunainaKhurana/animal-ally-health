@@ -5,14 +5,14 @@ import { ArrowLeft, Plus, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePets } from "@/hooks/usePets";
-import { usePrescriptions } from "@/hooks/usePrescriptions";
+import { useOptimizedPrescriptions } from "@/hooks/useOptimizedPrescriptions";
 import PrescriptionUpload from "@/components/prescriptions/PrescriptionUpload";
 
 const PrescriptionsTracker = () => {
   const navigate = useNavigate();
   const { petId } = useParams();
   const { pets } = usePets();
-  const { prescriptions, loading } = usePrescriptions(petId);
+  const { prescriptions, loading } = useOptimizedPrescriptions(petId);
   const [showUpload, setShowUpload] = useState(false);
 
   const pet = pets.find(p => p.id === petId);

@@ -1,22 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pill, Camera, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePrescriptions } from '@/hooks/usePrescriptions';
+import { Card, CardContent } from '@/components/ui/card';
+import { useOptimizedPrescriptions } from '@/hooks/useOptimizedPrescriptions';
 import { usePetContext } from '@/contexts/PetContext';
 import { AddMedicationDialog } from '@/components/medications/AddMedicationDialog';
-import { MedicationCard } from '@/components/medications/MedicationCard';
+import { OptimizedMedicationCard } from '@/components/medications/OptimizedMedicationCard';
+import { MedicationLoadingState } from '@/components/medications/shared/MedicationLoadingState';
+import { MedicationEmptyState } from '@/components/medications/shared/MedicationEmptyState';
+import { PerformanceMonitor } from '@/lib/performanceMonitor';
 
 
 export const MedicationsPage = () => {
+  PerformanceMonitor.useRenderTimer('MedicationsPage');
+  
   const { petId } = useParams();
   const navigate = useNavigate();
   const { pets, loading: petsLoading } = usePetContext();
-  const { prescriptions, loading: prescriptionsLoading, markAsTaken, refetch } = usePrescriptions(petId);
+  const { 
+    prescriptions, 
+    overduePrescriptions, 
+    loading: prescriptionsLoading, 
+    markAsTaken, 
+    refetch,
+    medicationLogs 
+  } = useOptimizedPrescriptions(petId);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const selectedPet = pets.find(pet => pet.id === petId);
+  const selectedPet = useMemo(() => pets.find(pet => pet.id === petId), [pets, petId]);
+
+  // Memoized medication data with logs
+  const medicationData = useMemo(() => {
+    return prescriptions.map(prescription => {
+      const logs = medicationLogs.filter(log => log.prescription_id === prescription.id);
+      const lastLog = logs[0]; // logs are ordered by given_at desc
+      
+      let nextDue: Date | null = null;
+      if (lastLog) {
+        nextDue = new Date(lastLog.given_at);
+        nextDue.setDate(nextDue.getDate() + 1);
+      } else {
+        nextDue = new Date();
+      }
+      
+      const isOverdue = nextDue && new Date() > nextDue;
+      
+      return {
+        prescription,
+        lastTaken: lastLog?.given_at,
+        nextDue,
+        isOverdue: !!isOverdue
+      };
+    });
+  }, [prescriptions, medicationLogs]);
 
   // Show loading while pets are being fetched
   if (petsLoading) {
@@ -79,38 +116,38 @@ export const MedicationsPage = () => {
         </CardContent>
       </Card>
 
+      {/* Overdue Medications Alert */}
+      {overduePrescriptions.length > 0 && (
+        <Card className="mb-4 border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-red-800 mb-2">
+              {overduePrescriptions.length} medication{overduePrescriptions.length > 1 ? 's' : ''} overdue
+            </h3>
+            <p className="text-sm text-red-700">
+              Please check the medications below and mark them as taken if applicable.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Medications List */}
       {prescriptionsLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <MedicationLoadingState />
       ) : prescriptions.length > 0 ? (
         <div className="space-y-4">
-          {prescriptions.map((prescription) => (
-            <MedicationCard 
+          {medicationData.map(({ prescription, lastTaken, nextDue, isOverdue }) => (
+            <OptimizedMedicationCard 
               key={prescription.id} 
-              prescription={prescription} 
+              prescription={prescription}
+              lastTaken={lastTaken}
+              nextDue={nextDue}
+              isOverdue={isOverdue}
               onMarkAsTaken={markAsTaken}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <Pill className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">No medications yet</h3>
-          <p className="text-gray-600 mb-6">Start tracking your pet's medications by adding them here.</p>
-          <Button onClick={() => setShowAddDialog(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add First Medication
-          </Button>
-        </div>
+        <MedicationEmptyState onAddMedication={() => setShowAddDialog(true)} />
       )}
 
       {/* Add Medication Dialog */}

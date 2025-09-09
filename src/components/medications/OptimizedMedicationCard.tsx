@@ -1,72 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Clock, Calendar, RefreshCw, MoreVertical, CheckCircle, Bell } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDate } from '@/lib/dateUtils';
-import { supabase } from '@/integrations/supabase/client';
+import type { Prescription } from '@/hooks/useOptimizedPrescriptions';
 
-interface Prescription {
-  id: string;
-  title: string;
-  prescribed_date: string;
-  status: string;
-  medications?: any;
-  created_at: string;
-}
-
-interface MedicationCardProps {
+interface OptimizedMedicationCardProps {
   prescription: Prescription;
+  lastTaken?: string;
+  isOverdue?: boolean;
+  nextDue?: Date;
   onMarkAsTaken?: (prescriptionId: string, medicationName: string) => void;
 }
 
-export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, onMarkAsTaken }) => {
-  const [lastTaken, setLastTaken] = useState<any>(null);
-  const [nextDue, setNextDue] = useState<Date | null>(null);
-
-  useEffect(() => {
-    fetchLastTaken();
-  }, [prescription.id]);
-
-  const fetchLastTaken = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('medication_logs')
-        .select('*')
-        .eq('prescription_id', prescription.id)
-        .order('given_at', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-      
-      const lastLog = data?.[0];
-      setLastTaken(lastLog);
-      
-      // Calculate next due date (assuming daily medication for now)
-      if (lastLog) {
-        const nextDueDate = new Date(lastLog.given_at);
-        nextDueDate.setDate(nextDueDate.getDate() + 1);
-        setNextDue(nextDueDate);
-      } else {
-        // If never taken, next due is today
-        setNextDue(new Date());
-      }
-    } catch (error) {
-      console.error('Error fetching last taken:', error);
-    }
-  };
-
+export const OptimizedMedicationCard = memo<OptimizedMedicationCardProps>(({ 
+  prescription, 
+  lastTaken,
+  isOverdue = false,
+  nextDue,
+  onMarkAsTaken 
+}) => {
   const handleMarkAsTaken = () => {
     if (onMarkAsTaken) {
       onMarkAsTaken(prescription.id, prescription.title);
-      fetchLastTaken(); // Refresh the last taken data
     }
-  };
-
-  const isOverdue = () => {
-    if (!nextDue) return false;
-    return new Date() > nextDue;
   };
 
   const getStatusColor = (status: string) => {
@@ -92,6 +51,11 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, on
               <Badge className={getStatusColor(prescription.status)}>
                 {prescription.status}
               </Badge>
+              {isOverdue && (
+                <Badge variant="destructive">
+                  Overdue
+                </Badge>
+              )}
             </div>
           </div>
           <DropdownMenu>
@@ -102,7 +66,9 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, on
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Edit Medication</DropdownMenuItem>
-              <DropdownMenuItem>Mark as Taken</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMarkAsTaken}>
+                Mark as Taken
+              </DropdownMenuItem>
               <DropdownMenuItem>Pause</DropdownMenuItem>
               <DropdownMenuItem className="text-destructive">
                 Delete
@@ -125,16 +91,16 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, on
             <div className="text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Last taken: {formatDate(lastTaken.given_at)}</span>
+                <span>Last taken: {formatDate(lastTaken)}</span>
               </div>
             </div>
           )}
           
           {nextDue && (
             <div className="text-sm">
-              <div className={`flex items-center gap-2 ${isOverdue() ? 'text-red-600' : 'text-muted-foreground'}`}>
-                <Bell className={`h-3 w-3 ${isOverdue() ? 'text-red-600' : ''}`} />
-                <span>Next due: {formatDate(nextDue)} {isOverdue() && '(Overdue)'}</span>
+              <div className={`flex items-center gap-2 ${isOverdue ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <Bell className={`h-3 w-3 ${isOverdue ? 'text-red-600' : ''}`} />
+                <span>Next due: {formatDate(nextDue)} {isOverdue && '(Overdue)'}</span>
               </div>
             </div>
           )}
@@ -152,7 +118,7 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, on
         <div className="flex gap-2 mt-4">
           <Button 
             size="sm" 
-            variant={isOverdue() ? "default" : "outline"} 
+            variant={isOverdue ? "default" : "outline"} 
             className="flex-1"
             onClick={handleMarkAsTaken}
           >
@@ -167,4 +133,4 @@ export const MedicationCard: React.FC<MedicationCardProps> = ({ prescription, on
       </CardContent>
     </Card>
   );
-};
+});

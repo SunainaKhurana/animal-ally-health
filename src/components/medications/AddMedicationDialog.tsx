@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { usePrescriptions } from '@/hooks/usePrescriptions';
+import { useOptimizedPrescriptions } from '@/hooks/useOptimizedPrescriptions';
 import { useAuth } from '@/contexts/AuthContext';
 
 const medicationSchema = z.object({
@@ -56,7 +56,7 @@ export const AddMedicationDialog: React.FC<AddMedicationDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { uploadPrescription } = usePrescriptions();
+  const { uploadPrescription } = useOptimizedPrescriptions();
   const [uploadMode, setUploadMode] = useState<'manual' | 'photo'>('manual');
   const [isUploading, setIsUploading] = useState(false);
 

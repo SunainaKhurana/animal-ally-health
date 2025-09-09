@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Camera, FileText, Loader2, CheckCircle } from "lucide-react";
-import { usePrescriptions } from "@/hooks/usePrescriptions";
+import { useOptimizedPrescriptions } from '@/hooks/useOptimizedPrescriptions';
 import { extractMedicalReportData } from "@/lib/medicalOcrService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,7 +21,7 @@ const PrescriptionUpload = ({ petId, petInfo, onUploadComplete }: PrescriptionUp
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [isComplete, setIsComplete] = useState(false);
-  const { uploadPrescription } = usePrescriptions(petId);
+  const { uploadPrescription } = useOptimizedPrescriptions(petId);
   const { toast } = useToast();
 
   const handleFileUpload = async (file: File) => {
