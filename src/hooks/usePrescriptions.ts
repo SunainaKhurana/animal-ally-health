@@ -107,10 +107,62 @@ export const usePrescriptions = (petId?: string) => {
     }
   };
 
+  const markAsTaken = async (prescriptionId: string, medicationName: string, notes?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('medication_logs')
+        .insert({
+          prescription_id: prescriptionId,
+          medication_name: medicationName,
+          given_at: new Date().toISOString(),
+          given_by: user.id,
+          notes: notes
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Medication marked as taken",
+      });
+      
+      fetchPrescriptions();
+    } catch (error) {
+      console.error('Error marking medication as taken:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark medication as taken",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getLastTaken = async (prescriptionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('medication_logs')
+        .select('*')
+        .eq('prescription_id', prescriptionId)
+        .order('given_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Error getting last taken:', error);
+      return null;
+    }
+  };
+
   return {
     prescriptions,
     loading,
     uploadPrescription,
+    markAsTaken,
+    getLastTaken,
     refetch: fetchPrescriptions
   };
 };

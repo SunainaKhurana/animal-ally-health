@@ -13,7 +13,7 @@ export const MedicationsPage = () => {
   const { petId } = useParams();
   const navigate = useNavigate();
   const { pets, loading: petsLoading } = usePetContext();
-  const { prescriptions, loading: prescriptionsLoading, refetch } = usePrescriptions(petId);
+  const { prescriptions, loading: prescriptionsLoading, markAsTaken, refetch } = usePrescriptions(petId);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const selectedPet = pets.find(pet => pet.id === petId);
@@ -94,7 +94,11 @@ export const MedicationsPage = () => {
       ) : prescriptions.length > 0 ? (
         <div className="space-y-4">
           {prescriptions.map((prescription) => (
-            <MedicationCard key={prescription.id} prescription={prescription} />
+            <MedicationCard 
+              key={prescription.id} 
+              prescription={prescription} 
+              onMarkAsTaken={markAsTaken}
+            />
           ))}
         </div>
       ) : (
