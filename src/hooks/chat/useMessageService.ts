@@ -11,10 +11,15 @@ export const useMessageService = () => {
     return map;
   }, [messages]);
 
-  const addMessage = useCallback((message: ChatMessage) => {
-    console.log('Adding message:', message.type, message.id);
-    setMessages(prev => [...prev, message]);
-    return message;
+  const addMessage = useCallback((message: Omit<ChatMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }) => {
+    const finalMessage: ChatMessage = {
+      ...message,
+      id: message.id || `${message.type}-${Date.now()}-${Math.random()}`,
+      timestamp: message.timestamp || new Date()
+    };
+    console.log('Adding message:', finalMessage.type, finalMessage.id);
+    setMessages(prev => [...prev, finalMessage]);
+    return finalMessage;
   }, []);
 
   const addProcessingMessage = useCallback((reportId: number, content: string) => {
