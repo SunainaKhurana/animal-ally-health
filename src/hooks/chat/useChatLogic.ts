@@ -64,7 +64,11 @@ export const useChatLogic = (selectedPetId?: string) => {
       });
 
       // Check if this is a query about existing health concerns (from Ask AI button)
-      const isHealthLogQuery = message.includes("I'd like to ask about these health concerns for my pet:");
+      // More robust detection for health log queries
+      const isHealthLogQuery = message.includes("I'd like to ask about these health concerns for my pet:") ||
+        message.includes("Based on the health records") ||
+        message.includes("Looking at the health reports") ||
+        message.includes("Regarding the health data");
       
       if (isHealthLogQuery) {
         console.log('Detected health log query, sending directly to Make.com');
@@ -150,7 +154,9 @@ export const useChatLogic = (selectedPetId?: string) => {
     chatContext?: any[]
   ) => {
     try {
-      console.log('Sending health log query to Make.com webhook');
+      // Generate unique request ID for tracking
+      const requestId = `health-query-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log(`Sending health log query to Make.com webhook [${requestId}]`, { query: query.substring(0, 100) + '...' });
       
       // Get pet details for context
       const { data: pet } = await supabase.from('pets')
@@ -174,10 +180,16 @@ export const useChatLogic = (selectedPetId?: string) => {
         .order('created_at', { ascending: false })
         .limit(10);
 
+      // Standardized payload structure matching symptom reports
       const payload = {
-        isHealthLogQuery: true,
-        query,
+        requestId,
+        requestType: 'health_log_query',
+        reportId: null, // No report ID for health log queries
         petId,
+        query,
+        symptoms: [], // Empty for health log queries
+        notes: query, // The query text becomes the notes field
+        photoUrl: null, // No photo support for health log queries yet
         petProfile: pet,
         recentHealthReports: recentReports || [],
         recentSymptomReports: recentSymptoms || [],
@@ -185,7 +197,11 @@ export const useChatLogic = (selectedPetId?: string) => {
         timestamp: new Date().toISOString()
       };
 
-      console.log('Make.com webhook payload for health log query:', payload);
+      console.log(`Make.com webhook payload [${requestId}]:`, { 
+        ...payload, 
+        query: payload.query.substring(0, 100) + '...',
+        chatContext: `${payload.chatContext.length} messages`
+      });
 
       const response = await fetch('https://hook.eu2.make.com/es5jhdfotkr146ihy2ll02vjyuq75wdv', {
         method: 'POST',
@@ -196,16 +212,19 @@ export const useChatLogic = (selectedPetId?: string) => {
       });
 
       if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`Make.com webhook failed [${requestId}]:`, { status: response.status, statusText: response.statusText, responseText });
         throw new Error(`Make.com webhook failed: ${response.status} ${response.statusText}`);
       }
 
       // Add processing message to indicate AI is working
       const processingMessage = addMessage({
         type: 'processing',
-        content: 'AI is analyzing your health log query...'
+        content: 'AI is analyzing your health log query...',
+        metadata: { requestId }
       });
 
-      console.log('Successfully sent health log query to Make.com webhook');
+      console.log(`Successfully sent health log query to Make.com webhook [${requestId}]`);
       
       // The response will be handled by the polling/realtime system
       

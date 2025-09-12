@@ -247,7 +247,9 @@ export const useSymptomReports = (petId?: string) => {
     chatContext?: any[]
   ) => {
     try {
-      console.log('Sending to Make.com webhook for report:', reportId);
+      // Generate unique request ID for tracking
+      const requestId = `symptom-report-${reportId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log(`Sending to Make.com webhook for report [${requestId}]:`, { reportId, symptoms: symptoms.length, hasNotes: !!notes, hasPhoto: !!photoUrl });
       
       // Get pet details for context
       const { data: pet } = await supabase
@@ -273,9 +275,13 @@ export const useSymptomReports = (petId?: string) => {
         .order('created_at', { ascending: false })
         .limit(10);
 
+      // Standardized payload structure matching health log queries
       const payload = {
+        requestId,
+        requestType: 'symptom_report',
         reportId,
         petId,
+        query: notes || '', // Use notes as query text for symptom reports
         symptoms,
         notes: notes || '',
         photoUrl,
@@ -286,7 +292,12 @@ export const useSymptomReports = (petId?: string) => {
         timestamp: new Date().toISOString()
       };
 
-      console.log('Make.com webhook payload:', payload);
+      console.log(`Make.com webhook payload [${requestId}]:`, { 
+        ...payload, 
+        symptoms: payload.symptoms.length,
+        chatContext: `${payload.chatContext.length} messages`,
+        photoUrl: payload.photoUrl ? '[URL_SET]' : null
+      });
 
       const response = await fetch('https://hook.eu2.make.com/es5jhdfotkr146ihy2ll02vjyuq75wdv', {
         method: 'POST',
@@ -297,10 +308,13 @@ export const useSymptomReports = (petId?: string) => {
       });
 
       if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`Make.com webhook failed [${requestId}]:`, { status: response.status, statusText: response.statusText, responseText });
         throw new Error(`Make.com webhook failed: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Successfully sent to Make.com webhook');
+      const responseText = await response.text();
+      console.log(`Successfully sent to Make.com webhook [${requestId}]:`, { responseStatus: response.status, responseLength: responseText.length });
     } catch (error) {
       console.error('Error sending to Make.com webhook:', error);
       // Update report with error status
