@@ -152,6 +152,19 @@ export const useConversations = (petId?: string) => {
     try {
       setSendingMessage(true);
 
+      // Create user message immediately and add to local state
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        conversation_id: conversation?.id || '',
+        role: 'user',
+        content: content.trim(),
+        created_at: new Date().toISOString(),
+        attachments
+      };
+
+      // Immediately append user message to local state
+      setMessages(prev => [...prev, userMessage]);
+
       // Get the current session and access token
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -159,7 +172,7 @@ export const useConversations = (petId?: string) => {
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      // Call the external Vercel API endpoint - it handles storing both messages
+      // Call the external Vercel API endpoint
       const response = await fetch('https://pet-chat-api.vercel.app/api/chat/send', {
         method: 'POST',
         headers: {
@@ -184,23 +197,17 @@ export const useConversations = (petId?: string) => {
       const apiResponse = await response.json();
       console.log('API response received:', apiResponse);
 
-      // Use the API response to immediately update local state instead of reloading
-      if (apiResponse.userMessage && apiResponse.assistantMessage) {
-        setMessages(prev => {
-          const newMessages = [...prev];
-          
-          // Add user message if not already present
-          if (!newMessages.some(msg => msg.id === apiResponse.userMessage.id)) {
-            newMessages.push(apiResponse.userMessage);
-          }
-          
-          // Add assistant message if not already present
-          if (!newMessages.some(msg => msg.id === apiResponse.assistantMessage.id)) {
-            newMessages.push(apiResponse.assistantMessage);
-          }
-          
-          return newMessages;
-        });
+      // Append assistant message from API response to local state
+      if (apiResponse.assistantMessage) {
+        const assistantMessage: Message = {
+          id: crypto.randomUUID(),
+          conversation_id: apiResponse.conversation_id || conversation?.id || '',
+          role: 'assistant',
+          content: apiResponse.assistantMessage,
+          created_at: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
       }
 
     } catch (error: any) {
@@ -213,7 +220,7 @@ export const useConversations = (petId?: string) => {
     } finally {
       setSendingMessage(false);
     }
-  }, [conversation, user, petId, toast, loadMessages]);
+  }, [conversation, user, petId, toast]);
 
   // Initialize conversation and load messages when pet changes
   useEffect(() => {
