@@ -40,8 +40,10 @@ export const useOptimizedPets = () => {
     const currentDate = new Date();
     let birthDate = new Date(currentDate);
     
-    // Simplified age calculation
-    if (rawPet.age_years || rawPet.age_months) {
+    // Use date_of_birth field if available, otherwise calculate from age fields
+    if (rawPet.date_of_birth) {
+      birthDate = new Date(rawPet.date_of_birth);
+    } else if (rawPet.age_years || rawPet.age_months) {
       const years = rawPet.age_years || 0;
       const months = rawPet.age_months || 0;
       birthDate.setFullYear(currentDate.getFullYear() - years);
@@ -250,7 +252,8 @@ export const useOptimizedPets = () => {
         gender: updatedPet.gender,
         photo_url: updatedPet.photo || null,
         pre_existing_conditions: updatedPet.preExistingConditions || [],
-        reproductive_status: updatedPet.reproductiveStatus || 'not_yet'
+        reproductive_status: updatedPet.reproductiveStatus || 'not_yet',
+        date_of_birth: updatedPet.dateOfBirth.toISOString().split('T')[0] // Save as YYYY-MM-DD format
       };
 
       const { error } = await supabase

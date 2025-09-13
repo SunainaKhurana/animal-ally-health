@@ -49,11 +49,17 @@ const EditPetDialog = ({ open, onOpenChange, pet, onUpdatePet }: EditPetDialogPr
   useEffect(() => {
     if (pet) {
       console.log('Setting form data for pet:', pet);
+      // Ensure dateOfBirth is properly converted from string if needed
+      let dateOfBirth = pet.dateOfBirth;
+      if (typeof pet.dateOfBirth === 'string') {
+        dateOfBirth = new Date(pet.dateOfBirth);
+      }
+      
       setFormData({
         name: pet.name,
         type: pet.type,
         breed: pet.breed || "",
-        dateOfBirth: pet.dateOfBirth,
+        dateOfBirth: dateOfBirth,
         weight: pet.weight.toString(),
         weightUnit: pet.weightUnit || "lbs",
         gender: pet.gender,

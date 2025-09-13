@@ -459,6 +459,7 @@ export type Database = {
           breed: string
           created_at: string | null
           current_diet: string | null
+          date_of_birth: string | null
           food_allergies: string[] | null
           gender: Database["public"]["Enums"]["pet_gender_new"] | null
           id: string
@@ -485,6 +486,7 @@ export type Database = {
           breed: string
           created_at?: string | null
           current_diet?: string | null
+          date_of_birth?: string | null
           food_allergies?: string[] | null
           gender?: Database["public"]["Enums"]["pet_gender_new"] | null
           id?: string
@@ -511,6 +513,7 @@ export type Database = {
           breed?: string
           created_at?: string | null
           current_diet?: string | null
+          date_of_birth?: string | null
           food_allergies?: string[] | null
           gender?: Database["public"]["Enums"]["pet_gender_new"] | null
           id?: string
