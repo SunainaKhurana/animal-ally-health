@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePetContext } from '@/contexts/PetContext';
-import { useChatLogic } from '@/hooks/chat/useChatLogic';
+import { useSupabaseChatLogic } from '@/hooks/chat/useSupabaseChatLogic';
 import AssistantInitialView from './AssistantInitialView';
 import ChatInput from './ChatInput';
 import MessagesContainer from './MessagesContainer';
@@ -39,7 +39,7 @@ const SimplifiedAssistantChat = () => {
     handleRetry,
     handleQuestionSelect,
     handleSymptomSubmit
-  } = useChatLogic(selectedPet?.id);
+  } = useSupabaseChatLogic(selectedPet?.id);
 
   return (
     <div className="flex flex-col h-full">
