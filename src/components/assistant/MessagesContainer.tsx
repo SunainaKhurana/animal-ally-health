@@ -1,5 +1,5 @@
 
-import { ChatMessage } from '@/hooks/useChatMessages';
+import { ChatMessage } from '@/hooks/chat/types';
 import { useSmartScroll } from '@/hooks/chat/useSmartScroll';
 import ChatMessageComponent from './ChatMessage';
 import CommonQuestions from './CommonQuestions';

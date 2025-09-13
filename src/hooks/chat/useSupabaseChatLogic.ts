@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useConversations } from '@/hooks/useConversations';
 import { useSymptomReports } from '@/hooks/useSymptomReports';
 import { useToast } from '@/hooks/use-toast';
+import { ChatMessage } from '@/hooks/chat/types';
 
 export const useSupabaseChatLogic = (selectedPetId?: string) => {
   const { toast } = useToast();
@@ -24,12 +25,13 @@ export const useSupabaseChatLogic = (selectedPetId?: string) => {
       // Handle attachments if there's an image
       let attachments = null;
       if (imageFile) {
-        // For now, we'll just store the file info
-        // In a full implementation, you'd upload to Supabase Storage first
+        // TODO: Upload to Supabase Storage first, then store the URL
+        // For now, we'll just store basic metadata
         attachments = {
           hasImage: true,
           fileName: imageFile.name,
-          fileSize: imageFile.size
+          fileSize: imageFile.size,
+          tempImage: true // Flag to indicate this needs proper upload
         };
       }
 
@@ -71,11 +73,13 @@ export const useSupabaseChatLogic = (selectedPetId?: string) => {
       
       let attachments = null;
       if (image) {
+        // TODO: Upload to Supabase Storage first, then store the URL
         attachments = {
           hasImage: true,
           fileName: image.name,
           fileSize: image.size,
-          type: 'symptom_report'
+          type: 'symptom_report',
+          tempImage: true // Flag to indicate this needs proper upload
         };
       }
 
@@ -91,8 +95,8 @@ export const useSupabaseChatLogic = (selectedPetId?: string) => {
     }
   }, [selectedPetId, addSymptomReport, sendMessage, toast]);
 
-  // Convert messages to the format expected by the UI
-  const formattedMessages = messages.map(msg => ({
+  // Convert messages to the format expected by the UI  
+  const formattedMessages: ChatMessage[] = messages.map(msg => ({
     id: msg.id,
     type: msg.role as 'user' | 'assistant',
     content: msg.content,

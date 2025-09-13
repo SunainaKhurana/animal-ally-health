@@ -81,7 +81,7 @@ Please provide helpful, accurate information while always recommending consultin
 
     console.log('Sending to Groq with', messages.length, 'messages');
 
-    // Call Groq API
+    // Call Groq API with updated model
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -89,7 +89,7 @@ Please provide helpful, accurate information while always recommending consultin
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama3-8b-8192',
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7,

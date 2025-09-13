@@ -12,6 +12,8 @@ interface ChatMessageProps {
   };
 }
 
+import LoadingDots from '@/components/ui/loading-dots';
+
 const ChatMessage = React.memo(({ message }: ChatMessageProps) => {
   return (
     <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -24,10 +26,8 @@ const ChatMessage = React.memo(({ message }: ChatMessageProps) => {
       }`}>
         <div className="flex items-start gap-2">
           {message.type === 'processing' && (
-            <div className="flex space-x-1 mt-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="mt-1">
+              <LoadingDots />
             </div>
           )}
           {message.type === 'assistant' && (
