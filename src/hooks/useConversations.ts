@@ -27,6 +27,11 @@ export const useConversations = (petId?: string) => {
   const { toast } = useToast();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // Helper function to sort messages by created_at
+  const sortMessagesByTime = (msgs: Message[]) => {
+    return [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  };
   const [loading, setLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
@@ -107,7 +112,7 @@ export const useConversations = (petId?: string) => {
       // Reverse to show chronological order (oldest first)
       const orderedMessages = messagesData ? messagesData.reverse() : [];
       console.log('Loaded messages:', orderedMessages.length);
-      setMessages(orderedMessages);
+      setMessages(sortMessagesByTime(orderedMessages));
 
     } catch (error: any) {
       console.error('Error loading messages:', error);
@@ -163,7 +168,7 @@ export const useConversations = (petId?: string) => {
       };
 
       // Immediately append user message to local state
-      setMessages(prev => [...prev, userMessage]);
+      setMessages(prev => sortMessagesByTime([...prev, userMessage]));
 
       // Get the current session and access token
       const { data: { session } } = await supabase.auth.getSession();
@@ -205,7 +210,7 @@ export const useConversations = (petId?: string) => {
           created_at: new Date().toISOString()
         };
 
-        setMessages(prev => [...prev, assistantMessage]);
+        setMessages(prev => sortMessagesByTime([...prev, assistantMessage]));
       }
 
       // Update conversation if a new one was created
@@ -270,7 +275,7 @@ export const useConversations = (petId?: string) => {
             setMessages(prev => {
               const exists = prev.some(msg => msg.id === newMessage.id);
               if (exists) return prev;
-              return [...prev, newMessage];
+              return sortMessagesByTime([...prev, newMessage]);
             });
           }
         }
