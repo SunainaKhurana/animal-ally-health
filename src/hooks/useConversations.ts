@@ -87,7 +87,7 @@ export const useConversations = (petId?: string) => {
     }
   }, [petId, user, toast]);
 
-  // Load messages for the current conversation
+  // Load messages for the current conversation (last 20 only)
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
       setLoading(true);
@@ -96,15 +96,18 @@ export const useConversations = (petId?: string) => {
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (error) {
         console.error('Error loading messages:', error);
         throw error;
       }
 
-      console.log('Loaded messages:', messagesData?.length || 0);
-      setMessages(messagesData || []);
+      // Reverse to show chronological order (oldest first)
+      const orderedMessages = messagesData ? messagesData.reverse() : [];
+      console.log('Loaded messages:', orderedMessages.length);
+      setMessages(orderedMessages);
 
     } catch (error: any) {
       console.error('Error loading messages:', error);
@@ -181,10 +184,23 @@ export const useConversations = (petId?: string) => {
       const apiResponse = await response.json();
       console.log('API response received:', apiResponse);
 
-      // The external API handles storing both user and assistant messages
-      // We just need to refresh our local messages to get the latest data
-      if (conversation) {
-        await loadMessages(conversation.id);
+      // Use the API response to immediately update local state instead of reloading
+      if (apiResponse.userMessage && apiResponse.assistantMessage) {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          
+          // Add user message if not already present
+          if (!newMessages.some(msg => msg.id === apiResponse.userMessage.id)) {
+            newMessages.push(apiResponse.userMessage);
+          }
+          
+          // Add assistant message if not already present
+          if (!newMessages.some(msg => msg.id === apiResponse.assistantMessage.id)) {
+            newMessages.push(apiResponse.assistantMessage);
+          }
+          
+          return newMessages;
+        });
       }
 
     } catch (error: any) {
