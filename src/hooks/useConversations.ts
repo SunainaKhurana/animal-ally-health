@@ -128,11 +128,19 @@ export const useConversations = (petId?: string) => {
     try {
       setSendingMessage(true);
 
+      // Get the current session and access token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No valid session found. Please sign in again.');
+      }
+
       // Call the external Vercel API endpoint - it handles storing both messages
       const response = await fetch('https://pet-chat-api.vercel.app/api/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           conversation_id: conversation.id,
