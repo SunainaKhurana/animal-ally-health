@@ -158,9 +158,13 @@ export const useOptimizedPets = () => {
       const now = new Date();
       const birthDate = new Date(petData.dateOfBirth);
       
-      // Simplified age calculation
-      const ageInYears = now.getFullYear() - birthDate.getFullYear();
-      const ageInMonths = (now.getMonth() - birthDate.getMonth()) + ((ageInYears - 1) * 12);
+      // Accurate age calculation
+      let totalMonths = (now.getFullYear() - birthDate.getFullYear()) * 12 + (now.getMonth() - birthDate.getMonth());
+      if (now.getDate() < birthDate.getDate()) {
+        totalMonths -= 1;
+      }
+      const ageInYears = Math.max(0, Math.floor(totalMonths / 12));
+      const ageInMonths = Math.max(0, totalMonths % 12);
       const weightInKg = petData.weightUnit === 'kg' ? petData.weight : petData.weight * 0.453592;
 
       const insertData = {
@@ -235,8 +239,13 @@ export const useOptimizedPets = () => {
       const now = new Date();
       const birthDate = new Date(updatedPet.dateOfBirth);
       
-      const ageInYears = now.getFullYear() - birthDate.getFullYear();
-      const ageInMonths = (now.getMonth() - birthDate.getMonth()) + ((ageInYears - 1) * 12);
+      // Accurate age calculation
+      let totalMonths = (now.getFullYear() - birthDate.getFullYear()) * 12 + (now.getMonth() - birthDate.getMonth());
+      if (now.getDate() < birthDate.getDate()) {
+        totalMonths -= 1;
+      }
+      const ageInYears = Math.max(0, Math.floor(totalMonths / 12));
+      const ageInMonths = Math.max(0, totalMonths % 12);
       const weightInKg = updatedPet.weightUnit === 'kg' ? updatedPet.weight : updatedPet.weight * 0.453592;
 
       const updateData = {
