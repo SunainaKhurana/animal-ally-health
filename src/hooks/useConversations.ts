@@ -180,11 +180,9 @@ export const useConversations = (petId?: string) => {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          pet_id: petId,
           conversation_id: conversation?.id || null,
-          content: content.trim(),
-          user_id: user.id,
-          attachments
+          pet_id: petId,
+          content: content.trim()
         })
       });
 
@@ -198,16 +196,21 @@ export const useConversations = (petId?: string) => {
       console.log('API response received:', apiResponse);
 
       // Append assistant message from API response to local state
-      if (apiResponse.assistantMessage) {
+      if (apiResponse.assistant) {
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           conversation_id: apiResponse.conversation_id || conversation?.id || '',
           role: 'assistant',
-          content: apiResponse.assistantMessage,
+          content: apiResponse.assistant,
           created_at: new Date().toISOString()
         };
 
         setMessages(prev => [...prev, assistantMessage]);
+      }
+
+      // Update conversation if a new one was created
+      if (apiResponse.conversation_id && (!conversation || conversation.id !== apiResponse.conversation_id)) {
+        setConversation(prev => prev ? { ...prev, id: apiResponse.conversation_id } : null);
       }
 
     } catch (error: any) {
