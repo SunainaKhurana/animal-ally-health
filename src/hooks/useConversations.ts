@@ -234,32 +234,35 @@ export const useConversations = (petId?: string) => {
     initializeChat();
   }, [petId, user, getOrCreateConversation, loadMessages]);
 
-  // Subscribe to real-time messages for this conversation
+  // Subscribe to real-time messages for this conversation only
   useEffect(() => {
     if (!conversation) return;
 
     console.log('Setting up real-time subscription for conversation:', conversation.id);
 
     const channel = supabase
-      .channel(`messages:${conversation.id}`)
+      .channel("chat")
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
-          console.log('New message received via real-time:', payload.new);
-          const newMessage = payload.new as Message;
+          console.log('Real-time message event:', payload.eventType, payload.new);
           
-          // Only add if it's not already in our local state
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) return prev;
-            return [...prev, newMessage];
-          });
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newMessage = payload.new as Message;
+            
+            // Only add if it's not already in our local state
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.id === newMessage.id);
+              if (exists) return prev;
+              return [...prev, newMessage];
+            });
+          }
         }
       )
       .subscribe();
