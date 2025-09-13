@@ -128,32 +128,11 @@ export const useConversations = (petId?: string) => {
     try {
       setSendingMessage(true);
 
-      // First, store the user message in Supabase
-      const { data: userMessage, error: userMessageError } = await (supabase as any)
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          role: 'user',
-          content,
-          attachments
-        })
-        .select()
-        .single();
-
-      if (userMessageError) {
-        console.error('Error storing user message:', userMessageError);
-        throw userMessageError;
-      }
-
-      // Add user message to local state immediately
-      setMessages(prev => [...prev, userMessage]);
-
-      // Call the Supabase Edge Function
-      const response = await fetch('https://yertfmwobyvkwghvnyku.supabase.co/functions/v1/chat-api', {
+      // Call the external Vercel API endpoint - it handles storing both messages
+      const response = await fetch('https://pet-chat-api.vercel.app/api/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllcnRmbXdvYnl2a3dnaHZueWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0MDg2MzcsImV4cCI6MjA2NTk4NDYzN30.7jdoINFhuhR45G3XkDAykBYPNLaltVUeyHzRWRA6x3g`,
         },
         body: JSON.stringify({
           conversation_id: conversation.id,
@@ -173,25 +152,10 @@ export const useConversations = (petId?: string) => {
       const apiResponse = await response.json();
       console.log('API response received:', apiResponse);
 
-      // Store the AI response in Supabase
-      if (apiResponse.response) {
-        const { data: aiMessage, error: aiMessageError } = await (supabase as any)
-          .from('messages')
-          .insert({
-            conversation_id: conversation.id,
-            role: 'assistant',
-            content: apiResponse.response,
-          })
-          .select()
-          .single();
-
-        if (aiMessageError) {
-          console.error('Error storing AI message:', aiMessageError);
-          throw aiMessageError;
-        }
-
-        // Add AI message to local state
-        setMessages(prev => [...prev, aiMessage]);
+      // The external API handles storing both user and assistant messages
+      // We just need to refresh our local messages to get the latest data
+      if (conversation) {
+        await loadMessages(conversation.id);
       }
 
     } catch (error: any) {
@@ -204,7 +168,7 @@ export const useConversations = (petId?: string) => {
     } finally {
       setSendingMessage(false);
     }
-  }, [conversation, user, petId, toast]);
+  }, [conversation, user, petId, toast, loadMessages]);
 
   // Initialize conversation and load messages when pet changes
   useEffect(() => {
