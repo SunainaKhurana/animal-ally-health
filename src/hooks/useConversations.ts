@@ -120,8 +120,29 @@ export const useConversations = (petId?: string) => {
 
   // Send message through API and store in Supabase
   const sendMessage = useCallback(async (content: string, attachments?: any) => {
-    if (!conversation || !user || !petId) {
-      console.error('Cannot send message: missing conversation, user, or petId');
+    // Validate required fields before sending
+    if (!content?.trim()) {
+      console.error('Cannot send message: content is required');
+      toast({
+        title: "Error",
+        description: "Message content is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!petId) {
+      console.error('Cannot send message: pet_id is required');
+      toast({
+        title: "Error",
+        description: "Please select a pet first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      console.error('Cannot send message: user is required');
       return;
     }
 
@@ -143,10 +164,10 @@ export const useConversations = (petId?: string) => {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          conversation_id: conversation.id,
-          user_id: user.id,
           pet_id: petId,
-          message: content,
+          conversation_id: conversation?.id || null,
+          content: content.trim(),
+          user_id: user.id,
           attachments
         })
       });
