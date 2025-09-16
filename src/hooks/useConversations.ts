@@ -246,8 +246,12 @@ export const useConversations = (petId?: string) => {
       if (!petId || !user) {
         setConversation(null);
         setMessages([]);
+        setTypingLoaderId(null); // Clear typing loader when switching pets
         return;
       }
+
+      // Clear any existing typing loader when switching conversations
+      setTypingLoaderId(null);
 
       const conv = await getOrCreateConversation();
       if (conv) {
@@ -261,16 +265,20 @@ export const useConversations = (petId?: string) => {
 
   // Subscribe to real-time messages for this conversation only
   useEffect(() => {
-    if (!conversation) return;
+    if (!conversation) {
+      // Clear typing loader if no conversation
+      setTypingLoaderId(null);
+      return;
+    }
 
     console.log('Setting up real-time subscription for conversation:', conversation.id);
 
     const channel = supabase
-      .channel("chat")
+      .channel(`chat-${conversation.id}`) // Use unique channel name per conversation
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`
@@ -281,18 +289,18 @@ export const useConversations = (petId?: string) => {
           if (payload.eventType === 'INSERT' && payload.new) {
             const newMessage = payload.new as Message;
             
-            // If this is an assistant message and we have a typing loader, remove it
-            if (newMessage.role === 'assistant' && typingLoaderId) {
+            // If this is an assistant message, immediately remove typing loader
+            if (newMessage.role === 'assistant') {
               setMessages(prev => {
-                // Remove typing loader and add assistant message
-                const withoutTyping = prev.filter(m => m.id !== typingLoaderId);
+                // Remove any typing loaders and add the assistant message
+                const withoutTyping = prev.filter(m => m.role !== 'typing');
                 // Avoid duplicates
                 if (withoutTyping.some(m => m.id === newMessage.id)) {
                   return withoutTyping;
                 }
                 return sortMessagesByTime([...withoutTyping, newMessage]);
               });
-              setTypingLoaderId(null);
+              setTypingLoaderId(null); // Clear typing loader state
             } else {
               // Only add if it's not already in our local state
               setMessages(prev => {
@@ -309,8 +317,10 @@ export const useConversations = (petId?: string) => {
     return () => {
       console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
+      // Clear typing loader when cleaning up subscription
+      setTypingLoaderId(null);
     };
-  }, [conversation, typingLoaderId]);
+  }, [conversation]);
 
   return {
     conversation,
