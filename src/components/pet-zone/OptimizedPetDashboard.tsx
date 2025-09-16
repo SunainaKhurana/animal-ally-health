@@ -1,23 +1,59 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { memo, useMemo, useCallback } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Heart, RefreshCw, Calendar, Pill, Shield, Sun } from "lucide-react";
+import { Plus, RefreshCw, Pill, Shield, Sun } from "lucide-react";
 import { usePetContext } from "@/contexts/PetContext";
 import { useNavigate } from "react-router-dom";
-import PetLoader from "@/components/ui/PetLoader";
 import ActivitySummaryCard from "@/components/dashboard/ActivitySummaryCard";
-import HealthStatusCard from "@/components/dashboard/HealthStatusCard";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useOptimizedActivityData } from '@/hooks/useOptimizedActivityData';
 
-const PetDashboard = () => {
-  const { selectedPet, pets, loading, error, retry } = usePetContext();
-  const { dashboardData, loading: dashboardLoading } = useDashboardData();
-  const { activities, loading: activitiesLoading, showWeekly, refresh } = useOptimizedActivityData();
+const OptimizedPetDashboard = memo(() => {
+  const { selectedPet, pets, error, retry } = usePetContext();
+  const { dashboardData } = useDashboardData();
+  const { activities } = useOptimizedActivityData();
   const navigate = useNavigate();
 
-  // Remove redundant loader - already handled by Index.tsx
+  const calculateAge = useCallback((dateOfBirth: Date) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  }, []);
+
+  const healthMessage = useMemo(() => {
+    if (!selectedPet || !dashboardData) return '';
+    
+    switch (dashboardData.healthStatus) {
+      case 'good':
+        return `${selectedPet.name} is in excellent health with all vitals in normal range`;
+      case 'attention':
+        return `${selectedPet.name} needs some attention - please review recent health reports`;
+      default:
+        return `${selectedPet.name} is in good health`;
+    }
+  }, [selectedPet, dashboardData.healthStatus]);
+
+  const handleMedicationsClick = useCallback(() => {
+    if (selectedPet) {
+      navigate(`/pets/${selectedPet.id}/medications`);
+    }
+  }, [selectedPet, navigate]);
+
+  const handleVaccineClick = useCallback(() => {
+    navigate('/care');
+  }, [navigate]);
+
+  const handleMoreClick = useCallback(() => {
+    navigate('/more');
+  }, [navigate]);
 
   if (error) {
     return (
@@ -43,7 +79,7 @@ const PetDashboard = () => {
               Add your first furry friend to get started with tracking their health and activities in this beautiful dashboard.
             </p>
             <Button 
-              onClick={() => navigate('/more')} 
+              onClick={handleMoreClick} 
               className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white shadow-lg rounded-full px-8 py-3 text-lg"
             >
               <Plus className="h-5 w-5 mr-2" />
@@ -68,20 +104,7 @@ const PetDashboard = () => {
     );
   }
 
-  const calculateAge = (dateOfBirth: Date) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  // Remove redundant dashboard loader for faster UI
+  const age = calculateAge(selectedPet.dateOfBirth);
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -93,7 +116,7 @@ const PetDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900">Good afternoon!</h3>
           </div>
           <p className="text-sm text-gray-700 leading-relaxed">
-            {dashboardData.healthStatus === 'good' ? `${selectedPet.name} is in excellent health with all vitals in normal range` : dashboardData.healthStatus === 'attention' ? `${selectedPet.name} needs some attention - please review recent health reports` : `${selectedPet.name} is in good health`}
+            {healthMessage}
           </p>
         </CardContent>
       </Card>
@@ -120,7 +143,7 @@ const PetDashboard = () => {
               <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
                 <span>{selectedPet.breed || 'Mixed Breed'}</span>
                 <span>•</span>
-                <span>{calculateAge(selectedPet.dateOfBirth)} years old</span>
+                <span>{age} years old</span>
                 <span>•</span>
                 <span>{selectedPet.weight} {selectedPet.weightUnit || 'lbs'}</span>
               </div>
@@ -134,7 +157,7 @@ const PetDashboard = () => {
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <Button
-              onClick={() => navigate(`/pets/${selectedPet.id}/medications`)}
+              onClick={handleMedicationsClick}
               variant="ghost"
               className="w-full h-full flex flex-col items-center gap-3 text-white hover:bg-white/20 border-0 min-h-[100px]"
             >
@@ -147,7 +170,7 @@ const PetDashboard = () => {
         <Card className="bg-gradient-to-br from-green-500 to-teal-500 text-white border-0 shadow-lg">
           <CardContent className="p-4">
             <Button
-              onClick={() => navigate('/care')}
+              onClick={handleVaccineClick}
               variant="ghost"
               className="w-full h-full flex flex-col items-center gap-3 text-white hover:bg-white/20 border-0 min-h-[100px]"
             >
@@ -170,10 +193,10 @@ const PetDashboard = () => {
         hasActivity={dashboardData.hasActivity}
         petName={selectedPet.name}
       />
-
-      {/* Removed redundant Health Status card - already shown in greeting above */}
     </div>
   );
-};
+});
 
-export default PetDashboard;
+OptimizedPetDashboard.displayName = 'OptimizedPetDashboard';
+
+export default OptimizedPetDashboard;

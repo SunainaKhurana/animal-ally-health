@@ -7,7 +7,7 @@ import { Plus, RefreshCw } from 'lucide-react';
 import { usePets } from '@/hooks/usePets';
 import { usePetContext } from '@/contexts/PetContext';
 import PetZoneNavigation from '@/components/navigation/PetZoneNavigation';
-import PetDashboard from '@/components/pet-zone/PetDashboard';
+import OptimizedPetDashboard from '@/components/pet-zone/OptimizedPetDashboard';
 import PetLoader from '@/components/ui/PetLoader';
 import PetSwitcher from '@/components/pet-zone/PetSwitcher';
 import AddPetDialog from '@/components/pets/AddPetDialog';
@@ -30,7 +30,7 @@ const Index = () => {
     }
   };
 
-  // Show loading state
+  // Show loading state - direct to loader without refresh button
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
@@ -132,7 +132,7 @@ const Index = () => {
 
       {/* Rich Dashboard Content */}
       <div className="max-w-lg mx-auto">
-        <PetDashboard />
+        <OptimizedPetDashboard />
       </div>
 
       <PetZoneNavigation />
