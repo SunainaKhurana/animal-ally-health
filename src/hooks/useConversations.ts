@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface Message {
   id: string;
   conversation_id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'typing';
   content: string;
   created_at: string;
   attachments?: any;
@@ -34,6 +34,7 @@ export const useConversations = (petId?: string) => {
   };
   const [loading, setLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [typingLoaderId, setTypingLoaderId] = useState<string | null>(null);
 
   // Get or create conversation for the current pet
   const getOrCreateConversation = useCallback(async () => {
@@ -170,6 +171,18 @@ export const useConversations = (petId?: string) => {
       // Immediately append user message to local state
       setMessages(prev => sortMessagesByTime([...prev, userMessage]));
 
+      // Add typing loader
+      const typingId = crypto.randomUUID();
+      setTypingLoaderId(typingId);
+      const typingMessage: Message = {
+        id: typingId,
+        conversation_id: conversation?.id || '',
+        role: 'typing',
+        content: '',
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => sortMessagesByTime([...prev, typingMessage]));
+
       // Get the current session and access token
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -177,7 +190,7 @@ export const useConversations = (petId?: string) => {
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      // Call the external Vercel API endpoint
+      // Call the external Vercel API endpoint (but don't append assistant response)
       const response = await fetch('https://pet-chat-api.vercel.app/api/chat/send', {
         method: 'POST',
         headers: {
@@ -194,32 +207,29 @@ export const useConversations = (petId?: string) => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API response error:', response.status, errorText);
+        // Remove typing loader on error
+        setMessages(prev => prev.filter(m => m.id !== typingId));
+        setTypingLoaderId(null);
         throw new Error(`API request failed: ${response.status} ${errorText}`);
       }
 
       const apiResponse = await response.json();
       console.log('API response received:', apiResponse);
 
-      // Append assistant message from API response to local state
-      if (apiResponse.assistant) {
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          conversation_id: apiResponse.conversation_id || conversation?.id || '',
-          role: 'assistant',
-          content: apiResponse.assistant,
-          created_at: new Date().toISOString()
-        };
-
-        setMessages(prev => sortMessagesByTime([...prev, assistantMessage]));
-      }
-
       // Update conversation if a new one was created
       if (apiResponse.conversation_id && (!conversation || conversation.id !== apiResponse.conversation_id)) {
         setConversation(prev => prev ? { ...prev, id: apiResponse.conversation_id } : null);
       }
 
+      // Don't append assistant message here - wait for realtime subscription
+
     } catch (error: any) {
       console.error('Error sending message:', error);
+      // Remove typing loader on error
+      if (typingLoaderId) {
+        setMessages(prev => prev.filter(m => m.id !== typingLoaderId));
+        setTypingLoaderId(null);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to send message. Please try again.",
@@ -228,7 +238,7 @@ export const useConversations = (petId?: string) => {
     } finally {
       setSendingMessage(false);
     }
-  }, [conversation, user, petId, toast]);
+  }, [conversation, user, petId, toast, typingLoaderId]);
 
   // Initialize conversation and load messages when pet changes
   useEffect(() => {
@@ -271,12 +281,26 @@ export const useConversations = (petId?: string) => {
           if (payload.eventType === 'INSERT' && payload.new) {
             const newMessage = payload.new as Message;
             
-            // Only add if it's not already in our local state
-            setMessages(prev => {
-              const exists = prev.some(msg => msg.id === newMessage.id);
-              if (exists) return prev;
-              return sortMessagesByTime([...prev, newMessage]);
-            });
+            // If this is an assistant message and we have a typing loader, remove it
+            if (newMessage.role === 'assistant' && typingLoaderId) {
+              setMessages(prev => {
+                // Remove typing loader and add assistant message
+                const withoutTyping = prev.filter(m => m.id !== typingLoaderId);
+                // Avoid duplicates
+                if (withoutTyping.some(m => m.id === newMessage.id)) {
+                  return withoutTyping;
+                }
+                return sortMessagesByTime([...withoutTyping, newMessage]);
+              });
+              setTypingLoaderId(null);
+            } else {
+              // Only add if it's not already in our local state
+              setMessages(prev => {
+                const exists = prev.some(msg => msg.id === newMessage.id);
+                if (exists) return prev;
+                return sortMessagesByTime([...prev, newMessage]);
+              });
+            }
           }
         }
       )
@@ -286,7 +310,7 @@ export const useConversations = (petId?: string) => {
       console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [conversation]);
+  }, [conversation, typingLoaderId]);
 
   return {
     conversation,

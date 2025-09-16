@@ -5,7 +5,7 @@ import { Bot, Camera } from 'lucide-react';
 interface ChatMessageProps {
   message: {
     id: string;
-    type: 'user' | 'assistant' | 'processing';
+    type: 'user' | 'assistant' | 'processing' | 'typing';
     content: string;
     timestamp: Date;
     hasImage?: boolean;
@@ -13,8 +13,14 @@ interface ChatMessageProps {
 }
 
 import LoadingDots from '@/components/ui/loading-dots';
+import TypingLoader from './TypingLoader';
 
 const ChatMessage = React.memo(({ message }: ChatMessageProps) => {
+  // Handle typing loader as a special case
+  if (message.type === 'typing') {
+    return <TypingLoader />;
+  }
+
   return (
     <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] rounded-lg p-3 ${

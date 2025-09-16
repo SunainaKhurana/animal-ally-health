@@ -1,7 +1,7 @@
 
 export interface ChatMessage {
   id: string;
-  type: 'user' | 'assistant' | 'processing';
+  type: 'user' | 'assistant' | 'processing' | 'typing';
   content: string;
   timestamp: Date;
   hasImage?: boolean;
