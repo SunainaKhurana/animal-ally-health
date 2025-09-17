@@ -98,11 +98,11 @@ export const useSupabaseChatLogic = (selectedPetId?: string) => {
   // Convert messages to the format expected by the UI  
   const formattedMessages: ChatMessage[] = messages.map(msg => ({
     id: msg.id,
-    type: msg.role as 'user' | 'assistant',
+    type: msg.role === 'typing' ? 'typing' : msg.role as 'user' | 'assistant',
     content: msg.content,
     timestamp: new Date(msg.created_at),
     hasImage: msg.attachments?.hasImage || false,
-    isProcessing: false
+    isProcessing: msg.role === 'typing'
   }));
 
   return {

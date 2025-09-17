@@ -168,18 +168,18 @@ export const useConversations = (petId?: string) => {
         attachments
       };
 
-      // Immediately append user message to local state
+      // Immediately append user message to local state (optimistic UI)
       setMessages(prev => sortMessagesByTime([...prev, userMessage]));
 
-      // Add typing loader
+      // Add typing loader immediately after user message
       const typingId = crypto.randomUUID();
       setTypingLoaderId(typingId);
       const typingMessage: Message = {
         id: typingId,
         conversation_id: conversation?.id || '',
         role: 'typing',
-        content: '',
-        created_at: new Date().toISOString()
+        content: 'Assistant is typing...',
+        created_at: new Date(Date.now() + 1).toISOString() // Ensure it comes after user message
       };
       setMessages(prev => sortMessagesByTime([...prev, typingMessage]));
 
@@ -289,7 +289,7 @@ export const useConversations = (petId?: string) => {
           if (payload.eventType === 'INSERT' && payload.new) {
             const newMessage = payload.new as Message;
             
-            // If this is an assistant message, immediately remove typing loader
+            // If this is an assistant message, immediately remove typing loader and display message
             if (newMessage.role === 'assistant') {
               setMessages(prev => {
                 // Remove any typing loaders and add the assistant message
@@ -301,8 +301,8 @@ export const useConversations = (petId?: string) => {
                 return sortMessagesByTime([...withoutTyping, newMessage]);
               });
               setTypingLoaderId(null); // Clear typing loader state
-            } else {
-              // Only add if it's not already in our local state
+            } else if (newMessage.role === 'user') {
+              // Only add user messages if they're not already in local state (from optimistic UI)
               setMessages(prev => {
                 const exists = prev.some(msg => msg.id === newMessage.id);
                 if (exists) return prev;
