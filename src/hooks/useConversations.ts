@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { sendChatToAPI } from '@/lib/chatApi';
 
 export interface Message {
   id: string;
@@ -190,36 +191,13 @@ export const useConversations = (petId?: string) => {
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      // Call the external Vercel API endpoint (but don't append assistant response)
-      const response = await fetch('https://pet-chat-api.vercel.app/api/chat/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          conversation_id: conversation?.id || null,
-          pet_id: petId,
-          content: content.trim()
-        })
+      // Call the API using the new cleaner function
+      await sendChatToAPI({
+        accessToken: session.access_token,
+        conversationId: conversation?.id,
+        petId: petId,
+        content: content.trim()
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', response.status, errorText);
-        // Remove typing loader on error
-        setMessages(prev => prev.filter(m => m.id !== typingId));
-        setTypingLoaderId(null);
-        throw new Error(`API request failed: ${response.status} ${errorText}`);
-      }
-
-      const apiResponse = await response.json();
-      console.log('API response received:', apiResponse);
-
-      // Update conversation if a new one was created
-      if (apiResponse.conversation_id && (!conversation || conversation.id !== apiResponse.conversation_id)) {
-        setConversation(prev => prev ? { ...prev, id: apiResponse.conversation_id } : null);
-      }
 
       // Don't append assistant message here - wait for realtime subscription
 
