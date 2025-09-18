@@ -191,13 +191,23 @@ export const useConversations = (petId?: string) => {
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      // Call the API using the new cleaner function
-      await sendChatToAPI({
-        accessToken: session.access_token,
-        conversationId: conversation?.id,
-        petId: petId,
-        content: content.trim()
-      });
+      // Call the API using the correct contract
+      if (conversation?.id) {
+        // Existing conversation - send conversationId only
+        await sendChatToAPI({
+          accessToken: session.access_token,
+          conversationId: conversation.id,
+          content: content.trim()
+        });
+      } else {
+        // New conversation - send petId and title
+        await sendChatToAPI({
+          accessToken: session.access_token,
+          petId: petId,
+          content: content.trim(),
+          title: 'Chat with AI Assistant'
+        });
+      }
 
       // Don't append assistant message here - wait for realtime subscription
 
