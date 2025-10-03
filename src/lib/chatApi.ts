@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export async function sendChatToAPI({
   accessToken,              // Supabase session access token (string)
   conversationId,           // existing conversation id (string | undefined)
@@ -15,26 +17,20 @@ export async function sendChatToAPI({
   if (!content) throw new Error("No content");
   if (!conversationId && !petId) throw new Error("Need conversationId or petId");
 
-  const res = await fetch("https://pet-chat-api.vercel.app/api/chat/send", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  const { data, error } = await supabase.functions.invoke('chat-send', {
+    body: {
       conversation_id: conversationId ?? null,
       pet_id: conversationId ? null : petId,
       content,
       title: title ?? null,
-    }),
+    },
   });
 
-  // We stream the assistant reply via realtime, so here we only need to check for 2xx/4xx.
-  if (!res.ok) {
-    let details = "";
-    try { details = await res.text(); } catch {}
-    throw new Error(`API ${res.status}: ${details}`);
+  if (error) {
+    console.error('Chat API error:', error);
+    throw new Error(`Chat API failed: ${error.message}`);
   }
-  // Do not parse JSON here; the server streams the reply separately.
+
+  // The assistant reply is streamed via realtime subscription
   return true;
 }
