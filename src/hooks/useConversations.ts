@@ -159,20 +159,7 @@ export const useConversations = (petId?: string) => {
     try {
       setSendingMessage(true);
 
-      // Create user message immediately and add to local state
-      const userMessage: Message = {
-        id: crypto.randomUUID(),
-        conversation_id: conversation?.id || '',
-        role: 'user',
-        content: content.trim(),
-        created_at: new Date().toISOString(),
-        attachments
-      };
-
-      // Immediately append user message to local state (optimistic UI)
-      setMessages(prev => sortMessagesByTime([...prev, userMessage]));
-
-      // Add typing loader immediately after user message
+      // Add typing loader - API will store user message
       const typingId = crypto.randomUUID();
       setTypingLoaderId(typingId);
       const typingMessage: Message = {
@@ -180,7 +167,7 @@ export const useConversations = (petId?: string) => {
         conversation_id: conversation?.id || '',
         role: 'typing',
         content: 'Assistant is typing...',
-        created_at: new Date(Date.now() + 1).toISOString() // Ensure it comes after user message
+        created_at: new Date().toISOString()
       };
       setMessages(prev => sortMessagesByTime([...prev, typingMessage]));
 
@@ -290,12 +277,17 @@ export const useConversations = (petId?: string) => {
               });
               setTypingLoaderId(null); // Clear typing loader state
             } else if (newMessage.role === 'user') {
-              // Only add user messages if they're not already in local state (from optimistic UI)
+              // Add user messages from realtime (API stores them)
               setMessages(prev => {
-                const exists = prev.some(msg => msg.id === newMessage.id);
-                if (exists) return prev;
-                return sortMessagesByTime([...prev, newMessage]);
+                // Remove typing loader first
+                const withoutTyping = prev.filter(m => m.role !== 'typing');
+                // Avoid duplicates
+                if (withoutTyping.some(m => m.id === newMessage.id)) {
+                  return withoutTyping;
+                }
+                return sortMessagesByTime([...withoutTyping, newMessage]);
               });
+              setTypingLoaderId(null); // Clear typing loader when user message arrives
             }
           }
         }
