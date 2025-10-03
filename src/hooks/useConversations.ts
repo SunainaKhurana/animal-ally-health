@@ -159,7 +159,18 @@ export const useConversations = (petId?: string) => {
     try {
       setSendingMessage(true);
 
-      // Add typing loader - API will store user message
+      // Optimistically add user message
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        conversation_id: conversation?.id || '',
+        role: 'user',
+        content: content.trim(),
+        created_at: new Date().toISOString(),
+        attachments
+      };
+      setMessages(prev => sortMessagesByTime([...prev, userMessage]));
+
+      // Add typing loader
       const typingId = crypto.randomUUID();
       setTypingLoaderId(typingId);
       const typingMessage: Message = {
@@ -167,7 +178,7 @@ export const useConversations = (petId?: string) => {
         conversation_id: conversation?.id || '',
         role: 'typing',
         content: 'Assistant is typing...',
-        created_at: new Date().toISOString()
+        created_at: new Date(Date.now() + 1).toISOString()
       };
       setMessages(prev => sortMessagesByTime([...prev, typingMessage]));
 
@@ -277,17 +288,13 @@ export const useConversations = (petId?: string) => {
               });
               setTypingLoaderId(null); // Clear typing loader state
             } else if (newMessage.role === 'user') {
-              // Add user messages from realtime (API stores them)
+              // User messages from realtime - avoid duplicates from optimistic UI
               setMessages(prev => {
-                // Remove typing loader first
-                const withoutTyping = prev.filter(m => m.role !== 'typing');
-                // Avoid duplicates
-                if (withoutTyping.some(m => m.id === newMessage.id)) {
-                  return withoutTyping;
+                if (prev.some(m => m.id === newMessage.id)) {
+                  return prev;
                 }
-                return sortMessagesByTime([...withoutTyping, newMessage]);
+                return sortMessagesByTime([...prev, newMessage]);
               });
-              setTypingLoaderId(null); // Clear typing loader when user message arrives
             }
           }
         }
