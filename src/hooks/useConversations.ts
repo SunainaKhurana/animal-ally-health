@@ -189,23 +189,14 @@ export const useConversations = (petId?: string) => {
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      // Call the API using the correct contract
-      if (conversation?.id) {
-        // Existing conversation - send conversationId only
-        await sendChatToAPI({
-          accessToken: session.access_token,
-          conversationId: conversation.id,
-          content: content.trim()
-        });
-      } else {
-        // New conversation - send petId and title
-        await sendChatToAPI({
-          accessToken: session.access_token,
-          petId: petId,
-          content: content.trim(),
-          title: 'Chat with AI Assistant'
-        });
-      }
+      // Call the Vercel API - it handles pet context, summaries, routing, and AI prompts
+      await sendChatToAPI({
+        accessToken: session.access_token,
+        conversationId: conversation?.id,
+        petId: petId,
+        content: content.trim(),
+        title: conversation?.id ? undefined : 'Chat with AI Assistant'
+      });
 
       // Don't append assistant message here - wait for realtime subscription
 
